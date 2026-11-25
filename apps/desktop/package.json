@@ -1,0 +1,19 @@
+{
+  "name": "where-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Tauri desktop shell for the WHERE rebuild",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "prepare:server": "cargo build -p where-server --release --manifest-path ../../Cargo.toml && node scripts/prepare-server.mjs",
+    "installer": "npm run prepare:server && tauri build --bundles nsis",
+    "dev:people": "tauri dev --config src-tauri/tauri.people.conf.json",
+    "build:people": "tauri build --config src-tauri/tauri.people.conf.json",
+    "installer:people": "npm run prepare:server && tauri build --config src-tauri/tauri.people.conf.json --bundles nsis"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0"
+  }
+}

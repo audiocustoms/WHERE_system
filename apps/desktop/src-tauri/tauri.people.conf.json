@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WHERE - are my people",
+  "mainBinaryName": "where-are-my-people",
+  "identifier": "de.where.are-my-people",
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": ["icons/icon.ico"],
+    "resources": [],
+    "shortDescription": "WHERE - are my people?",
+    "longDescription": "Personalwesen und Dienstplanung als eigenständige Anwendung."
+  }
+}
