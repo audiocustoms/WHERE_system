@@ -1,0 +1,20 @@
+[package]
+name = "where-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+axum = "0.8.9"
+dotenvy = "0.15.7"
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.54.1", features = ["full"] }
+toml = "0.9.8"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+where-api = { version = "0.1.0", path = "../where-api" }
+where-module-go = { version = "0.1.0", path = "../where-module-go" }
+where-module-money = { version = "0.1.0", path = "../where-module-money" }
+where-module-people = { version = "0.1.0", path = "../where-module-people" }
+where-modules = { version = "0.1.0", path = "../where-modules" }
+where-persistence = { version = "0.1.0", path = "../where-persistence" }
