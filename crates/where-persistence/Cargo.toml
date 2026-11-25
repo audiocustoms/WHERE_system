@@ -1,0 +1,14 @@
+[package]
+name = "where-persistence"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4.45", features = ["serde"] }
+rust_decimal = { version = "1.43.0", features = ["serde"] }
+sha2 = "0.11.1"
+sqlx = { version = "0.9.0", features = ["runtime-tokio", "tls-rustls", "postgres", "migrate", "uuid", "chrono", "rust_decimal", "macros"] }
+tokio = { version = "1.54.1", features = ["fs", "macros", "rt-multi-thread"] }
+tracing = "0.1"
+uuid = { version = "1.29.2", features = ["v4"] }
+where-domain = { version = "0.1.0", path = "../where-domain" }
