@@ -1,0 +1,49 @@
+/* Article window (`img/artikel_01..05.PNG`).
+ *
+ * It reuses the shell of the search and address windows
+ * (`lib/search/search-window.css`: `sw-backdrop`, `sw-window`, `sw-titlebar`,
+ * `sw-footer`, `sw-button`, …) and adds only the frame for the article mask: the
+ * scroll area of the tabs. The mask brings the name band with the number.
+ *
+ * Colours come from the palette of the application (`--surface`, `--menu-band-*`,
+ * `--accent`), so the window follows the light and the dark design.
+ */
+
+.art-window {
+	max-width: 100%;
+	/* Otherwise a flex child shrinks below its `width` — the window should stay
+	   as wide as the mask needs it. */
+	flex: 0 0 auto;
+}
+
+/* ----------------------------------------------------------------- Content */
+
+/* `Laden …`, the error and the frame of the embedded mask. */
+.art-content {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+	/* The mask scrolls its tabs inside; here it stays at "nothing overflows". */
+	overflow: hidden;
+	background: var(--surface);
+	color: var(--text);
+}
+
+/* The mask brings no frame of its own inside the window. */
+.art-content :global(.maske.im-fenster) {
+	border: 0;
+	border-radius: 0;
+	background: var(--surface);
+}
+
+.art-message {
+	margin: 0;
+	padding: 1.2rem 0.9rem;
+	font-size: 0.82rem;
+	color: var(--muted);
+}
+
+.art-message.bad {
+	color: var(--bad);
+}

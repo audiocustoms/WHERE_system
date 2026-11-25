@@ -1,0 +1,337 @@
+/* Address windows (duplicate check, address mask, number dialog).
+ *
+ * They reuse the shell of the search windows (`lib/search/search-window.css`:
+ * `sw-backdrop`, `sw-window`, `sw-titlebar`, `sw-footer`,
+ * `sw-button`, …) and add only what is specific to the address master: the wide
+ * two-column form, the name band, the tab strip and the role column.
+ */
+
+.adr-window {
+	/* Windows of the original are wide; keep them inside the viewport. */
+	max-width: 100%;
+}
+
+/* ---------------------------------------------------------------- Title bar */
+
+/* The window name sits as a band below the menu bar — like the ribbon
+   of the application, so that the light and the dark design both fit. */
+.adr-band {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.3rem 0.6rem;
+	background: var(--menu-band-2);
+	color: var(--text);
+	border-bottom: 1px solid var(--menu-band-border);
+}
+
+.adr-band h2 {
+	margin: 0;
+	font-size: 1.02rem;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+}
+
+.adr-band .adr-stamp {
+	margin-left: auto;
+	text-align: right;
+	font-size: 0.66rem;
+	line-height: 1.25;
+	color: var(--muted);
+	white-space: pre-line;
+}
+
+/* ------------------------------------------------------------------- Tabs */
+
+.adr-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 0.1rem;
+	padding: 0.3rem 0.5rem 0;
+	background: var(--surface-2);
+	border-bottom: 1px solid var(--menu-band-border);
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: thin;
+}
+
+.adr-tabs button {
+	flex: 0 0 auto;
+	padding: 0.24rem 0.7rem;
+	border: 1px solid var(--menu-band-border);
+	border-bottom: none;
+	border-radius: 3px 3px 0 0;
+	background: var(--surface-2);
+	color: var(--text);
+	font-size: 0.76rem;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.adr-tabs button.active {
+	background: var(--surface);
+	font-weight: 600;
+	margin-bottom: -1px;
+	padding-bottom: 0.28rem;
+}
+
+/* Role tabs: usable only once the marker is set. */
+.adr-tabs button:disabled {
+	color: var(--muted-2);
+	background: var(--surface-3);
+	cursor: not-allowed;
+	font-style: italic;
+}
+
+/* Footer of the mask: „Löschen" only for an existing address, set off to the left. */
+.adr-window .sw-footer .adr-delete {
+	flex: 0 0 auto;
+	margin-right: auto;
+	color: var(--bad);
+	border-color: var(--bad);
+}
+
+/* --------------------------------------------------------------------- Form */
+
+.adr-content {
+	padding: 0.6rem 0.75rem 0.35rem;
+	font-size: 0.78rem;
+	color: var(--text);
+	/* The window limits the height (`search-window.css`); here the content scrolls
+	   and grows along when the window is dragged larger. */
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+}
+
+/* Two columns like the original: data on the left, contact/notes on the right. */
+.adr-columns {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+	gap: 0.9rem;
+	align-items: start;
+}
+
+@media (max-width: 900px) {
+	.adr-columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* The base data tab: fields · role column · contact panel (like the original). */
+.adr-columns.base {
+	grid-template-columns: minmax(0, 2.1fr) auto minmax(0, 1fr);
+}
+
+.adr-group {
+	border: 1px solid var(--menu-band-border);
+	border-radius: 3px;
+	padding: 0.35rem 0.5rem 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.adr-group > legend {
+	padding: 0 0.3rem;
+	font-size: 0.74rem;
+	color: var(--muted);
+}
+
+.adr-row {
+	display: grid;
+	grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.35rem;
+	margin-bottom: 0.22rem;
+}
+
+.adr-row > .adr-label {
+	font-size: 0.76rem;
+	line-height: 1.15;
+}
+
+.adr-row input:not([type='checkbox']):not([type='radio']),
+.adr-row select,
+.adr-row textarea {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.12rem 0.3rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	background: var(--surface);
+	color: var(--text);
+	font-size: 0.78rem;
+	font-family: inherit;
+}
+
+.adr-row textarea {
+	min-height: 2.6rem;
+	resize: vertical;
+}
+
+.adr-row input:disabled,
+.adr-row select:disabled,
+.adr-row textarea:disabled {
+	background: var(--surface-3);
+	color: var(--muted-2);
+}
+
+/* Fields of the right column keep their label above the input. */
+.adr-row.narrow {
+	grid-template-columns: 8.5rem minmax(0, 1fr);
+}
+
+.adr-checkrow {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.15rem 1.1rem;
+	padding: 0.1rem 0 0.2rem 8.9rem;
+}
+
+.adr-checkrow label,
+.adr-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.76rem;
+	white-space: nowrap;
+}
+
+.adr-checkrow input,
+.adr-check input {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+/* The role column to the right of the base data (Interessent … V.I.P.). */
+.adr-roles {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 0.2rem 0.1rem 0 0.2rem;
+	border-left: 1px solid var(--border);
+	padding-left: 0.7rem;
+}
+
+/* „+"/„⊘" buttons next to a field, as in the original. */
+.adr-extra {
+	flex: 0 0 auto;
+	width: 1.4rem;
+	height: 1.35rem;
+	line-height: 1;
+	font-size: 0.8rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	background: var(--surface-3);
+	color: var(--text);
+	cursor: pointer;
+}
+.adr-extra:disabled {
+	color: var(--muted-2);
+	cursor: default;
+}
+
+/* --------------------------------------------------- Duplicate check */
+
+/* The duplicate question sits in a band of its own — surfaces and
+   text of the application, so the dark design gets no black island. */
+.adr-search-band {
+	background: var(--surface-2);
+	color: var(--text);
+	border-bottom: 1px solid var(--menu-band-border);
+	text-align: center;
+	padding: 0.5rem 0.75rem 0.6rem;
+}
+
+.adr-search-band p {
+	margin: 0 0 0.45rem;
+	font-size: 0.86rem;
+	font-weight: 700;
+}
+
+.adr-search-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+}
+
+.adr-search-row input {
+	width: min(22rem, 70vw);
+	padding: 0.3rem 0.45rem;
+	border: 1px solid var(--accent);
+	border-radius: 2px;
+	background: var(--surface);
+	color: var(--text);
+	font-size: 0.9rem;
+	font-family: inherit;
+	text-align: center;
+}
+.adr-search-row input::placeholder {
+	color: var(--muted-2);
+}
+
+.adr-search-row button {
+	width: 1.9rem;
+	height: 1.9rem;
+	display: grid;
+	place-items: center;
+	border: none;
+	background: none;
+	color: var(--muted);
+	cursor: pointer;
+}
+.adr-search-row button:hover {
+	color: var(--accent);
+}
+.adr-search-row button svg {
+	width: 1.15rem;
+	height: 1.15rem;
+}
+
+.adr-message {
+	margin: 0.55rem 0 0;
+	text-align: center;
+	font-size: 0.82rem;
+}
+
+.adr-message.good {
+	color: var(--good);
+	font-weight: 600;
+}
+
+.adr-message.bad {
+	color: var(--bad);
+}
+
+/* Results of the duplicate check. */
+.adr-hits {
+	max-height: min(16rem, 40vh);
+	overflow: auto;
+	border-top: 1px solid var(--border);
+}
+
+.adr-hits table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.78rem;
+}
+
+.adr-hits th,
+.adr-hits td {
+	text-align: left;
+	padding: 0.25rem 0.4rem;
+	border-bottom: 1px solid var(--surface-3);
+	white-space: nowrap;
+}
+
+.adr-hits thead th {
+	position: sticky;
+	top: 0;
+	background: var(--surface-2);
+}
+
+/* „Weiter mit der Adressanlage" is the highlighted default of the original. */
+.adr-continue {
+	flex: 2;
+}

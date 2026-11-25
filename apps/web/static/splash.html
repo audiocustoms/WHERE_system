@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="de">
+	<head>
+		<meta charset="utf-8" />
+		<title>WHERE startet …</title>
+		<style>
+			:root {
+				color-scheme: light dark;
+				--bg: #f5f6f8;
+				--surface: #ffffff;
+				--text: #1d2430;
+				--muted: #5b6676;
+				--line: #d7dce4;
+				--accent: #2f6f4f;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root {
+					--bg: #14181e;
+					--surface: #1b2028;
+					--text: #e7ebf1;
+					--muted: #98a3b3;
+					--line: #2b323c;
+					--accent: #7fc4a1;
+				}
+			}
+			html,
+			body {
+				height: 100%;
+				margin: 0;
+			}
+			body {
+				display: grid;
+				place-items: center;
+				background: var(--bg);
+				color: var(--text);
+				font-family: 'Segoe UI', system-ui, sans-serif;
+			}
+			.karte {
+				width: min(30rem, 80vw);
+				padding: 1.6rem 1.8rem 1.4rem;
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				box-shadow: 0 10px 30px rgb(0 0 0 / 8%);
+			}
+			h1 {
+				margin: 0 0 0.2rem;
+				font-size: 1.3rem;
+				letter-spacing: 0.08em;
+			}
+			p {
+				margin: 0.4rem 0 0;
+				color: var(--muted);
+				font-size: 0.86rem;
+				line-height: 1.45;
+			}
+			.balken {
+				height: 4px;
+				margin-top: 1.1rem;
+				border-radius: 2px;
+				overflow: hidden;
+				background: var(--line);
+			}
+			.balken::before {
+				content: '';
+				display: block;
+				width: 35%;
+				height: 100%;
+				background: var(--accent);
+				animation: lauf 1.4s ease-in-out infinite;
+			}
+			@keyframes lauf {
+				0% {
+					transform: translateX(-60%);
+				}
+				100% {
+					transform: translateX(300%);
+				}
+			}
+			.fehler {
+				margin-top: 1rem;
+				padding: 0.7rem 0.8rem;
+				border: 1px solid #b4564f;
+				border-radius: 4px;
+				background: rgb(180 86 79 / 10%);
+				color: var(--text);
+				font-size: 0.82rem;
+				white-space: pre-wrap;
+			}
+			.versteckt {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="karte">
+			<h1>WHERE</h1>
+			<p id="text">Datenbank wird vorbereitet — beim ersten Start kann das eine Minute dauern.</p>
+			<div class="balken" id="balken"></div>
+			<div class="fehler versteckt" id="fehler"></div>
+		</div>
+		<script>
+			// Die Shell setzt den Text von außen; die Seite selbst bleibt schreibfrei.
+			window.__zeigeFehler = (nachricht) => {
+				document.getElementById('balken').classList.add('versteckt');
+				document.getElementById('text').textContent = 'WHERE konnte nicht starten.';
+				const feld = document.getElementById('fehler');
+				feld.textContent = nachricht;
+				feld.classList.remove('versteckt');
+			};
+		</script>
+	</body>
+</html>

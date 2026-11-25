@@ -1,0 +1,12 @@
+{
+	"extends": "$app/tsconfig",
+	"compilerOptions": {
+		"strict": true,
+		"paths": {
+			"$core": ["./src/lib"],
+			"$core/*": ["./src/lib/*"],
+			"$modules/*": ["../../modules/*"]
+		}
+	},
+	"include": ["src", "vite.config.ts", "../../modules/**/*.svelte", "../../modules/**/*.ts"]
+}

@@ -1,0 +1,518 @@
+/* Search windows of the "Suchen" area.
+ *
+ * The masks rebuild the windows of the original application
+ * (`img/suche/*.PNG`): title bar, dark "Vorgang" band, form body and
+ * a button row. The small menu bar of the original (`Datei`, `Bearbeiten`,
+ * `Hilfe`) is gone — the window shows only what it can do. The classes are
+ * global because each window is assembled from
+ * several components (shell + one component per area) and Svelte scopes styles
+ * per component.
+ */
+
+.sw-backdrop {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 2.5rem 1rem;
+	background: rgb(15 20 28 / 0.45);
+	z-index: 60;
+	overflow: auto;
+	/* Reserve room for the scrollbar: otherwise a moved window jumps
+	   sideways as soon as the bar appears (`lib/windowDrag.ts`). */
+	scrollbar-gutter: stable;
+}
+
+.sw-window {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	background: var(--surface-2);
+	border: 1px solid var(--menu-band-border);
+	border-radius: 5px;
+	box-shadow: 0 14px 34px rgb(0 0 0 / 0.32);
+	overflow: hidden;
+	/* No window grows taller than the screen; the content then scrolls inside. */
+	max-height: calc(100dvh - 5rem);
+}
+/* While dragging the window lies above everything else and stands out. */
+.sw-window.is-dragging {
+	box-shadow: 0 22px 48px rgb(0 0 0 / 0.42);
+}
+body.window-drag {
+	cursor: grabbing;
+}
+body.window-drag .sw-titlebar {
+	cursor: grabbing;
+}
+body.window-drag,
+body.window-resize {
+	user-select: none;
+}
+
+/* ------------------------------------------------ Handles for resizing */
+
+/* Eight invisible handles on edges and corners (`lib/windowChrome.ts`). */
+.sw-grip {
+	position: absolute;
+	z-index: 6;
+}
+.sw-griff-n,
+.sw-griff-s {
+	left: 8px;
+	right: 8px;
+	height: 6px;
+	cursor: ns-resize;
+}
+.sw-griff-n {
+	top: 0;
+}
+.sw-griff-s {
+	bottom: 0;
+}
+.sw-griff-e,
+.sw-griff-w {
+	top: 8px;
+	bottom: 8px;
+	width: 6px;
+	cursor: ew-resize;
+}
+.sw-griff-e {
+	right: 0;
+}
+.sw-griff-w {
+	left: 0;
+}
+.sw-griff-ne,
+.sw-griff-nw,
+.sw-griff-se,
+.sw-griff-sw {
+	width: 12px;
+	height: 12px;
+}
+.sw-griff-ne {
+	top: 0;
+	right: 0;
+	cursor: nesw-resize;
+}
+.sw-griff-nw {
+	top: 0;
+	left: 0;
+	cursor: nwse-resize;
+}
+.sw-griff-se {
+	bottom: 0;
+	right: 0;
+	cursor: nwse-resize;
+}
+.sw-griff-sw {
+	bottom: 0;
+	left: 0;
+	cursor: nesw-resize;
+}
+/* The content reaches the edge — the handles stay graspable anyway. */
+.sw-window > .sw-content,
+.sw-window > .sw-footer {
+	position: relative;
+	z-index: 1;
+}
+
+/* -------------------------------------------------------------- Title bar */
+
+.sw-titlebar {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0.3rem 0.4rem 0.3rem 0.55rem;
+	background: var(--surface);
+	border-bottom: 1px solid var(--border);
+	/* Like a title bar under Windows: grab and drag
+	   (`lib/windowDrag.ts`), a double click resets the position. */
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+}
+
+.sw-icon {
+	width: 0.85rem;
+	height: 0.85rem;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 30%, #7fb2f0, #1f4f96 70%);
+	flex: 0 0 auto;
+}
+
+.sw-title {
+	font-size: 0.8rem;
+	color: var(--text);
+}
+
+.sw-close {
+	margin-left: auto;
+	border: none;
+	background: none;
+	color: var(--muted);
+	font-size: 0.95rem;
+	line-height: 1;
+	padding: 0.05rem 0.35rem;
+	cursor: pointer;
+	border-radius: 3px;
+}
+.sw-close:hover {
+	background: var(--bad);
+	color: #fff;
+}
+
+/* ------------------------------------------------------ "Vorgang" bar */
+
+.sw-band {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	background: #242424;
+	padding: 0.15rem 0.35rem 0.15rem 0.55rem;
+	min-height: 1.45rem;
+}
+
+.sw-band-marker {
+	font-size: 0.78rem;
+	color: #6cb6ff;
+	flex: 0 0 auto;
+}
+
+.sw-band-text {
+	font-size: 0.78rem;
+	color: #f0f0f0;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding-left: 3.2rem;
+}
+
+.sw-band-select,
+.sw-band-mode {
+	font-size: 0.78rem;
+	font-family: inherit;
+	color: #f0f0f0;
+	background: #242424;
+	border: 1px solid transparent;
+	padding: 0.05rem 0.2rem;
+	min-width: 0;
+}
+.sw-band-select {
+	flex: 1;
+}
+.sw-band-mode {
+	flex: 0 0 auto;
+	color: #dedede;
+}
+.sw-band-select option,
+.sw-band-mode option {
+	color: var(--text);
+	background: var(--surface);
+}
+.sw-band-select:hover,
+.sw-band-mode:hover {
+	border-color: #4a4a4a;
+}
+
+/* ----------------------------------------------------------------- Content */
+
+.sw-content {
+	padding: 0.6rem 0.75rem 0.2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	font-size: 0.78rem;
+	color: var(--text);
+	/* If the window is dragged smaller, the content scrolls instead of overflowing. */
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+}
+
+.sw-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.28rem;
+}
+
+.sw-row {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	min-height: 1.35rem;
+}
+
+.sw-row.indented {
+	padding-left: 9.9rem;
+}
+
+.sw-label {
+	flex: 0 0 9.8rem;
+	color: var(--text);
+	line-height: 1.2;
+}
+
+.sw-row input:not([type='checkbox']):not([type='radio']),
+.sw-row select {
+	flex: 1;
+	min-width: 0;
+	padding: 0.12rem 0.3rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	font-size: 0.78rem;
+	font-family: inherit;
+	background: var(--surface);
+	color: var(--text);
+}
+
+.sw-row input.narrow,
+.sw-row select.narrow {
+	flex: 0 0 6rem;
+}
+
+.sw-row select.operator {
+	flex: 0 0 7.5rem;
+}
+
+.sw-row .value {
+	flex: 1;
+	min-width: 0;
+	color: var(--muted);
+}
+
+.sw-row .sw-slot {
+	flex: 0 0 6rem;
+}
+
+/* Buttons inside a form row stay as wide as their text. */
+.sw-row .sw-button {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.sw-link {
+	border: none;
+	background: none;
+	color: var(--text);
+	font-family: inherit;
+	font-size: 0.78rem;
+	cursor: pointer;
+	padding: 0;
+	text-align: left;
+}
+.sw-link:hover {
+	text-decoration: underline;
+}
+
+.sw-check {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	white-space: nowrap;
+}
+
+.sw-check input {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.sw-divider {
+	border: none;
+	border-top: 1px solid var(--menu-band-border);
+	margin: 0.35rem 0;
+}
+
+.sw-heading {
+	color: var(--accent);
+	font-weight: 700;
+	font-size: 0.86rem;
+	margin: 0.15rem 0;
+}
+
+.sw-small {
+	color: var(--muted-2);
+	font-size: 0.72rem;
+}
+
+.sw-note {
+	margin: 0.3rem 0 0;
+	padding: 0.35rem 0.5rem;
+	background: var(--notice-bg);
+	border: 1px solid var(--notice-border);
+	border-radius: 4px;
+	font-size: 0.75rem;
+	color: var(--text);
+}
+
+.sw-error {
+	color: var(--bad);
+	font-size: 0.75rem;
+	margin: 0.3rem 0 0;
+}
+
+/* Small extra buttons of the forms: „+" and „Sperre". */
+.sw-extra {
+	flex: 0 0 auto;
+	width: 1.35rem;
+	height: 1.35rem;
+	line-height: 1;
+	font-size: 0.8rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	background: var(--surface-3);
+	color: var(--text);
+	cursor: pointer;
+}
+.sw-extra.round {
+	border-radius: 50%;
+	font-size: 0.7rem;
+	color: var(--bad);
+}
+
+/* Tabs („Merkmale | Zeitraum | Positionen"). */
+.sw-tabs {
+	display: flex;
+	gap: 0.1rem;
+	border-bottom: 1px solid var(--menu-band-border);
+	margin: -0.1rem 0 0.45rem;
+}
+.sw-tabs button {
+	border: 1px solid transparent;
+	border-bottom: none;
+	background: none;
+	padding: 0.22rem 0.7rem;
+	font-size: 0.78rem;
+	font-family: inherit;
+	color: var(--muted);
+	cursor: pointer;
+	border-radius: 3px 3px 0 0;
+}
+.sw-tabs button.active {
+	background: var(--surface);
+	border-color: var(--menu-band-border);
+	color: var(--text);
+	margin-bottom: -1px;
+}
+
+/* Quarter and month grid of the „Zeitraum" tab. */
+.sw-grid {
+	display: flex;
+	gap: 0.15rem;
+	flex-wrap: wrap;
+	flex: 1;
+	min-width: 0;
+}
+
+.sw-choice {
+	flex: 0 0 1.8rem;
+	padding: 0.15rem 0;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	background: var(--surface);
+	color: var(--text);
+	font-size: 0.78rem;
+	font-family: inherit;
+	cursor: pointer;
+}
+.sw-choice.wide {
+	flex: 0 0 2.6rem;
+}
+.sw-choice:hover {
+	background: var(--menu-band-hover);
+}
+.sw-choice.active {
+	background: var(--highlight);
+	border-color: var(--accent);
+	color: var(--accent);
+	font-weight: 700;
+}
+
+/* Radio choice of the area window. */.sw-area {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	padding-left: 4.2rem;
+}
+.sw-area label {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.8rem;
+	padding: 0.05rem 0.15rem;
+	border: 1px dotted transparent;
+}
+.sw-area label:focus-within {
+	border-color: var(--text);
+}
+
+/* Footer with Abbrechen / Sucheditor / Suchen. */
+.sw-footer {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border-top: 1px solid var(--border);
+	margin-top: 0.35rem;
+}
+
+.sw-button {
+	flex: 1;
+	padding: 0.3rem 0.5rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 3px;
+	background: var(--surface-3);
+	color: var(--text);
+	font-size: 0.78rem;
+	font-family: inherit;
+	cursor: pointer;
+}
+.sw-button:hover {
+	background: var(--menu-band-hover);
+}
+
+.sw-button.sw-primary {
+	background: var(--surface);
+	border-color: var(--accent);
+	color: var(--accent);
+	font-weight: 600;
+	box-shadow: inset 0 0 0 1px var(--accent);
+}
+.sw-button.sw-primary:hover {
+	background: var(--highlight);
+}
+
+/* Result list behind the windows. */
+.sw-result {
+	margin-top: 1rem;
+}
+.sw-result table {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--surface);
+	font-size: 0.82rem;
+}
+.sw-result th,
+.sw-result td {
+	text-align: left;
+	padding: 0.35rem 0.5rem;
+	border-bottom: 1px solid var(--surface-3);
+}
+.sw-result th {
+	background: var(--surface-2);
+	font-weight: 600;
+}
+
+:root[data-theme='dark'] .sw-band,
+:root[data-theme='dark'] .sw-band-select,
+:root[data-theme='dark'] .sw-band-mode {
+	background: #1b1f26;
+}
+:root[data-theme='dark'] .sw-band-text {
+	color: #e6e9ee;
+}
