@@ -1,0 +1,250 @@
+/* The input mask of the personnel master (`WHERE - are my people?`).
+ *
+ * It takes the shell of the search windows (`lib/search/search-window.css`:
+ * `sw-backdrop`, `sw-window`, `sw-titlebar`, `sw-footer`, `sw-button`, …)
+ * and adds only what belongs to the personnel: the name band, the register, the
+ * field rows and the list of the qualifications.
+ */
+
+.pep-window {
+	max-width: 100%;
+}
+
+/* --------------------------------------------------------------- Title bar */
+
+.pep-band {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.3rem 0.6rem;
+	background: var(--menu-band-2);
+	color: var(--text);
+	border-bottom: 1px solid var(--menu-band-border);
+}
+
+.pep-band h2 {
+	margin: 0;
+	font-size: 1.02rem;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+}
+
+.pep-band .pep-stamp {
+	margin-left: auto;
+	text-align: right;
+	font-size: 0.66rem;
+	line-height: 1.25;
+	color: var(--muted);
+	white-space: pre-line;
+}
+
+/* --------------------------------------------------------------- Register */
+
+.pep-register {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 0.1rem;
+	padding: 0.3rem 0.5rem 0;
+	background: var(--surface-2);
+	border-bottom: 1px solid var(--menu-band-border);
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: thin;
+}
+
+.pep-register button {
+	flex: 0 0 auto;
+	padding: 0.24rem 0.7rem;
+	border: 1px solid var(--menu-band-border);
+	border-bottom: none;
+	border-radius: 3px 3px 0 0;
+	background: var(--surface-2);
+	color: var(--text);
+	font-size: 0.76rem;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.pep-register button.active {
+	background: var(--surface);
+	font-weight: 600;
+	margin-bottom: -1px;
+	padding-bottom: 0.28rem;
+}
+
+/* --------------------------------------------------------------- Form */
+
+.pep-content {
+	padding: 0.6rem 0.75rem 0.35rem;
+	font-size: 0.78rem;
+	color: var(--text);
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+}
+
+.pep-columns {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 0.9rem;
+	align-items: start;
+}
+
+@media (max-width: 900px) {
+	.pep-columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.pep-group {
+	border: 1px solid var(--menu-band-border);
+	border-radius: 3px;
+	padding: 0.35rem 0.5rem 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.pep-group > legend {
+	padding: 0 0.3rem;
+	font-size: 0.74rem;
+	color: var(--muted);
+}
+
+.pep-row {
+	display: grid;
+	grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.35rem;
+	margin-bottom: 0.22rem;
+}
+
+.pep-row > .pep-label {
+	font-size: 0.76rem;
+	line-height: 1.15;
+}
+
+.pep-row.required > .pep-label::after {
+	content: ' *';
+	color: var(--bad);
+}
+
+.pep-row input:not([type='checkbox']):not([type='radio']),
+.pep-row select,
+.pep-row textarea {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.12rem 0.3rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	background: var(--surface);
+	color: var(--text);
+	font-size: 0.78rem;
+	font-family: inherit;
+}
+
+.pep-row textarea {
+	min-height: 3.4rem;
+	resize: vertical;
+}
+
+.pep-row input:disabled,
+.pep-row select:disabled,
+.pep-row textarea:disabled {
+	background: var(--surface-3);
+	color: var(--muted-2);
+}
+
+.pep-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.76rem;
+	white-space: nowrap;
+}
+
+.pep-check input {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+/* --------------------------------------------------------------- Qualifications */
+
+.pep-quals {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	max-width: 34rem;
+}
+
+.pep-qual {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.pep-qual input {
+	flex: 1 1 auto;
+	padding: 0.18rem 0.35rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	background: var(--surface);
+	color: var(--text);
+	font-size: 0.78rem;
+	font-family: inherit;
+}
+
+.pep-qual button {
+	flex: 0 0 auto;
+	width: 1.6rem;
+	height: 1.5rem;
+	line-height: 1;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 2px;
+	background: var(--surface-3);
+	color: var(--bad);
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.pep-qual-empty {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.76rem;
+}
+
+.pep-qual-footer {
+	margin-top: 0.4rem;
+}
+
+.pep-add {
+	padding: 0.2rem 0.6rem;
+	border: 1px solid var(--menu-band-border);
+	border-radius: 3px;
+	background: var(--surface-3);
+	color: var(--text);
+	font-size: 0.76rem;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.pep-add:hover {
+	background: var(--menu-band-hover);
+}
+
+/* --------------------------------------------------------------- Messages */
+
+.pep-error {
+	margin: 0.2rem 0.75rem 0;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid var(--bad);
+	border-radius: 4px;
+	font-size: 0.76rem;
+	color: var(--bad);
+}
+
+.pep-footer-delete {
+	flex: 0 0 auto;
+	margin-right: auto;
+	color: var(--bad);
+	border-color: var(--bad);
+}

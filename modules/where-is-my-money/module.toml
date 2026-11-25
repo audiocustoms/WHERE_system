@@ -1,0 +1,13 @@
+# WHERE - is my money?
+# Buchhaltung und Rechnungswesen.
+
+[module]
+id = "money"
+product_name = "WHERE - is my money?"
+kind = "module"
+rust_crate = "where-module-money"
+web = "web"
+
+requires_core_database = false
+capabilities = ["accounting"]
+core_module = "stuff"

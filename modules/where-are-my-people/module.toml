@@ -1,0 +1,13 @@
+# WHERE - are my people?
+# Personalwesen und Personaleinsatz.
+
+[module]
+id = "people"
+product_name = "WHERE - are my people?"
+kind = "module"
+rust_crate = "where-module-people"
+web = "web"
+
+requires_core_database = false
+capabilities = ["people"]
+core_module = "stuff"

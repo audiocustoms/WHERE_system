@@ -1,0 +1,15 @@
+# WHERE - does my stuff go?
+# Aufträge, Packscheine und Miet-/Verkaufspreise an Artikeln.
+
+[module]
+id = "go"
+product_name = "WHERE - does my stuff go?"
+kind = "module"
+rust_crate = "where-module-go"
+web = "web"
+
+# Das Modul läuft allein (eigene Datenbank) oder auf der Datenbank von
+# WHERE - is my stuff? – beides ist derselbe Mechanismus (where_modules).
+requires_core_database = false
+capabilities = ["orders", "article-pricing"]
+core_module = "stuff"
