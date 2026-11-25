@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WHERE</string>
+    <string name="untertitel">Wähle die Datenbank, die dieses Gerät anzeigen soll.</string>
+    <string name="leer">Noch keine Datenbank hinterlegt. Mit „+ Datenbank“ die Adresse eines WHERE-Servers eintragen.</string>
+
+    <string name="neu">+ Datenbank</string>
+    <string name="bearbeiten">Datenbank bearbeiten</string>
+    <string name="sichern">Sichern</string>
+    <string name="abbrechen">Abbrechen</string>
+    <string name="loeschen">Entfernen</string>
+    <string name="loeschen_frage">„%1$s“ von diesem Gerät entfernen?</string>
+
+    <string name="name_feld">Name</string>
+    <string name="adresse_feld">Adresse des Servers</string>
+    <string name="adresse_hilfe">z. B. buero-server:8090 oder http://192.168.1.10:8090</string>
+    <string name="adresse_fehlt">Bitte die Adresse des Servers eintragen.</string>
+    <string name="stift">✎</string>
+    <string name="zeile_adresse_zuletzt">%1$s · zuletzt verwendet</string>
+
+    <string name="datei_waehlen">Datei wählen</string>
+    <string name="zurueck_frage">Zur Datenbankauswahl zurückkehren? Die laufende Sitzung endet.</string>
+    <string name="zur_auswahl">Zur Auswahl</string>
+    <string name="weiterarbeiten">Weiterarbeiten</string>
+</resources>

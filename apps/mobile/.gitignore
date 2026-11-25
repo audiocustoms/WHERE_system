@@ -1,0 +1,9 @@
+# Die Oberfläche selbst wird nicht mitversioniert: sie entsteht beim Web-Build
+# und wird beim Android-Build aus ../../web/build kopiert.
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+app/release/
+app/src/main/assets/web/

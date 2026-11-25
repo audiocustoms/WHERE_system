@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dieselben Töne wie die Oberfläche, damit der Rahmen nicht auffällt. -->
+    <color name="where_background">#F4F5F7</color>
+    <color name="where_surface">#FFFFFF</color>
+    <color name="where_header">#1F2A37</color>
+    <color name="where_header_text">#FFFFFF</color>
+    <color name="where_header_text_muted">#B9C2CF</color>
+    <color name="where_footer">#E9ECF1</color>
+    <color name="where_divider">#DDE1E7</color>
+    <color name="where_text">#1F2A37</color>
+    <color name="where_text_muted">#5C6875</color>
+    <color name="where_accent">#1F6FEB</color>
+</resources>

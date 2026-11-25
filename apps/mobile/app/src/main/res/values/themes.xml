@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Startseite mit Datenbankliste: Titelzeile statt ActionBar. -->
+    <style name="Theme.Where" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/where_background</item>
+        <item name="android:statusBarColor">@color/where_header</item>
+        <item name="android:navigationBarColor">@color/where_footer</item>
+        <item name="android:colorAccent">@color/where_accent</item>
+    </style>
+
+    <!-- Die Oberfläche selbst: kein Rahmen, keine Leisten. -->
+    <style name="Theme.Where.Kiosk" parent="Theme.Where">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowContentTransitions">false</item>
+    </style>
+</resources>
