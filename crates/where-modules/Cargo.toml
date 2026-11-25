@@ -1,0 +1,20 @@
+[package]
+name = "where-modules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Module manifests, installation registry and shared database detection for WHERE"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+sqlx = { version = "0.9.0", features = [
+    "runtime-tokio",
+    "postgres",
+    "uuid",
+    "chrono",
+    "macros",
+] }
+thiserror = "2.0.21"
+utoipa = { version = "6.0.0", features = ["chrono"] }
+uuid = { version = "1.29.2", features = ["v4", "serde"] }
