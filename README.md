@@ -2,7 +2,6 @@
 
 <img src="logo/logo.svg" alt="" width="110" />
 
-# WHERE
 
 **Warehouse logistics and operations software for theatre companies.**
 
