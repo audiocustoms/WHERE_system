@@ -1,0 +1,86 @@
+name: release
+
+# One release carries one installer per product. Today the core and the personnel
+# product have a bundle; orders and accounting follow with their own Tauri
+# configuration and appear here as two more matrix entries.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    name: ${{ matrix.product }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - product: warehouse
+            script: installer
+          - product: people
+            script: installer:people
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            apps/web/package-lock.json
+            apps/desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install SPA dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Install shell dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      # Builds the SPA, builds where-server in release mode, copies it as the
+      # sidecar and bundles with Tauri.
+      - name: Build installer
+        working-directory: apps/desktop
+        run: npm run ${{ matrix.script }}
+
+      - name: Collect installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $installer = Get-ChildItem -Path target/release/bundle/nsis -Filter *.exe |
+            Select-Object -First 1
+          if (-not $installer) { throw "no installer in target/release/bundle/nsis" }
+          $name = "WHERE-${{ matrix.product }}-${{ github.ref_name }}-setup.exe"
+          Copy-Item $installer.FullName "dist/$name"
+          Write-Host "$name from $($installer.Name)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WHERE-${{ matrix.product }}
+          path: dist/*.exe
+          if-no-files-found: error
+
+  release:
+    needs: installer
+    # A manual run builds the installers as artefacts; only a tag becomes a release.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true
