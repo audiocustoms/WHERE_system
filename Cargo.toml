@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/where-domain",
+    "crates/where-persistence",
+    "crates/where-modules",
+    "crates/where-module-go",
+    "crates/where-module-money",
+    "crates/where-module-people",
+    "crates/where-api",
+    "crates/where-server",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-only"
+rust-version = "1.85"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

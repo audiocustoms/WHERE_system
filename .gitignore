@@ -1,0 +1,25 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Node
+**/node_modules
+/apps/web/.svelte-kit
+/apps/web/build
+npm-debug.log*
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Local development database (PGlite data directory)
+/data
+
+# Tauri
+/apps/desktop/src-tauri/gen
+/apps/desktop/src-tauri/binaries
+
+# OS / editor
+.DS_Store
+Thumbs.db

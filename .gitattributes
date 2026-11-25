@@ -1,0 +1,5 @@
+# Line endings: LF is the format in the repository and in the working tree.
+# Batch files keep CRLF — cmd.exe needs it for labels and blocks.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
