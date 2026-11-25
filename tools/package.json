@@ -1,0 +1,18 @@
+{
+  "name": "where-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Schema generators and verification for the WHERE rebuild",
+  "scripts": {
+    "preview": "node preview.mjs",
+    "verify-schema": "node verify-schema.mjs",
+    "seed": "node seed-articles.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16"
+  },
+  "dependencies": {
+    "@electric-sql/pglite-socket": "^0.2.19"
+  }
+}
