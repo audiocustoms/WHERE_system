@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -486,7 +488,7 @@
 		const start = timeText(draft.starts_at);
 		const end = timeText(draft.ends_at);
 		if (draft.band !== 'free' && (!isTime(start) || !isTime(end))) {
-			error = 'Bitte Beginn und Ende im 24-Stunden-Format angeben, z. B. 06:00.';
+			error = t('Bitte Beginn und Ende im 24-Stunden-Format angeben, z. B. 06:00.');
 			return;
 		}
 		draft.starts_at = start;
@@ -514,7 +516,7 @@
 			}
 			draft = null;
 			await load();
-			note = 'Schicht gespeichert.';
+			note = t('Schicht gespeichert.');
 		} catch (e) {
 			error = errorText(e);
 		} finally {
@@ -525,8 +527,8 @@
 	async function removeShift(shift: Shift) {
 		if (
 			!(await askConfirm({
-				message: `Schicht „${shift.name}“ entfernen?`,
-				confirmLabel: 'Entfernen'
+				message: t('Schicht „{name}“ entfernen?', { name: shift.name }),
+				confirmLabel: t('Entfernen')
 			}))
 		)
 			return;
@@ -566,7 +568,7 @@
 		note = null;
 		try {
 			rules = rulesFrom(await api.people.planning.save(rulesForApi(rules)));
-			note = 'Regeln gespeichert.';
+			note = t('Regeln gespeichert.');
 		} catch (e) {
 			error = errorText(e);
 		} finally {
@@ -585,15 +587,19 @@
 		return FEDERAL_STATES.find((entry) => entry.code === code)?.name ?? code;
 	}
 
-	/** What one import run brought, in one German line. */
+	/** What one import run brought, in one line. */
 	function reportText(report: HolidayImportReport): string {
 		const state = federalStateName(report.state);
 		const parts = [
-			`${report.national_holidays} gesetzliche Feiertage`,
-			`${report.regional_holidays} regionale Feiertage`,
-			`${report.school_holidays} Ferienzeiträume`
+			t('{n} gesetzliche Feiertage', { n: report.national_holidays }),
+			t('{n} regionale Feiertage', { n: report.regional_holidays }),
+			t('{n} Ferienzeiträume', { n: report.school_holidays })
 		];
-		return `${report.year}: ${parts.join(', ')} geladen${state ? ` (${state})` : ''}.`;
+		return t('{year}: {parts} geladen{state}.', {
+			year: report.year,
+			parts: parts.join(', '),
+			state: state ? ` (${state})` : ''
+		});
 	}
 
 	/**
@@ -606,12 +612,12 @@
 		holidayMessage = null;
 		holidayError = null;
 		if (needsFederalState && rules.holiday_state === '') {
-			holidayError = 'Regionale Feiertage und Ferien brauchen ein Bundesland.';
+			holidayError = t('Regionale Feiertage und Ferien brauchen ein Bundesland.');
 			return;
 		}
 		const year = amount(importYear);
 		if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-			holidayError = 'Bitte ein Jahr zwischen 2000 und 2100 angeben.';
+			holidayError = t('Bitte ein Jahr zwischen 2000 und 2100 angeben.');
 			return;
 		}
 		holidayRun = true;
@@ -635,17 +641,17 @@
 
 	/** `06:00 – 14:00`; an end before the start gets the day change appended. */
 	function time(shift: Shift): string {
-		if (isFree(shift)) return 'ganzer Tag';
-		const dayChange = shift.ends_at <= shift.starts_at ? ' (+1 Tag)' : '';
+		if (isFree(shift)) return t('ganzer Tag');
+		const dayChange = shift.ends_at <= shift.starts_at ? ` (${t('+1 Tag')})` : '';
 		return `${shift.starts_at} – ${shift.ends_at}${dayChange}`;
 	}
 
 	/** The band of the shift as the list shows it. */
 	function bandLabel(band: ShiftBand): string {
-		if (band === 'late') return 'Spät';
-		if (band === 'intermediate') return 'Zwischen';
-		if (band === 'free') return 'Freier Tag';
-		return 'Früh';
+		if (band === 'late') return t('Spät');
+		if (band === 'intermediate') return t('Zwischen');
+		if (band === 'free') return t('Freier Tag');
+		return t('Früh');
 	}
 
 	/** Working hours of the shift: the span minus its break. */
@@ -665,15 +671,19 @@
 	const headColumns = $derived(mayChange ? 7 : 6);
 </script>
 
-<svelte:head><title>Dienstplan — WHERE</title></svelte:head>
+<svelte:head><title>{t('Dienstplan — WHERE')}</title></svelte:head>
 
 {#if !mayRead}
-	<AccessDenied pageName="Dienstplan" right={RIGHT.mayReadDispo} rightLabel="Personaldispo lesen" />
+	<AccessDenied
+		pageName={t('Dienstplan')}
+		right={RIGHT.mayReadDispo}
+		rightLabel={t('Personaldispo lesen')}
+	/>
 {:else}
 	<div class="head-row">
-		<h1>Dienstplan</h1>
+		<h1>{t('Dienstplan')}</h1>
 		{#if auth.isAdmin}
-			<button type="button" class="exchange" onclick={() => (exchange = true)}>Import / Export</button>
+			<button type="button" class="exchange" onclick={() => (exchange = true)}>{t('Import / Export')}</button>
 		{/if}
 	</div>
 
@@ -682,10 +692,10 @@
 
 	<section class="card">
 		<header>
-			<h2>Schichten ({shifts.length})</h2>
+			<h2>{t('Schichten ({n})', { n: shifts.length })}</h2>
 			{#if mayCreate}
 				<button type="button" class="primary" onclick={createShift} disabled={saving}>
-					Schicht +
+					{t('Schicht +')}
 				</button>
 			{/if}
 		</header>
@@ -698,30 +708,30 @@
 					saveShift();
 				}}
 			>
-				<h3>{draft.id === null ? 'Neue Schicht' : `Schicht „${draft.name}“`}</h3>
+				<h3>{draft.id === null ? t('Neue Schicht') : t('Schicht „{name}“', { name: draft.name })}</h3>
 				<div class="fields">
 					<label>
-						<span>Name</span>
+						<span>{t('Name')}</span>
 						<input
 							bind:value={draft.name}
 							maxlength="100"
 							required
-							placeholder="Frühschicht"
+							placeholder={t('Frühschicht')}
 						/>
 					</label>
 					<label>
-						<span>Kürzel</span>
-						<input bind:value={draft.short_name} maxlength="10" placeholder="F" />
+						<span>{t('Kürzel')}</span>
+						<input bind:value={draft.short_name} maxlength="10" placeholder={t('F')} />
 					</label>
 					<label>
-						<span>Von (24 h)</span>
+						<span>{t('Von (24 h)')}</span>
 						<input
 							type="text"
 							inputmode="numeric"
 							autocomplete="off"
 							maxlength="5"
-							placeholder="HH:MM"
-							title="Uhrzeit im 24-Stunden-Format, z. B. 06:00"
+							placeholder={t('HH:MM')}
+							title={t('Uhrzeit im 24-Stunden-Format, z. B. 06:00')}
 							bind:value={draft.starts_at}
 							onblur={(event) => (draft!.starts_at = timeText(event.currentTarget.value))}
 							disabled={draft.band === 'free'}
@@ -729,14 +739,14 @@
 						/>
 					</label>
 					<label>
-						<span>Bis (24 h)</span>
+						<span>{t('Bis (24 h)')}</span>
 						<input
 							type="text"
 							inputmode="numeric"
 							autocomplete="off"
 							maxlength="5"
-							placeholder="HH:MM"
-							title="Uhrzeit im 24-Stunden-Format, z. B. 14:30"
+							placeholder={t('HH:MM')}
+							title={t('Uhrzeit im 24-Stunden-Format, z. B. 14:30')}
 							bind:value={draft.ends_at}
 							onblur={(event) => (draft!.ends_at = timeText(event.currentTarget.value))}
 							disabled={draft.band === 'free'}
@@ -744,7 +754,7 @@
 						/>
 					</label>
 					<label>
-						<span>Pause (Min.)</span>
+						<span>{t('Pause (Min.)')}</span>
 						<input
 							type="number"
 							inputmode="numeric"
@@ -757,16 +767,16 @@
 						/>
 					</label>
 					<label>
-						<span>Art</span>
+						<span>{t('Art')}</span>
 						<select bind:value={draft.band}>
-							<option value="frueh">Früh</option>
-							<option value="spaet">Spät</option>
-							<option value="zwischen">Zwischen</option>
-							<option value="frei">Freier Tag</option>
+							<option value="frueh">{t('Früh')}</option>
+							<option value="spaet">{t('Spät')}</option>
+							<option value="zwischen">{t('Zwischen')}</option>
+							<option value="frei">{t('Freier Tag')}</option>
 						</select>
 					</label>
 					<label>
-						<span>Abteilung</span>
+						<span>{t('Abteilung')}</span>
 						<select bind:value={draft.department}>
 							<option value="">—</option>
 							{#each departments as entry (entry.id)}
@@ -775,8 +785,8 @@
 						</select>
 					</label>
 					<label>
-						<span>Farbe</span>
-						<ColorPicker bind:value={draft.color} label="Farbe der Schicht" />
+						<span>{t('Farbe')}</span>
+						<ColorPicker bind:value={draft.color} label={t('Farbe der Schicht')} />
 					</label>
 					<label class="switch">
 						<input
@@ -784,21 +794,20 @@
 							bind:checked={draft.apprentice_only}
 							disabled={draft.band === 'free'}
 						/>
-						<span>nur Azubis</span>
+						<span>{t('nur Azubis')}</span>
 					</label>
 					<label class="switch">
 						<input type="checkbox" bind:checked={draft.active} />
-						<span>aktiv</span>
+						<span>{t('aktiv')}</span>
 					</label>
 				</div>
 				<footer>
 					<button type="submit" class="primary" disabled={saving}>
-						{saving ? 'Sichere …' : 'Sichern'}
+						{saving ? t('Sichere …') : t('Sichern')}
 					</button>
-					<button type="button" onclick={() => (draft = null)}>Abbrechen</button>
+					<button type="button" onclick={() => (draft = null)}>{t('Abbrechen')}</button>
 					<span class="hint"
-						>Ein Ende vor dem Beginn gilt als Schicht über Mitternacht. Uhrzeiten im
-						24-Stunden-Format.</span
+						>{t('Ein Ende vor dem Beginn gilt als Schicht über Mitternacht. Uhrzeiten im 24-Stunden-Format.')}</span
 					>
 				</footer>
 			</form>
@@ -807,12 +816,12 @@
 		<table>
 			<thead>
 				<tr>
-					<th>Schicht</th>
-					<th>Kürzel</th>
-					<th>Zeit</th>
-					<th class="amount">Pause</th>
-					<th class="amount">Stunden</th>
-					<th>Status</th>
+					<th>{t('Schicht')}</th>
+					<th>{t('Kürzel')}</th>
+					<th>{t('Zeit')}</th>
+					<th class="amount">{t('Pause')}</th>
+					<th class="amount">{t('Stunden')}</th>
+					<th>{t('Status')}</th>
 					{#if mayChange}<th></th>{/if}
 				</tr>
 			</thead>
@@ -827,13 +836,13 @@
 						</td>
 						<td>{shift.short_name ?? '—'}</td>
 						<td class="amount">{time(shift)}</td>
-						<td class="amount">{shift.break_minutes} Min.</td>
+						<td class="amount">{shift.break_minutes} {t('Min.')}</td>
 						<td class="amount">{hours(shift)}</td>
 						<td>
-							{shift.active ? 'active' : 'inaktiv'}
+							{shift.active ? t('aktiv') : t('inaktiv')}
 							<span class="kind">{bandLabel(shift.band)}</span>
 							{#if shift.department}<span class="kind">{shift.department}</span>{/if}
-							{#if shift.apprentice_only}<span class="kind">nur Azubis</span>{/if}
+							{#if shift.apprentice_only}<span class="kind">{t('nur Azubis')}</span>{/if}
 						</td>
 						{#if mayChange}
 							<td class="actions">
@@ -841,23 +850,23 @@
 									<button
 										type="button"
 										class="arrow"
-										title="nach oben"
-										aria-label={`${shift.name} nach oben`}
+										title={t('nach oben')}
+										aria-label={t('{name} nach oben', { name: shift.name })}
 										disabled={i === 0}
 										onclick={() => move(i, -1)}>↑</button
 									>
 									<button
 										type="button"
 										class="arrow"
-										title="nach unten"
-										aria-label={`${shift.name} nach unten`}
+										title={t('nach unten')}
+										aria-label={t('{name} nach unten', { name: shift.name })}
 										disabled={i === shifts.length - 1}
 										onclick={() => move(i, 1)}>↓</button
 									>
 								{/if}
-								<button type="button" onclick={() => edit(shift)}>edit</button>
+								<button type="button" onclick={() => edit(shift)}>{t('bearbeiten')}</button>
 								<button type="button" class="danger" onclick={() => removeShift(shift)}>
-									entfernen
+									{t('entfernen')}
 								</button>
 							</td>
 						{/if}
@@ -865,7 +874,7 @@
 				{:else}
 					<tr>
 						<td colspan={headColumns}>
-							{loading ? 'Lade …' : 'Noch keine Schicht erfasst.'}
+							{loading ? t('Lade …') : t('Noch keine Schicht erfasst.')}
 						</td>
 					</tr>
 				{/each}
@@ -882,16 +891,16 @@
 			}}
 		>
 			<header>
-				<h2>Regeln der Planung</h2>
+				<h2>{t('Regeln der Planung')}</h2>
 			</header>
 
 			<div class="groups">
 				{#each ruleGroups as group (group.title)}
 					<fieldset>
-						<legend>{group.title}</legend>
+						<legend>{t(group.title)}</legend>
 						{#each group.fields as field (field.key)}
 							<label>
-								<span>{field.label}</span>
+								<span>{t(field.label)}</span>
 								<span class="input">
 									<input
 										type="number"
@@ -903,17 +912,17 @@
 										disabled={!mayEdit}
 										oninput={(event) => (rules![field.key] = event.currentTarget.value)}
 									/>
-									<span class="unit">{field.unit}</span>
+									<span class="unit">{t(field.unit)}</span>
 								</span>
 							</label>
 						{/each}
 						{#each group.colors ?? [] as color (color.key)}
 							<label>
-								<span>{color.label}</span>
+								<span>{t(color.label)}</span>
 								<span class="input">
 									<ColorPicker
 										bind:value={rules[color.key]}
-										label={color.label}
+										label={t(color.label)}
 										disabled={!mayEdit}
 									/>
 								</span>
@@ -923,9 +932,9 @@
 				{/each}
 
 				<fieldset>
-					<legend>Planung</legend>
+					<legend>{t('Planung')}</legend>
 					<label>
-						<span>Planungshorizont</span>
+						<span>{t('Planungshorizont')}</span>
 						<span class="input">
 							<input
 								type="number"
@@ -938,7 +947,7 @@
 								oninput={(event) => (rules!.planning_horizon = event.currentTarget.value)}
 							/>
 							<select
-								aria-label="Einheit des Planungshorizonts"
+								aria-label={t('Einheit des Planungshorizonts')}
 								disabled={!mayEdit}
 								value={rules.planning_horizon_unit}
 								onchange={(event) => {
@@ -950,17 +959,17 @@
 									}
 								}}
 							>
-								<option value="weeks">Wochen</option>
-								<option value="months">Monate</option>
+								<option value="weeks">{t('Wochen')}</option>
+								<option value="months">{t('Monate')}</option>
 							</select>
 						</span>
 					</label>
 				</fieldset>
 
 				<fieldset>
-					<legend>Stundenkonto</legend>
+					<legend>{t('Stundenkonto')}</legend>
 					<label>
-						<span>Über-/Minusstunden zählen ab</span>
+						<span>{t('Über-/Minusstunden zählen ab')}</span>
 						<span class="input">
 							<input
 								type="date"
@@ -972,7 +981,7 @@
 								<button
 									type="button"
 									class="clear"
-									title="ab 1. Januar zählen"
+									title={t('ab 1. Januar zählen')}
 									onclick={() => (rules!.balance_from = '')}>×</button
 								>
 							{/if}
@@ -981,7 +990,7 @@
 				</fieldset>
 
 				<fieldset>
-					<legend>Woche und Abwesenheiten</legend>
+					<legend>{t('Woche und Abwesenheiten')}</legend>
 					{#each toggles as entry (entry.key)}
 						<label class="switch">
 							<input
@@ -999,7 +1008,7 @@
 									}
 								}}
 							/>
-							<span>{entry.label}</span>
+							<span>{t(entry.label)}</span>
 						</label>
 						{#if entry.key === 'sunday_work_allowed'}
 							<label class="switch subOption">
@@ -1009,11 +1018,11 @@
 									disabled={!mayEdit || !rules.sunday_work_allowed}
 									onchange={(event) => (rules!.compensate_sunday = event.currentTarget.checked)}
 								/>
-								<span>Kompensation</span>
+								<span>{t('Kompensation')}</span>
 							</label>
 							<label
 								class="switch subOption"
-								title="nach einem Sonntagdienst einen Ersatzruhetag: 24 Stunden frei, dazu die normale Ruhezeit zum nächsten Dienst"
+								title={t('nach einem Sonntagdienst einen Ersatzruhetag: 24 Stunden frei, dazu die normale Ruhezeit zum nächsten Dienst')}
 							>
 								<input
 									type="checkbox"
@@ -1022,14 +1031,14 @@
 									onchange={(event) =>
 										(rules!.extended_sunday_rest = event.currentTarget.checked)}
 								/>
-								<span>24 + 11 Stunden Ruhezeit</span>
+								<span>{t('24 + 11 Stunden Ruhezeit')}</span>
 							</label>
 						{/if}
 					{/each}
 				</fieldset>
 
 				<fieldset>
-					<legend>Feiertage und Ferien</legend>
+					<legend>{t('Feiertage und Ferien')}</legend>
 					<label class="switch">
 						<input
 							type="checkbox"
@@ -1038,7 +1047,7 @@
 							onchange={(event) =>
 								(rules!.import_public_holidays = event.currentTarget.checked)}
 						/>
-						<span>Importiere gesetzliche Feiertage</span>
+						<span>{t('Importiere gesetzliche Feiertage')}</span>
 					</label>
 					<label class="switch">
 						<input
@@ -1048,7 +1057,7 @@
 							onchange={(event) =>
 								(rules!.import_regional_holidays = event.currentTarget.checked)}
 						/>
-						<span>Importiere regionale Feiertage nach Bundesland</span>
+						<span>{t('Importiere regionale Feiertage nach Bundesland')}</span>
 					</label>
 					<label class="switch">
 						<input
@@ -1058,33 +1067,33 @@
 							onchange={(event) =>
 								(rules!.import_school_holidays = event.currentTarget.checked)}
 						/>
-						<span>Importiere Ferien nach Bundesland</span>
+						<span>{t('Importiere Ferien nach Bundesland')}</span>
 					</label>
 					<label class="switch">
 						<input
 							type="checkbox"
 							checked={rules.show_holidays}
 							disabled={!mayEdit || imported.holidays === 0}
-							title={imported.holidays === 0 ? 'Noch keine Feiertage importiert' : undefined}
+							title={imported.holidays === 0 ? t('Noch keine Feiertage importiert') : undefined}
 							onchange={(event) => (rules!.show_holidays = event.currentTarget.checked)}
 						/>
-						<span>Feiertage anzeigen</span>
+						<span>{t('Feiertage anzeigen')}</span>
 					</label>
 					<label class="switch">
 						<input
 							type="checkbox"
 							checked={rules.show_school_holidays}
 							disabled={!mayEdit || imported.school_holidays === 0}
-							title={imported.school_holidays === 0 ? 'Noch keine Ferien importiert' : undefined}
+							title={imported.school_holidays === 0 ? t('Noch keine Ferien importiert') : undefined}
 							onchange={(event) => (rules!.show_school_holidays = event.currentTarget.checked)}
 						/>
-						<span>Ferien anzeigen</span>
+						<span>{t('Ferien anzeigen')}</span>
 					</label>
 					<label>
-						<span>Bundesland</span>
+						<span>{t('Bundesland')}</span>
 						<span class="input">
 							<select
-								aria-label="Bundesland"
+								aria-label={t('Bundesland')}
 								disabled={!mayEdit || !needsFederalState}
 								value={rules.holiday_state}
 								onchange={(event) => (rules!.holiday_state = event.currentTarget.value)}
@@ -1097,7 +1106,7 @@
 						</span>
 					</label>
 					<label>
-						<span>Jahr</span>
+						<span>{t('Jahr')}</span>
 						<span class="input">
 							<input
 								type="number"
@@ -1115,33 +1124,32 @@
 								disabled={!mayEdit || holidayRun}
 								onclick={loadHolidays}
 							>
-								{holidayRun ? 'Lade …' : 'Prüfen und laden'}
+								{holidayRun ? t('Lade …') : t('Prüfen und laden')}
 							</button>
 						</span>
 					</label>
 					<label>
-						<span>Farbe Feiertag</span>
+						<span>{t('Farbe Feiertag')}</span>
 						<span class="input">
 							<ColorPicker
 								bind:value={rules.holiday_color}
-								label="Farbe der Feiertage im Dienstplan"
+								label={t('Farbe der Feiertage im Dienstplan')}
 								disabled={!mayEdit}
 							/>
 						</span>
 					</label>
 					<label>
-						<span>Farbe Ferien</span>
+						<span>{t('Farbe Ferien')}</span>
 						<span class="input">
 							<ColorPicker
 								bind:value={rules.school_holiday_color}
-								label="Farbe der Ferien im Dienstplan"
+								label={t('Farbe der Ferien im Dienstplan')}
 								disabled={!mayEdit}
 							/>
 						</span>
 					</label>
 					<p class="hint">
-						Quelle: openholidaysapi.org — wird beim Prüfen abgerufen, Adressen müssen nicht
-						eingetragen werden.
+						{t('Quelle: openholidaysapi.org — wird beim Prüfen abgerufen, Adressen müssen nicht eingetragen werden.')}
 					</p>
 					{#if holidayMessage}<p class="good">{holidayMessage}</p>{/if}
 					{#if holidayError}<p class="bad">{holidayError}</p>{/if}
@@ -1151,9 +1159,9 @@
 			{#if mayEdit}
 				<footer>
 					<button type="submit" class="primary" disabled={saving}>
-						{saving ? 'Sichere …' : 'Regeln sichern'}
+						{saving ? t('Sichere …') : t('Regeln sichern')}
 					</button>
-					<button type="button" onclick={load} disabled={saving}>Verwerfen</button>
+					<button type="button" onclick={load} disabled={saving}>{t('Verwerfen')}</button>
 				</footer>
 			{/if}
 		</form>
@@ -1162,7 +1170,7 @@
 	{#if exchange}
 		<MasterExchangeDialog
 			area="shifts"
-			title="Dienstplan"
+			title={t('Dienstplan')}
 			filename="schichten"
 			onimported={load}
 			onclose={() => (exchange = false)}

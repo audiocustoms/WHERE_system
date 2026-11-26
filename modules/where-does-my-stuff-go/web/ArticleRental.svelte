@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { api, type ArticlePricing, type ScaleCategory, type ScaleStep } from '$core/api';
 
 	interface Props {
@@ -20,10 +22,10 @@
 	let stepsOf = $state<number | null>(null);
 
 	const variants: { key: Variant; label: string; flag: keyof ArticlePricing | null }[] = [
-		{ key: 'base', label: 'Einsatztage', flag: null },
-		{ key: 'roll_days', label: 'Rolltage', flag: 'rental_roll_days_active' },
-		{ key: 'off_days', label: '"off Days"', flag: 'rental_off_days_active' },
-		{ key: 'weekend', label: 'Wochenende', flag: 'rental_weekend_active' }
+		{ key: 'base', label: t('Einsatztage'), flag: null },
+		{ key: 'roll_days', label: t('Rolltage'), flag: 'rental_roll_days_active' },
+		{ key: 'off_days', label: t('"off Days"'), flag: 'rental_off_days_active' },
+		{ key: 'weekend', label: t('Wochenende'), flag: 'rental_weekend_active' }
 	];
 
 	/** Price row per usage-day kind — the weekend price has neither base price nor scale. */
@@ -120,7 +122,7 @@
 
 <div class="columns">
 	<section class="left">
-		<nav class="tabs small" aria-label="Einsatztage">
+		<nav class="tabs small" aria-label={t('Einsatztage')}>
 			{#each variants as v (v.key)}
 				<button
 					type="button"
@@ -141,16 +143,16 @@
 					disabled={activeFlag === null}
 					onchange={(e) => setActive(e.currentTarget.checked)}
 				/>
-				Berechnung active
+				{t('Berechnung aktiv')}
 			</label>
 			{#if activeFlag === null}
-				<span class="note">Der Grundpreis gilt immer.</span>
+				<span class="note">{t('Der Grundpreis gilt immer.')}</span>
 			{/if}
 		</div>
 
 		<div class="prices">
 			<div class="field">
-				<span>Basispreis</span>
+				<span>{t('Basispreis')}</span>
 				<input
 					value={moneyValue(current.base)}
 					disabled={current.base === null}
@@ -160,7 +162,7 @@
 				/>
 			</div>
 			<div class="field">
-				<span>{variant === 'weekend' ? 'Pauschalpreis' : 'Mietpreis / Tag'}</span>
+				<span>{variant === 'weekend' ? t('Pauschalpreis') : t('Mietpreis / Tag')}</span>
 				<input
 					value={moneyValue(current.price)}
 					inputmode="decimal"
@@ -169,7 +171,7 @@
 				/>
 			</div>
 			<div class="field">
-				<span>Kalk. EKPreis / T</span>
+				<span>{t('Kalk. EKPreis / T')}</span>
 				<input
 					value={moneyValue(current.ek)}
 					inputmode="decimal"
@@ -178,18 +180,18 @@
 				/>
 			</div>
 			<label class="field">
-				<span>MwSt (%)</span>
+				<span>{t('MwSt (%)')}</span>
 				<input type="number" min="0" max="100" bind:value={pricing.rental_vat_rate} placeholder="19" />
 			</label>
 		</div>
 
 		<div class="pair">
 			<label class="field">
-				<span>Kaution</span>
+				<span>{t('Kaution')}</span>
 				<input bind:value={pricing.deposit} inputmode="decimal" placeholder="0,00" />
 			</label>
 			<label class="field">
-				<span>Gebrauchtpreis</span>
+				<span>{t('Gebrauchtpreis')}</span>
 				<input bind:value={pricing.used_sale_price} inputmode="decimal" placeholder="0,00" />
 			</label>
 		</div>
@@ -197,110 +199,110 @@
 		{#if current.scale}
 			<div class="scale">
 				<label class="field">
-					<span>Staffel</span>
+					<span>{t('Staffel')}</span>
 					<select value={scaleId ?? ''} onchange={(e) => setScale(e.currentTarget.value)}>
-						<option value="">— keine Staffel —</option>
+						<option value="">{t('— keine Staffel —')}</option>
 						{#each scales as s (s.id)}
-							<option value={s.id}>{s.name ?? `Staffel ${s.id}`}</option>
+							<option value={s.id}>{s.name ?? t('Staffel {n}', { n: s.id })}</option>
 						{/each}
 					</select>
 				</label>
 				<table>
 					<thead>
-						<tr><th>Tage</th><th>Berechnungsfaktor</th></tr>
+						<tr><th>{t('Tage')}</th><th>{t('Berechnungsfaktor')}</th></tr>
 					</thead>
 					<tbody>
 						{#each steps as s, i (i)}
 							<tr><td>{s.from_value}</td><td>{s.factor}</td></tr>
 						{:else}
-							<tr><td colspan="2" class="empty">Keine Stufen hinterlegt.</td></tr>
+							<tr><td colspan="2" class="empty">{t('Keine Stufen hinterlegt.')}</td></tr>
 						{/each}
 					</tbody>
 				</table>
-				<p class="note">Staffeln werden zentral gepflegt, nicht je Artikel.</p>
+				<p class="note">{t('Staffeln werden zentral gepflegt, nicht je Artikel.')}</p>
 			</div>
 		{:else}
-			<p class="note">Für den Wochenendpreis gilt keine Staffel.</p>
+			<p class="note">{t('Für den Wochenendpreis gilt keine Staffel.')}</p>
 		{/if}
 	</section>
 
 	<section class="right">
 		<fieldset>
-			<legend>Zusätzliche Eigenschaften</legend>
+			<legend>{t('Zusätzliche Eigenschaften')}</legend>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.packaging_release} />
-				Freigabe für Verpackungseinheiten
+				{t('Freigabe für Verpackungseinheiten')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.rental_no_discount} />
-				Nicht rabattierbar
+				{t('Nicht rabattierbar')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.rental_not_insurable} />
-				Nicht versicherbar
+				{t('Nicht versicherbar')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.material_only} />
-				Nur als Material einsetzbar
+				{t('Nur als Material einsetzbar')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.unique_article} />
-				Unikatartikel (Verweigerung bei überbuchter Anlage)
+				{t('Unikatartikel (Verweigerung bei überbuchter Anlage)')}
 			</label>
 		</fieldset>
 
 		<fieldset>
-			<legend>CheckOut/In-Eigenschaften</legend>
+			<legend>{t('CheckOut/In-Eigenschaften')}</legend>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.checkout_requires_serial} />
-				CheckOut/In nur mit SN (Ident-Nr.)
+				{t('CheckOut/In nur mit SN (Ident-Nr.)')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.fixed_installation} />
-				Artikel ist ein nicht zerlegbares Bundle
+				{t('Artikel ist ein nicht zerlegbares Bundle')}
 			</label>
 			<label class="field row">
-				<span>Annähender Lagerplatz</span>
+				<span>{t('Annähender Lagerplatz')}</span>
 				<input bind:value={pricing.approximate_location} />
 			</label>
 		</fieldset>
 
 		<fieldset>
-			<legend>Weitere Stationen bei CheckIn</legend>
+			<legend>{t('Weitere Stationen bei CheckIn')}</legend>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.inspection_on_checkin} />
-				Sichtprüfung
+				{t('Sichtprüfung')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.function_check_on_checkin} />
-				Funktionsprüfung
+				{t('Funktionsprüfung')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.consumption_recording} />
-				Verbrauchserfassung
+				{t('Verbrauchserfassung')}
 			</label>
 		</fieldset>
 
 		<fieldset>
-			<legend>FiBu-Kontierung</legend>
+			<legend>{t('FiBu-Kontierung')}</legend>
 			<label class="field row">
-				<span>Ertragskonto</span>
+				<span>{t('Ertragskonto')}</span>
 				<input bind:value={pricing.rental_revenue_account} />
 			</label>
 			<label class="field row">
-				<span>Kostenstelle</span>
+				<span>{t('Kostenstelle')}</span>
 				<input bind:value={pricing.rental_cost_center} />
 			</label>
 		</fieldset>
 
 		<fieldset>
-			<legend>Weitere Informationen</legend>
+			<legend>{t('Weitere Informationen')}</legend>
 			<label class="field row">
-				<span>Kapitalbindung netto</span>
+				<span>{t('Kapitalbindung netto')}</span>
 				<input bind:value={pricing.capital_binding} inputmode="decimal" placeholder="0,00" />
 			</label>
 			<p class="note">
-				Festes Material, Alternativen und Preisklassen folgen mit der Verleih-Domäne.
+				{t('Festes Material, Alternativen und Preisklassen folgen mit der Verleih-Domäne.')}
 			</p>
 		</fieldset>
 	</section>

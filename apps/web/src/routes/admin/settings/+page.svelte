@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -22,19 +24,19 @@
 
 	/** Where the list takes effect in daily business — the bridge to the existing part of the app. */
 	const REFERENCE: Record<string, { href: string; label: string }> = {
-		salutations: { href: '/addresses', label: 'Adressliste' },
-		adressgruppen: { href: '/addresses', label: 'Adresssuche' },
-		qualifications: { href: '/addresses', label: 'Adressen' },
-		manufacturer: { href: '/articles', label: 'Artikelliste' },
-		eigentuemer: { href: '/articles', label: 'Artikelliste' },
-		articleState: { href: '/articles', label: 'Artikelmaske' },
-		preisklassen: { href: '/articles', label: 'Miete/Verkauf' },
-		lager: { href: '/articles', label: 'Lagerbestand' },
-		lagerplaetze: { href: '/articles', label: 'Lagerbestand' },
-		languages: { href: '/articles', label: 'Artikeltexte' },
-		status: { href: '/agenda', label: 'Kalender' },
-		projects: { href: '/agenda', label: 'Kalender' },
-		tenants: { href: '/', label: 'Zentrale' }
+		salutations: { href: '/addresses', label: t('Adressliste') },
+		adressgruppen: { href: '/addresses', label: t('Adresssuche') },
+		qualifications: { href: '/addresses', label: t('Adressen') },
+		manufacturer: { href: '/articles', label: t('Artikelliste') },
+		eigentuemer: { href: '/articles', label: t('Artikelliste') },
+		articleState: { href: '/articles', label: t('Artikelmaske') },
+		preisklassen: { href: '/articles', label: t('Miete/Verkauf') },
+		lager: { href: '/articles', label: t('Lagerbestand') },
+		lagerplaetze: { href: '/articles', label: t('Lagerbestand') },
+		languages: { href: '/articles', label: t('Artikeltexte') },
+		status: { href: '/agenda', label: t('Kalender') },
+		projects: { href: '/agenda', label: t('Kalender') },
+		tenants: { href: '/', label: t('Zentrale') }
 	};
 	const KEYS = ['text', 'integer', 'number', 'bool', 'date'] as const;
 
@@ -128,7 +130,7 @@
 	function value(row: SettingsRow, field: SettingsField): string {
 		const value = row.values[field.column];
 		if (value === null || value === undefined || value === '') return '—';
-		if (field.kind === 'bool') return value === 'true' ? 'Ja' : 'Nein';
+		if (field.kind === 'bool') return value === 'true' ? t('Ja') : t('Nein');
 		if (field.kind === 'date') {
 			const [year, month, day] = value.split('-');
 			return year ? `${day}.${month}.${year}` : value;
@@ -143,18 +145,18 @@
 	}
 </script>
 
-<svelte:head><title>Einstellungen — WHERE</title></svelte:head>
+<svelte:head><title>{t('Einstellungen — WHERE')}</title></svelte:head>
 
-<h1>Einstellungen</h1>
+<h1>{t('Einstellungen')}</h1>
 
 <div class="page">
-	<nav class="group-nav" aria-label="Bereiche">
+	<nav class="group-nav" aria-label={t('Bereiche')}>
 		{#each groups as name (name)}
 			<button
 				type="button"
 				class:active={group === name}
 				aria-pressed={group === name}
-				onclick={() => (group = name)}>{name}</button
+				onclick={() => (group = name)}>{t(name)}</button
 			>
 		{/each}
 	</nav>
@@ -164,18 +166,18 @@
 			<article class="list" id={area.key} class:target={target === area.key}>
 				<header>
 					<div>
-						<h2>{area.title}</h2>
-						<p class="description">{area.description}</p>
+						<h2>{t(area.title)}</h2>
+						<p class="description">{t(area.description)}</p>
 					</div>
 					<div class="head-right">
 						{#if REFERENCE[area.key]}
 							<a class="link" href={REFERENCE[area.key].href}>
-								→ {REFERENCE[area.key].label}
+								→ {t(REFERENCE[area.key].label)}
 							</a>
 						{/if}
-						<span class="table-name" title="Tabelle der Altanwendung">{area.table}</span>
+						<span class="table-name" title={t('Tabelle der Altanwendung')}>{area.table}</span>
 						<button type="button" class="new" onclick={() => (dialog = { area: area, row: null })}>
-							+ Neuer Eintrag
+							{t('+ Neuer Eintrag')}
 						</button>
 					</div>
 				</header>
@@ -185,7 +187,7 @@
 						<tr>
 							{#each area.fields as field (field.column)}
 								<th class:numeric={field.kind === 'integer' || field.kind === 'number'}>
-									{field.label}
+									{t(field.label)}
 								</th>
 							{/each}
 						</tr>
@@ -209,7 +211,9 @@
 						{:else}
 							<tr class="empty">
 								<td colspan={area.fields.length}>
-									{load ? 'lade …' : 'Noch kein Eintrag — „+ Neuer Eintrag“ legt den ersten an.'}
+									{load
+										? t('lade …')
+										: t('Noch kein Eintrag — „+ Neuer Eintrag“ legt den ersten an.')}
 								</td>
 							</tr>
 						{/each}
@@ -217,11 +221,11 @@
 				</table>
 				<p class="foot">
 					{zaehle(area.key)}
-					{zaehle(area.key) === 1 ? 'Eintrag' : 'Einträge'}
+					{zaehle(area.key) === 1 ? t('Eintrag') : t('Einträge')}
 				</p>
 			</article>
 		{:else}
-			<p class="empty">Keine Liste in diesem Bereich.</p>
+			<p class="empty">{t('Keine Liste in diesem Bereich.')}</p>
 		{/each}
 	</section>
 </div>

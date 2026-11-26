@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { api, errorText, type Device, type InspectionReport } from '../api';
 	import { escapeWindows } from '../escape.svelte';
 
@@ -21,7 +23,7 @@
 
 	/** Serial and inventory no. are the anchor of the report. */
 	const binding = $derived(
-		[device.serial_no ? `SN ${device.serial_no}` : 'ohne Serien-Nr.', device.inventory_no ? `Inv ${device.inventory_no}` : null]
+		[device.serial_no ? t('SN {sn}', { sn: device.serial_no }) : t('ohne Serien-Nr.'), device.inventory_no ? t('Inv {no}', { no: device.inventory_no }) : null]
 			.filter(Boolean)
 			.join(' · ')
 	);
@@ -53,7 +55,7 @@
 		laeuft = true;
 		try {
 			const createNew = await api.article.reports.upload(articleId, device.id, file);
-			hint = `„${createNew.title}" hinterlegt.`;
+			hint = t('„{title}" hinterlegt.', { title: createNew.title });
 			input.value = '';
 			await load();
 		} catch (e) {
@@ -80,7 +82,7 @@
 	}
 
 	async function remove(report: InspectionReport) {
-		if (!confirm(`Prüfprotokoll „${report.title}" entfernen?`)) return;
+		if (!confirm(t('Prüfprotokoll „{title}" entfernen?', { title: report.title }))) return;
 		error = null;
 		try {
 			await api.article.reports.remove(articleId, device.id, report.id);
@@ -113,7 +115,7 @@
 
 	{#if schreibbar}
 		<label class="tool-button">
-			PDF hinzufügen
+			{t('PDF hinzufügen')}
 			<input type="file" accept="application/pdf,.pdf" onchange={upload} disabled={laeuft} />
 		</label>
 	{/if}
@@ -127,7 +129,7 @@
 
 	<table>
 		<thead>
-			<tr><th>Protokoll</th><th class="number">Größe</th><th>Datum</th><th></th></tr>
+			<tr><th>{t('Protokoll')}</th><th class="number">{t('Größe')}</th><th>{t('Datum')}</th><th></th></tr>
 		</thead>
 		<tbody>
 			{#each reports as p (p.id)}
@@ -137,14 +139,14 @@
 					<td>{date(p.uploaded_at)}</td>
 					<td class="action">
 						{#if schreibbar}
-							<button type="button" class="remove" title="Entfernen" onclick={() => remove(p)}
-								>entfernen</button
+							<button type="button" class="remove" title={t('Entfernen')} onclick={() => remove(p)}
+								>{t('entfernen')}</button
 							>
 						{/if}
 					</td>
 				</tr>
 			{:else}
-				<tr><td colspan="4" class="empty">Noch kein Prüfprotokoll hinterlegt.</td></tr>
+				<tr><td colspan="4" class="empty">{t('Noch kein Prüfprotokoll hinterlegt.')}</td></tr>
 			{/each}
 		</tbody>
 	</table>
@@ -155,8 +157,8 @@
 		<div class="viewer" role="dialog" tabindex="-1" aria-modal="true" aria-label={view.title}>
 			<header>
 				<span class="title-text">{view.title}</span>
-				<a class="tool-button" href={view.url} download={`${view.title}.pdf`}>herunterladen</a>
-				<button type="button" class="close" title="Schließen" onclick={close}>×</button>
+				<a class="tool-button" href={view.url} download={`${view.title}.pdf`}>{t('herunterladen')}</a>
+				<button type="button" class="close" title={t('Schließen')} onclick={close}>×</button>
 			</header>
 			<iframe src={view.url} title={view.title}></iframe>
 		</div>

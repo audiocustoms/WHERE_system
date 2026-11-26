@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import {
 		api,
@@ -124,7 +126,7 @@
 		if (!table.length) {
 			columns = [];
 			rows = [];
-			error = 'Die Datei enthält keine Zeilen.';
+			error = t('Die Datei enthält keine Zeilen.');
 			return;
 		}
 		const width = table.reduce((max, row) => Math.max(max, row.length), 0);
@@ -134,7 +136,7 @@
 			return values;
 		};
 		columns = fill(table[0]).map((label, index) => ({
-			label: label.trim() || `Spalte ${index + 1}`,
+			label: label.trim() || t('Spalte {no}', { no: index + 1 }),
 			field: alterStand[index] ?? null
 		}));
 		rows = table.slice(1).map(fill);
@@ -308,7 +310,7 @@
 	/** With a loaded file the user is asked — as with every mask that holds input. */
 	async function close() {
 		if (filename && !imported) {
-			if (!(await askCancel('Den Import'))) return;
+			if (!(await askCancel(t('Den Import')))) return;
 		}
 		const createNew = imported;
 		closeImport();
@@ -327,17 +329,17 @@
 		bytes >= 1024 * 1024
 			? `${(bytes / (1024 * 1024)).toLocaleString('de-DE', { maximumFractionDigits: 1 })} MB`
 			: `${Math.max(1, Math.round(bytes / 1024))} KB`;
-</script>
 
 	/** `Esc` closes the import window like `Abbrechen` — including its confirmation. */
-	$effect(() => escapeFenster(() => void schliessen()));
+	$effect(() => escapeWindows(() => void close()));
+</script>
 
 <div class="sw-backdrop" role="presentation">
 	<div
 		class="sw-window imp-window"
 		role="dialog"
 		aria-modal="true"
-		aria-label="Import-Manager"
+		aria-label={t('Import-Manager')}
 		tabindex="-1"
 		style="width: min(82rem, 100%)"
 		ondragover={(event) => {
@@ -351,29 +353,29 @@
 	>
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
-			<span class="sw-title">Import-Manager</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={close}>×</button>
+			<span class="sw-title">{t('Import-Manager')}</span>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={close}>×</button>
 		</div>
 
 		<div class="imp-content">
 			<div class="imp-toolbar">
 				<label class="sw-button file">
-					Datei auswählen
+					{t('Datei auswählen')}
 					<input type="file" accept=".csv,.txt,.tsv,text/csv,text/plain" onchange={fileField} />
 				</label>
 				<span class="imp-small">
 					{#if filename}
-						{filename} · {size(fileSize)} · {columns.length} Spalten · {rows.length} Zeilen
+						{filename} · {size(fileSize)} · {t('Spalten: {columns} · Zeilen: {rows}', { columns: columns.length, rows: rows.length })}
 						<button class="sw-link" type="button" onclick={alleLoesen} disabled={!verknuepft}>
-							Zuordnung löschen
+							{t('Zuordnung löschen')}
 						</button>
 					{:else}
-						CSV-Datei wählen oder hierher ziehen — die erste Zeile liefert die Spaltennamen.
+						{t('CSV-Datei wählen oder hierher ziehen — die erste Zeile liefert die Spaltennamen.')}
 					{/if}
 				</span>
 				<span class="imp-right">
 					{#if imported > 0 && report}
-						<span class="imp-small">Zuletzt übernommen: {imported} Sätze</span>
+						<span class="imp-small">{t('Zuletzt übernommen: {count} Sätze', { count: imported })}</span>
 					{/if}
 					<button
 						class="sw-button sw-primary"
@@ -381,19 +383,19 @@
 						onclick={runImport}
 						disabled={!verknuepft || laeuft || !mayImport}
 						title={!mayImport
-							? 'Für den Import fehlt das Recht zum Anlegen'
+							? t('Für den Import fehlt das Recht zum Anlegen')
 							: !verknuepft
-								? 'Zuerst ein Feld auf eine Spalte ziehen'
-								: 'Die verknüpften Spalten importieren'}
+								? t('Zuerst ein Feld auf eine Spalte ziehen')
+								: t('Die verknüpften Spalten importieren')}
 					>
-						{laeuft ? 'Import läuft …' : imported > 0 ? 'Erneut importieren' : 'Import starten'}
+						{laeuft ? t('Import läuft …') : imported > 0 ? t('Erneut importieren') : t('Import starten')}
 					</button>
 				</span>
 			</div>
 
 			<div class="imp-options">
 				<label class="imp-option">
-					<span>Zeichenkodierung</span>
+					<span>{t('Zeichenkodierung')}</span>
 					<select
 						value={encoding}
 						onchange={(e) => {
@@ -408,7 +410,7 @@
 					</select>
 				</label>
 				<label class="imp-option">
-					<span>Feldtrennung</span>
+					<span>{t('Feldtrennung')}</span>
 					<select value={separatorChoice} onchange={(e) => changeSeparator(e.currentTarget.value)} disabled={!rohdaten}>
 						{#each SEPARATORS as entry (entry.value)}
 							<option value={entry.value}>{entry.label}</option>
@@ -416,17 +418,16 @@
 					</select>
 				</label>
 				<div class="imp-option">
-					<span>Erkannt</span>
+					<span>{t('Erkannt')}</span>
 					<span class="imp-small">{separatorLabel}{encodingNote ? ` · ${encodingNote}` : ''}</span>
 				</div>
 				<div class="imp-option" style="flex: 1 1 12rem">
-					<span>Ziel</span>
+					<span>{t('Ziel')}</span>
 					<span class="imp-small">
 						{#if target === 'addresses'}
-							Ohne Typ-Spalte werden die Sätze als Kunden angelegt; fehlende Kunden- und
-							Lieferantennummern kommen aus dem Nummernkreis.
+							{t('Ohne Typ-Spalte werden die Sätze als Kunden angelegt; fehlende Kunden- und Lieferantennummern kommen aus dem Nummernkreis.')}
 						{:else}
-							Ohne Artikel-Nr. in der Datei vergibt die Anwendung die nächste freie Nummer.
+							{t('Ohne Artikel-Nr. in der Datei vergibt die Anwendung die nächste freie Nummer.')}
 						{/if}
 					</span>
 				</div>
@@ -434,8 +435,7 @@
 
 			{#if !mayImport}
 				<p class="imp-error">
-					Für den Import nach „{target === 'addresses' ? 'Adressen' : 'Artikel'}“ fehlt das Recht
-					zum Anlegen — die Datei lässt sich prüfen, aber nicht übernehmen.
+					{t('Für den Import nach „{target}“ fehlt das Recht zum Anlegen — die Datei lässt sich prüfen, aber nicht übernehmen.', { target: target === 'addresses' ? t('Adressen') : t('Artikel') })}
 				</p>
 			{/if}
 
@@ -444,18 +444,16 @@
 				<div class="imp-left">
 					{#if !columns.length}
 						<div class="imp-empty">
-							<stark>Keine Datei geladen</stark>
-							Mit <b>Datei auswählen</b> eine CSV-Datei öffnen — oder sie auf dieses Fenster
-							ziehen. Links stehen dann die Spaltennamen der ersten Zeile; ziehen Sie ein Feld
-							von rechts daneben, um es zu importieren.
+							<stark>{t('Keine Datei geladen')}</stark>
+							{t('Mit')} <b>{t('Datei auswählen')}</b> {t('eine CSV-Datei öffnen — oder sie auf dieses Fenster ziehen. Links stehen dann die Spaltennamen der ersten Zeile; ziehen Sie ein Feld von rechts daneben, um es zu importieren.')}
 						</div>
 					{:else}
 						<div class="imp-scroll-area">
 							<table class="imp-table">
 								<thead>
 									<tr>
-										<th class="imp-column">Importierte Daten</th>
-										<th class="imp-linked">Verbunde Felder</th>
+										<th class="imp-column">{t('Importierte Daten')}</th>
+										<th class="imp-linked">{t('Verbunde Felder')}</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -469,8 +467,8 @@
 													class:occupied={!!column.field}
 													class:over={overColumn === index}
 													title={column.field
-														? 'Klicken löst die Verknüpfung'
-														: 'Zielfeld hierher ziehen'}
+														? t('Klicken löst die Verknüpfung')
+														: t('Zielfeld hierher ziehen')}
 													ondragover={(event) => overTarget(event, index)}
 													ondragleave={() => {
 														if (overColumn === index) overColumn = null;
@@ -482,7 +480,7 @@
 														{fieldWith(target, column.field)?.label ?? column.field}
 														<span class="imp-remove" aria-hidden="true">×</span>
 													{:else if dragged}
-														Feld hierher ziehen
+														{t('Feld hierher ziehen')}
 													{:else}
 														<span aria-hidden="true">—</span>
 													{/if}
@@ -499,21 +497,21 @@
 				<!-- ---------------------------------------- Fields of the target mask -->
 				<div class="imp-right-column">
 					<div class="imp-header">
-						<span>Ziel</span>
-						<select value={target} onchange={(e) => changeTarget(e.currentTarget.value)} aria-label="Importziel">
-							<option value="addresses">Adressen</option>
-							<option value="articles">Artikel</option>
+						<span>{t('Ziel')}</span>
+						<select value={target} onchange={(e) => changeTarget(e.currentTarget.value)} aria-label={t('Importziel')}>
+							<option value="addresses">{t('Adressen')}</option>
+							<option value="articles">{t('Artikel')}</option>
 						</select>
-						<span class="imp-right">{fieldGroups.reduce((n, g) => n + g.fields.length, 0)} Felder</span>
+						<span class="imp-right">{fieldGroups.reduce((n, g) => n + g.fields.length, 0)} {t('Felder')}</span>
 					</div>
 					<input
 						class="imp-field-search"
 						type="search"
-						placeholder="Feld suchen …"
+						placeholder={t('Feld suchen …')}
 						bind:value={fieldSearch}
-						aria-label="Feld suchen"
+						aria-label={t('Feld suchen')}
 					/>
-					<div class="imp-field-list" role="listbox" aria-label="Felder des Ziels" aria-multiselectable="false">
+					<div class="imp-field-list" role="listbox" aria-label={t('Felder des Ziels')} aria-multiselectable="false">
 						{#each fieldGroups as group (group.name)}
 							<div class="imp-group">{group.name}</div>
 							{#each group.fields as field (field.key)}
@@ -525,7 +523,7 @@
 									role="option"
 									aria-selected={gewaehlt === field.key}
 									draggable="true"
-									title={`${field.label} — auf eine Spalte ziehen`}
+									title={t('{field} — auf eine Spalte ziehen', { field: field.label })}
 									ondragstart={(event) => fieldDrag(event, field.key)}
 									ondragend={() => {
 										dragged = null;
@@ -539,7 +537,7 @@
 							{/each}
 						{/each}
 						{#if !fieldGroups.length}
-							<p class="imp-small" style="padding: 0.4rem 0.5rem">Kein Feld passt zu „{fieldSearch}“.</p>
+							<p class="imp-small" style="padding: 0.4rem 0.5rem">{t('Kein Feld passt zu „{search}“.', { search: fieldSearch })}</p>
 						{/if}
 					</div>
 				</div>
@@ -552,15 +550,14 @@
 			{#if report}
 				<div class="imp-report" class:ok={!report.failed.length}>
 					<strong>
-						{report.created} von {report.total}
-						{report.total === 1 ? 'Zeile' : 'Zeilen'} angelegt
-						{#if report.failed.length}· {report.failed.length} nicht übernommen{/if}
+						{t('{created} von {total} Zeilen angelegt', { created: report.created, total: report.total })}
+						{#if report.failed.length}· {t('{count} nicht übernommen', { count: report.failed.length })}{/if}
 					</strong>
 					{#if report.failed.length}
 						<ul>
 							{#each report.failed as entry, index (index)}
 								<li>
-									<span class="imp-line">Zeile {entry.row}:</span>
+									<span class="imp-line">{t('Zeile {row}:', { row: entry.row })}</span>
 									{entry.message}
 								</li>
 							{/each}
@@ -572,22 +569,20 @@
 			<div class="imp-footer">
 				<span class="imp-status">
 					{#if columns.length}
-						<b>{verknuepft}</b>
-						{verknuepft === 1 ? 'Spalte' : 'Spalten'} verknüpft · <b>{rows.length}</b>
-						{rows.length === 1 ? 'Zeile' : 'Zeilen'} in der Datei
+						{t('Spalten verknüpft: {columns} · Zeilen in der Datei: {rows}', { columns: verknuepft, rows: rows.length })}
 					{:else}
-						Nur verknüpfte Spalten werden importiert.
+						{t('Nur verknüpfte Spalten werden importiert.')}
 					{/if}
 				</span>
 				<span class="imp-right">
-					<button class="sw-button" type="button" onclick={close}>Schließen</button>
+					<button class="sw-button" type="button" onclick={close}>{t('Schließen')}</button>
 					<button
 						class="sw-button sw-primary"
 						type="button"
 						onclick={runImport}
 						disabled={!verknuepft || laeuft || !mayImport}
 					>
-						{laeuft ? 'Import läuft …' : 'Import starten'}
+						{laeuft ? t('Import läuft …') : t('Import starten')}
 					</button>
 				</span>
 			</div>

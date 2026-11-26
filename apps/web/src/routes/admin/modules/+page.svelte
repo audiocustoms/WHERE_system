@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { errorText } from '../../../lib/api';
 	import { modules } from '../../../lib/modules.svelte';
@@ -19,8 +21,13 @@
 			const outcome = await modules.install(id);
 			const name = modules.status(id)?.product_name ?? id;
 			message = outcome.shares_core_database
-				? `${name} ist installiert und verwendet Datenbank und Mandanten der Kernanwendung.`
-				: `${name} ist installiert und hat die Datenbank angelegt; die Kernanwendung übernimmt sie, sobald sie installiert wird.`;
+				? t('{name} ist installiert und verwendet Datenbank und Mandanten der Kernanwendung.', {
+						name
+					})
+				: t(
+						'{name} ist installiert und hat die Datenbank angelegt; die Kernanwendung übernimmt sie, sobald sie installiert wird.',
+						{ name }
+					);
 		} catch (e) {
 			error = errorText(e);
 		} finally {
@@ -34,7 +41,7 @@
 		message = null;
 		try {
 			await modules.remove(id);
-			message = 'Das Modul wurde entfernt. Die Daten bleiben in der Datenbank.';
+			message = t('Das Modul wurde entfernt. Die Daten bleiben in der Datenbank.');
 		} catch (e) {
 			error = errorText(e);
 		} finally {
@@ -43,13 +50,12 @@
 	}
 </script>
 
-<svelte:head><title>Module — WHERE</title></svelte:head>
+<svelte:head><title>{t('Module — WHERE')}</title></svelte:head>
 
-<h1>Module</h1>
+<h1>{t('Module')}</h1>
 <p class="intro">
-	Alle Produkte der WHERE-Familie teilen eine Datenbank und ihre Mandanten.
-	<strong>WHERE - is my stuff?</strong> ist die Kernanwendung; die übrigen Produkte werden hier
-	hinzugefügt.
+	{t('Alle Produkte der WHERE-Familie teilen eine Datenbank und ihre Mandanten.')}
+	<strong>{t('WHERE - is my stuff?')}</strong> {t('ist die Kernanwendung; die übrigen Produkte werden hier hinzugefügt.')}
 </p>
 
 {#if modules.error}<p class="bad">{modules.error}</p>{/if}
@@ -57,19 +63,23 @@
 {#if message}<p class="good">{message}</p>{/if}
 
 {#if !modules.ready}
-	<p class="empty">{modules.loading ? 'Lade Modulregister …' : 'Kein Modulregister verfügbar.'}</p>
+	<p class="empty">
+		{modules.loading ? t('Lade Modulregister …') : t('Kein Modulregister verfügbar.')}
+	</p>
 {:else}
 	<p class="meta">
-		Installation: {modules.snapshot?.installation_id ?? '—'} · Datenbank angelegt von:
+		{t('Installation: {id} · Datenbank angelegt von:', {
+			id: modules.snapshot?.installation_id ?? '—'
+		})}
 		<strong>{modules.snapshot?.database_owner ?? '—'}</strong>
 	</p>
 
 	<table>
 		<thead>
 			<tr>
-				<th>Produkt</th>
-				<th>Beschreibung</th>
-				<th>Status</th>
+				<th>{t('Produkt')}</th>
+				<th>{t('Beschreibung')}</th>
+				<th>{t('Status')}</th>
 				<th></th>
 			</tr>
 		</thead>
@@ -78,14 +88,14 @@
 				<tr>
 					<td>
 						<strong>{modul.product_name}</strong>
-						{#if modul.is_core}<span class="badge">Kern</span>{/if}
+						{#if modul.is_core}<span class="badge">{t('Kern')}</span>{/if}
 					</td>
-					<td>{modul.description}</td>
+					<td>{t(modul.description)}</td>
 					<td>
 						{#if modul.installed}
-							<span class="good">installiert</span>
+							<span class="good">{t('installiert')}</span>
 						{:else}
-							<span class="off">nicht installiert</span>
+							<span class="off">{t('nicht installiert')}</span>
 						{/if}
 					</td>
 					<td class="actions">
@@ -96,7 +106,7 @@
 								disabled={busy !== null}
 								onclick={() => install(modul.id as 'go' | 'people' | 'money')}
 							>
-								{busy === modul.id ? 'Installiere …' : 'Installieren'}
+								{busy === modul.id ? t('Installiere …') : t('Installieren')}
 							</button>
 						{:else if !modul.is_core && modul.installed}
 							<button
@@ -105,7 +115,7 @@
 								disabled={busy !== null}
 								onclick={() => remove(modul.id as 'go' | 'people' | 'money')}
 							>
-								{busy === modul.id ? 'Entferne …' : 'Entfernen'}
+								{busy === modul.id ? t('Entferne …') : t('Entfernen')}
 							</button>
 						{/if}
 					</td>
@@ -116,9 +126,10 @@
 
 	{#if !modules.coreInstalled}
 		<div class="notice">
-			Die Kernanwendung ist in dieser Datenbank noch nicht registriert. Wird
-			<em>WHERE - is my stuff?</em> später installiert, verwendet sie die vorhandene Datenbank
-			und Mandanten weiter, statt eine zweite anzulegen.
+			{t(
+				'Die Kernanwendung ist in dieser Datenbank noch nicht registriert. Wird {product} später installiert, verwendet sie die vorhandene Datenbank und Mandanten weiter, statt eine zweite anzulegen.',
+				{ product: 'WHERE - is my stuff?' }
+			)}
 		</div>
 	{/if}
 {/if}

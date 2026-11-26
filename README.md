@@ -2,7 +2,6 @@
 
 <img src="logo/logo.svg" alt="" width="110" />
 
-
 **Warehouse logistics and operations software for theatre companies.**
 
 [![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue.svg)](LICENSE)
@@ -30,7 +29,7 @@ of tenants.
 | Product | What it does | Bundle identifier | Installer |
 | --- | --- | --- | --- |
 | **WHERE - is my stuff?** | Articles, addresses, stock, warehouses — the core | `de.where.warehouse` | yes |
-| **WHERE - are my people?** | Employees, shifts, duty planning, holidays | `de.where.are-my-people` | yes |
+| **WHERE - are my people?** | Employees, shifts, scheduling, holidays | `de.where.are-my-people` | yes |
 | **WHERE - does my stuff go?** | Orders, package slips, rental and sale prices | — | in progress |
 | **WHERE - is my money?** | Accounting, banks, invoices | — | in progress |
 

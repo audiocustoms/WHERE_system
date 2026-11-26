@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import SearchWindow from '$core/search/SearchWindow.svelte';
 	import { api, errorText } from '$core/api';
@@ -34,15 +36,15 @@
 	});
 </script>
 
-<SearchWindow title="Packschein suchen" width="24rem" bandLabel="Vorgang" bandText="Packscheinliste" {onclose}>
+<SearchWindow title={t('Packschein suchen')} width="24rem" bandLabel={t('Vorgang')} bandText={t('Packscheinliste')} {onclose}>
 	<div class="sw-form">
 		<div class="sw-row">
-			<span class="sw-label">Lager</span>
-			<select bind:value={warehouse} aria-label="Lager">
+			<span class="sw-label">{t('Lager')}</span>
+			<select bind:value={warehouse} aria-label={t('Lager')}>
 				{#each warehouseList as w (w.id)}
-					<option value={w.id}>{w.name ?? `Lager ${w.id}`}</option>
+					<option value={w.id}>{w.name ?? t('Lager {n}', { n: w.id })}</option>
 				{:else}
-					<option value={null}>— kein Lager —</option>
+					<option value={null}>{t('— kein Lager —')}</option>
 				{/each}
 			</select>
 		</div>
@@ -52,48 +54,48 @@
 
 	<div class="sw-form">
 		<div class="sw-row">
-			<span class="sw-label">Packschein Nr.</span>
+			<span class="sw-label">{t('Packschein Nr.')}</span>
 			<input bind:value={packageSlipNo} inputmode="numeric" />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Auftrag Nr.</span>
+			<span class="sw-label">{t('Auftrag Nr.')}</span>
 			<input bind:value={orderNo} inputmode="numeric" />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Kunde</span>
+			<span class="sw-label">{t('Kunde')}</span>
 			<input bind:value={customer} />
-			<button class="sw-extra" type="button" title="Kunde wählen">+</button>
+			<button class="sw-extra" type="button" title={t('Kunde wählen')}>+</button>
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Veranstaltung</span>
+			<span class="sw-label">{t('Veranstaltung')}</span>
 			<input bind:value={event} />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Packscheindatum</span>
+			<span class="sw-label">{t('Packscheindatum')}</span>
 			<input bind:value={packageSlipDate} placeholder="00.00.0000" />
-			<button class="sw-extra" type="button" title="Datum übernehmen">+</button>
+			<button class="sw-extra" type="button" title={t('Datum übernehmen')}>+</button>
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Packtermin</span>
+			<span class="sw-label">{t('Packtermin')}</span>
 			<input bind:value={packDate} placeholder="00.00.0000" />
-			<button class="sw-extra" type="button" title="Datum übernehmen">+</button>
+			<button class="sw-extra" type="button" title={t('Datum übernehmen')}>+</button>
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Liefer-/Abholtermin</span>
+			<span class="sw-label">{t('Liefer-/Abholtermin')}</span>
 			<input bind:value={deliveryDate} placeholder="00.00.0000" />
-			<button class="sw-extra" type="button" title="Datum übernehmen">+</button>
+			<button class="sw-extra" type="button" title={t('Datum übernehmen')}>+</button>
 		</div>
 	</div>
 
-	<p class="sw-heading">Suche in den Positionen</p>
+	<p class="sw-heading">{t('Suche in den Positionen')}</p>
 
 	<div class="sw-form">
 		<div class="sw-row">
-			<span class="sw-label">Artikel Nr.</span>
+			<span class="sw-label">{t('Artikel Nr.')}</span>
 			<input bind:value={articleNo} inputmode="numeric" />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Seriennummer</span>
+			<span class="sw-label">{t('Seriennummer')}</span>
 			<input bind:value={serialNumber} />
 		</div>
 	</div>
@@ -103,7 +105,7 @@
 	<div class="sw-row indented">
 		<label class="sw-check">
 			<input type="checkbox" bind:checked={includeArchive} />
-			Inklusive Archiv
+			{t('Inklusive Archiv')}
 		</label>
 	</div>
 
@@ -112,14 +114,13 @@
 	{/if}
 	{#if note}
 		<p class="sw-note">
-			Die Packscheinsuche ist in WHERE noch nicht angebunden — der Packschein- und Auftragsstamm fehlt
-			bisher. Die Maske bildet das Original ab.
+			{t('Die Packscheinsuche ist in WHERE noch nicht angebunden — der Packschein- und Auftragsstamm fehlt bisher. Die Maske bildet das Original ab.')}
 		</p>
 	{/if}
 
 	{#snippet actions(cancel)}
-		<button class="sw-button" type="button" onclick={cancel}>Abbrechen</button>
-		<button class="sw-button" type="button" onclick={() => (note = true)}>Sucheditor</button>
-		<button class="sw-button sw-primary" type="button" onclick={() => (note = true)}>Suchen</button>
+		<button class="sw-button" type="button" onclick={cancel}>{t('Abbrechen')}</button>
+		<button class="sw-button" type="button" onclick={() => (note = true)}>{t('Sucheditor')}</button>
+		<button class="sw-button sw-primary" type="button" onclick={() => (note = true)}>{t('Suchen')}</button>
 	{/snippet}
 </SearchWindow>

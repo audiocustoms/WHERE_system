@@ -246,7 +246,7 @@ pub struct DispoQuery {
 impl DispoQuery {
     /// The first and the last day of the month.
     pub fn month_range(&self) -> Result<(NaiveDate, NaiveDate), DomainError> {
-        crate::duty::month_range(self.month, self.year)
+        crate::schedule::month_range(self.month, self.year)
     }
 }
 

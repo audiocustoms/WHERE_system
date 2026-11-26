@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from './escape.svelte';
-	import { api, errorText, type Device, type StockRow } from './api';
+	import { onMount } from 'svelte';
+	import { api, errorText, type Device, type OpenOrderLine, type StockRow } from './api';
 	import { askConfirm } from './confirm.svelte';
-	import { quantity } from './format';
+	import { decimalText, decimalValue, quantity } from './format';
 	import { modules } from './modules.svelte';
 
 	/** Rental/sale exists only with `WHERE - does my stuff go?`. */
@@ -16,6 +19,10 @@
 		devices: Device[];
 		/** Preset of the usage areas from the flags of the article. */
 		defaultUsage: { inventory: boolean; rental: boolean; sale: boolean; used_sale: boolean };
+		/** Open line of a purchase order to preselect (opened from the order page). */
+		pickOrderLine?: number | null;
+		/** The article is captured per piece — a serial number is required. */
+		individualItems?: boolean;
 		/** The devices this goods receipt has created (batch: one with an amount). */
 		onfertig: (devices: Device[]) => void;
 		onschliessen: () => void;
@@ -27,6 +34,8 @@
 		stock,
 		devices,
 		defaultUsage,
+		pickOrderLine = null,
+		individualItems = false,
 		onfertig,
 		onschliessen
 	}: Props = $props();
@@ -36,7 +45,8 @@
 	let autoIncrement = $state(false);
 	// svelte-ignore state_referenced_locally
 	let stockId = $state<number>(
-		(stock.find((l) => l.is_default) ?? stock[0])?.stock_id ?? 1
+		(stock.find((l) => l.is_default && l.zugriff) ?? stock.find((l) => l.zugriff) ?? stock[0])
+			?.stock_id ?? 1
 	);
 	let binLocation = $state('');
 	let condition = $state('');
@@ -45,6 +55,10 @@
 	let supplier = $state<number | null>(null);
 	let inventoryNo = $state('');
 	let reason = $state('');
+	/** Purchase order line this delivery belongs to (`Bestellung`). */
+	let orderLines = $state<OpenOrderLine[]>([]);
+	let orderLine = $state<number | null>(null);
+	const chosenLine = $derived(orderLines.find((l) => l.line_id === orderLine) ?? null);
 	// Pre-filled from the article flags, freely changeable afterwards.
 	// svelte-ignore state_referenced_locally
 	let usage = $state({
@@ -57,6 +71,9 @@
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 	let hint = $state<string | null>(null);
+
+	/** Bin locations the administration maintained for the chosen warehouse. */
+	let binNames = $state<string[]>([]);
 
 	/** Already recorded devices — for „autom. hoch zählen" and the next device ID. */
 	let extra = $state<Device[]>([]);
@@ -91,10 +108,10 @@
 	/** Closing the mask only after a confirmation — otherwise recorded inputs are lost. */
 	async function close() {
 		const ok = await askConfirm({
-			title: 'Wareneingang',
-			message: 'Wareneingang schließen? Nicht erfasste Eingaben gehen verloren.',
-			confirmLabel: 'Ja, schließen',
-			cancelLabel: 'Weiter erfassen'
+			title: t('Wareneingang'),
+			message: t('Wareneingang schließen? Nicht erfasste Eingaben gehen verloren.'),
+			confirmLabel: t('Ja, schließen'),
+			cancelLabel: t('Weiter erfassen')
 		});
 		if (ok) onschliessen();
 	}
@@ -112,13 +129,14 @@
 				serial_no: withoutSerial ? null : serialNo.trim() || null,
 				without_serial: withoutSerial,
 				stock_id: stockId,
-				binLocation: binLocation.trim() || null,
+				bin_location: binLocation.trim() || null,
 				condition: condition.trim() || null,
-				purchasePrice: purchasePrice.trim() || null,
-				purchaseDate: purchaseDate.trim() || null,
+				purchase_price: decimalValue(purchasePrice),
+				purchase_date: purchaseDate.trim() || null,
 				supplier_no: supplier,
 				inventory_no: inventoryNo.trim() || null,
 				reason: reason.trim() || null,
+				order_line: orderLine,
 				inventory: usage.inventory,
 				rental: usage.rental,
 				sale: usage.sale,
@@ -127,17 +145,23 @@
 			});
 			extra = [...extra, ...result.devices];
 			onfertig(result.devices);
+			void loadOrderLines();
 			const naechste = nextSerialNumber();
 			const first = result.devices[0];
 			const last = result.devices.at(-1);
 			if (result.devices.length > 1) {
-				hint = `${result.devices.length} Geräte erfasst (${first?.serial_no} – ${last?.serial_no})${
-					autoIncrement && naechste ? ` — als Nächstes: ${naechste}` : ''
-				}`;
+				hint =
+					t('{count} Geräte erfasst ({from} – {to})', {
+						count: result.devices.length,
+						from: first?.serial_no ?? '',
+						to: last?.serial_no ?? ''
+					}) + (autoIncrement && naechste ? t(' — als Nächstes: {next}', { next: naechste }) : '');
 			} else if (first) {
-				hint = `Gerät ${first.id} erfasst (Menge ${quantity(result.quantity)})${
-					autoIncrement && naechste ? ` — als Nächstes: ${naechste}` : ''
-				}`;
+				hint =
+					t('Gerät {id} erfasst (Menge {amount})', {
+						id: first.id,
+						amount: quantity(result.quantity)
+					}) + (autoIncrement && naechste ? t(' — als Nächstes: {next}', { next: naechste }) : '');
 			}
 			if (autoIncrement) {
 				serialNo = naechste;
@@ -152,6 +176,54 @@
 		}
 	}
 
+	/** Open purchase order lines of the article — the delivery may belong to one. */
+	let orderPreselected = false;
+
+	/** Bin locations of the warehouse — suggestions for the `Lagerplatz` field. */
+	async function loadBinNames(warehouse: number) {
+		try {
+			binNames = await api.masterData.binLocations(warehouse);
+		} catch {
+			binNames = [];
+		}
+	}
+
+	async function loadOrderLines() {
+		try {
+			orderLines = await api.purchaseOrders.openLines(articleId);
+			if (orderLine !== null && !orderLines.some((l) => l.line_id === orderLine)) {
+				orderLine = null;
+			}
+			if (
+				!orderPreselected &&
+				pickOrderLine !== null &&
+				orderLines.some((l) => l.line_id === pickOrderLine)
+			) {
+				orderPreselected = true;
+				chooseOrderLine(pickOrderLine);
+			}
+		} catch {
+			orderLines = [];
+		}
+	}
+
+	/** Choosing an order line takes its open amount; the order names the reason. */
+	function chooseOrderLine(lineId: number | null) {
+		orderLine = lineId;
+		const line = lineId === null ? null : orderLines.find((l) => l.line_id === lineId) ?? null;
+		if (!line) return;
+		if (!amount.trim() || amount.trim() === '1') {
+			amount = decimalText(line.open);
+		}
+	}
+
+	onMount(loadOrderLines);
+
+	// The bin suggestions follow the chosen warehouse.
+	$effect(() => {
+		void loadBinNames(stockId);
+	});
+
 	// `Esc` closes the window like `Abbrechen`.
 	$effect(() => escapeWindows(() => void close()));
 </script>
@@ -159,88 +231,103 @@
 <div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="we-titel">
 		<header>
-			<h2 id="we-titel">Wareneingang erfassen</h2>
+			<h2 id="we-titel">{t('Wareneingang erfassen')}</h2>
 			<span class="article">{articleNo}</span>
-			<button class="close" type="button" onclick={close} title="Schließen">✕</button>
+			<button class="close" type="button" onclick={close} title={t('Schließen')}>✕</button>
 		</header>
 
 		<div class="top-row">
 			<label class="field">
-				<span>Serien-Nr.</span>
-				<input bind:value={serialNo} disabled={withoutSerial} placeholder={withoutSerial ? '—' : 'Seriennummer'} />
+				<span>{t('Serien-Nr.')}</span>
+				<input bind:value={serialNo} disabled={withoutSerial} placeholder={withoutSerial ? '—' : t('Seriennummer')} />
 			</label>
 			<label class="check">
-				<input type="checkbox" bind:checked={withoutSerial} /> ohne Seriennummernerfassung
+				<input
+					type="checkbox"
+					bind:checked={withoutSerial}
+					disabled={individualItems}
+				/> {t('ohne Seriennummernerfassung')}
 			</label>
 			<label class="check">
-				<input type="checkbox" bind:checked={autoIncrement} disabled={withoutSerial} /> autom. hoch
-				zählen
+				<input type="checkbox" bind:checked={autoIncrement} disabled={withoutSerial} /> {t('autom. hoch zählen')}
 			</label>
 			{#if autoIncrement && nextSerialNumber() && !serialNo}
 				<button class="link" type="button" onclick={applyProposal}>
-					Vorschlag übernehmen: {nextSerialNumber()}
+					{t('Vorschlag übernehmen: {serial}', { serial: nextSerialNumber() })}
 				</button>
 			{/if}
 		</div>
 
-		<h3>Erfassungsoptionen</h3>
-
-		<p class="small" style="margin: 0 0 0.5rem">
-			Menge mit Seriennummern: so viele Geräte werden angelegt, die Seriennummer zählt weiter
-			(<code>…-001</code> → <code>…-002</code>). Mit „ohne Seriennummernerfassung" bleibt es ein
-			Satz, dessen Menge den Zugang bildet.
-		</p>
+		<h3>{t('Erfassungsoptionen')}</h3>
 
 		<div class="grid">
 			<div class="left">
 				<label class="row">
-					<span>Lager</span>
+					<span>{t('Lager')}</span>
 					<select bind:value={stockId}>
-						{#each stock as l (l.stock_id)}
+						{#each stock.filter((l) => l.zugriff) as l (l.stock_id)}
 							<option value={l.stock_id}>{l.stock_name}</option>
 						{/each}
 					</select>
 				</label>
-				<label class="row"><span>Lagerplatz</span><input bind:value={binLocation} /></label>
-				<label class="row"><span>Zustand</span><input bind:value={condition} /></label>
+				<label class="row"><span>{t('Lagerplatz')}</span><input bind:value={binLocation} list="we-lagerplaetze" /></label>
+				<label class="row"><span>{t('Zustand')}</span><input bind:value={condition} /></label>
 				<label class="row">
-					<span>Kaufpreis</span>
+					<span>{t('Kaufpreis')}</span>
 					<input bind:value={purchasePrice} inputmode="decimal" placeholder="0,00" />
 				</label>
-				<label class="row"><span>Kaufdatum</span><input type="date" bind:value={purchaseDate} /></label>
+				<label class="row"><span>{t('Kaufdatum')}</span><input type="date" bind:value={purchaseDate} /></label>
 				<label class="row">
-					<span>Lieferant</span>
-					<input type="number" bind:value={supplier} placeholder="Adress-Nr." />
+					<span>{t('Lieferant')}</span>
+					<input type="number" bind:value={supplier} placeholder={t('Adress-Nr.')} />
 				</label>
-				<label class="row"><span>Inventar Nr.</span><input bind:value={inventoryNo} /></label>
+				<label class="row"><span>{t('Inventar Nr.')}</span><input bind:value={inventoryNo} /></label>
 				<label class="row">
-					<span>Menge</span>
+					<span>{t('Menge')}</span>
 					<input
 				bind:value={amount}
 						inputmode="numeric"
-						title="Mit Seriennummern: Anzahl der Geräte (die Nummern zählen weiter). Ohne Seriennummern: Menge der Charge."
 					/>
 				</label>
+				{#if orderLines.length > 0}
+					<label class="row">
+						<span>{t('Bestellung')}</span>
+						<select
+							value={orderLine}
+							onchange={(e) => chooseOrderLine(Number(e.currentTarget.value) || null)}
+						>
+							<option value={null}>{t('ohne Bestellung')}</option>
+							{#each orderLines as line (line.line_id)}
+								<option value={line.line_id}>
+									{line.number} · {line.supplier_name ?? '—'} · {t('offen')} {decimalText(line.open)}
+								</option>
+							{/each}
+						</select>
+					</label>
+				{/if}
 				<label class="row wide">
-					<span>Grund der manuellen Erfassung</span>
-					<input bind:value={reason} placeholder="z. B. Lieferschein Nr. …" />
+					<span>{t('Grund der manuellen Erfassung')}</span>
+					{#if chosenLine}
+						<input value={t('Bestellung {number}', { number: chosenLine.number })} disabled />
+					{:else}
+						<input bind:value={reason} />
+					{/if}
 				</label>
 			</div>
 
 			<div class="right">
 				<div class="row">
-					<span>nächste Geräte-ID</span>
+					<span>{t('nächste Geräte-ID')}</span>
 					<strong>{nextDeviceId()}</strong>
-					<span class="small">wird automatisch vergeben</span>
 				</div>
 				<fieldset>
-					<legend>Einsatzbereiche — mehrere möglich</legend>
-					<label class="check"><input type="checkbox" bind:checked={usage.inventory} /> Inventar</label>
+					<legend>{t('Einsatzbereiche')}</legend>
+					<label class="check"><input type="checkbox" bind:checked={usage.inventory} /> {t('Inventar')}</label>
 					{#if pricingEnabled}
-						<label class="check"><input type="checkbox" bind:checked={usage.rental} /> Miete</label>
-						<label class="check"><input type="checkbox" bind:checked={usage.sale} /> Verkauf</label>
+						<label class="check"><input type="checkbox" bind:checked={usage.rental} /> {t('Miete')}</label>
+						<label class="check"><input type="checkbox" bind:checked={usage.sale} /> {t('Verkauf')}</label>
 						<label class="check">
-							<input type="checkbox" bind:checked={usage.used_sale} /> Gebrauchtverkauf
+							<input type="checkbox" bind:checked={usage.used_sale} /> {t('Gebrauchtverkauf')}
 						</label>
 					{/if}
 				</fieldset>
@@ -253,10 +340,16 @@
 			<p class="good">{hint}</p>
 		{/if}
 
+		<datalist id="we-lagerplaetze">
+			{#each binNames as name (name)}
+				<option value={name}></option>
+			{/each}
+		</datalist>
+
 		<footer>
-			<button type="button" onclick={close}>Schließen</button>
+			<button type="button" onclick={close}>{t('Schließen')}</button>
 			<button class="primary" type="button" onclick={record} disabled={saving}>
-				{saving ? 'Erfasse …' : 'SN erfassen'}
+				{saving ? t('Erfasse …') : t('SN erfassen')}
 			</button>
 		</footer>
 	</div>
@@ -358,10 +451,6 @@
 	}
 	.right .row {
 		grid-template-columns: auto 1fr;
-	}
-	.small {
-		color: var(--muted-2);
-		font-size: 0.72rem;
 	}
 	input,
 	select {

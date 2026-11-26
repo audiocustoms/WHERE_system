@@ -159,10 +159,14 @@ impl WarehouseRepository {
     /// its default.
     pub async fn create(&self, mandant: i64, name: &str) -> Result<WarehouseAdminRow, DomainError> {
         let name = Self::validate_name(name)?;
+        // A new warehouse is usable from the start: released for the working masks and
+        // open for withdrawals. The administration closes it where that is wanted.
         let (id,): (i32,) = sqlx::query_as(
-            r#"INSERT INTO "Storage_Lager" ("Name", "Mandanten_ID", "__DefaultLager")
+            r#"INSERT INTO "Storage_Lager"
+                     ("Name", "Mandanten_ID", "__DefaultLager", "where_zugriff", "where_entnahme")
                VALUES ($1, $2,
-                       NOT EXISTS (SELECT 1 FROM "Storage_Lager" WHERE "Mandanten_ID" = $2))
+                       NOT EXISTS (SELECT 1 FROM "Storage_Lager" WHERE "Mandanten_ID" = $2),
+                       true, true)
                RETURNING "Primary_Key""#,
         )
         .bind(&name)

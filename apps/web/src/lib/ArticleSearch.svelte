@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import SearchWindow from './search/SearchWindow.svelte';
 	import {
@@ -23,16 +25,16 @@
 
 	/** „Artikeltyp" selection — labels taken from the legacy language package. */
 	const ARTICLE_TYPES: { value: ArticleType; text: string }[] = [
-		{ value: 'active', text: 'Alle Artikel (Aktiv)' },
-		{ value: 'inactive', text: 'Alle inaktiven Artikel' },
-		{ value: 'all', text: 'Alle aktiven und inaktiven Artikel' }
+		{ value: 'active', text: t('Alle Artikel (Aktiv)') },
+		{ value: 'inactive', text: t('Alle inaktiven Artikel') },
+		{ value: 'all', text: t('Alle aktiven und inaktiven Artikel') }
 	];
 
 	const OPERATORS: { value: SetOperator; text: string }[] = [
-		{ value: 'contains', text: 'enthält' },
-		{ value: 'contains_any', text: 'oder enthält' },
-		{ value: 'contains_all', text: 'und enthält' },
-		{ value: 'contains_none', text: 'enthält nicht' }
+		{ value: 'contains', text: t('enthält') },
+		{ value: 'contains_any', text: t('oder enthält') },
+		{ value: 'contains_all', text: t('und enthält') },
+		{ value: 'contains_none', text: t('enthält nicht') }
 	];
 
 	/** Number fields of the pyro tab as text, so that „1,5" stays typable. */
@@ -264,13 +266,13 @@
 		excludeVirtual = k.exclude_virtual ?? false;
 		pyro = { ...emptyPyro(), ...alsText(k.pyro as Record<string, unknown>) };
 		saveName = hits.name;
-		hint = `Vorgang „${hits.name}" geladen`;
+		hint = t('Vorgang „{name}" geladen', { name: hits.name });
 	}
 
 	async function save() {
 		const value = saveName.trim();
 		if (!value) {
-			error = 'Bitte einen Namen für die Suche eingeben.';
+			error = t('Bitte einen Namen für die Suche eingeben.');
 			return;
 		}
 		busy = true;
@@ -278,7 +280,7 @@
 		try {
 			const saved = await api.article.saveSearch(value, buildCriteria());
 			savedSearchKey = String(saved.id);
-			hint = `Suche „${saved.name}" gespeichert`;
+			hint = t('Suche „{name}" gespeichert', { name: saved.name });
 			await loadSearches();
 		} catch (e) {
 			error = errorText(e);
@@ -338,15 +340,15 @@
 
 	/** Process selection of the dark band: saved searches plus „neu". */
 	const processOptions = $derived([
-		{ value: '', text: '— neu —' },
+		{ value: '', text: t('— neu —') },
 		...saved.map((s) => ({ value: String(s.id), text: s.name }))
 	]);
 </script>
 
 <SearchWindow
-	title="Artikelsuche"
+	title={t('Artikelsuche')}
 	width="32rem"
-	bandLabel="Vorgang"
+	bandLabel={t('Vorgang')}
 	bandOptions={processOptions}
 	bandValue={savedSearchKey}
 	onbandchange={chooseSavedSearch}
@@ -354,17 +356,17 @@
 >
 		<nav class="tabs">
 			<button class:active={tab === 'allgemein'} type="button" onclick={() => (tab = 'allgemein')}>
-				Allgemein
+				{t('Allgemein')}
 			</button>
 			<button class:active={tab === 'pyro'} type="button" onclick={() => (tab = 'pyro')}>
-				Pyro
+				{t('Pyro')}
 			</button>
 		</nav>
 
 		{#if tab === 'allgemein'}
 			<div class="form">
 				<div class="row">
-					<span class="label">Artikeltyp</span>
+					<span class="label">{t('Artikeltyp')}</span>
 					<select bind:value={article_type}>
 						{#each ARTICLE_TYPES as t (t.value)}
 							<option value={t.value}>{t.text}</option>
@@ -377,32 +379,32 @@
 
 			<div class="form">
 				<div class="row">
-					<span class="label">Name</span>
+					<span class="label">{t('Name')}</span>
 					<div class="stack">
 						<input bind:value={name} onkeydown={(e) => e.key === 'Enter' && search()} />
 						<label class="check">
 							<input type="checkbox" bind:checked={inDescriptions} />
-							inkl. in Artikelbeschreibungen
+							{t('inkl. in Artikelbeschreibungen')}
 						</label>
 					</div>
 				</div>
 				<div class="row">
-					<span class="label">Artikel Nr.</span>
+					<span class="label">{t('Artikel Nr.')}</span>
 					<input class="narrow" bind:value={articleNo} inputmode="numeric" placeholder="0" />
 				</div>
 				<div class="row">
-					<span class="label">Inventar Nr.</span>
+					<span class="label">{t('Inventar Nr.')}</span>
 					<input bind:value={inventoryNo} />
 				</div>
 				<div class="row">
-					<span class="label">Serien-Nr.</span>
+					<span class="label">{t('Serien-Nr.')}</span>
 					<input bind:value={serialNo} />
 				</div>
 				<div class="row">
-					<span class="label">Bundlematerial</span>
+					<span class="label">{t('Bundlematerial')}</span>
 					<label class="check">
 						<input type="checkbox" bind:checked={withBundle} />
-						Zugehöriges mit anzeigen
+						{t('Zugehöriges mit anzeigen')}
 					</label>
 				</div>
 			</div>
@@ -411,13 +413,13 @@
 
 			<div class="form">
 				<div class="row">
-					<span class="label">Warengruppe</span>
+					<span class="label">{t('Warengruppe')}</span>
 					<select class="operator" bind:value={warengruppenOp}>
 						{#each OPERATORS as o (o.value)}
 							<option value={o.value}>{o.text}</option>
 						{/each}
 					</select>
-					<button type="button" onclick={() => openPicker('warengruppe')}>Index wählen</button>
+					<button type="button" onclick={() => openPicker('warengruppe')}>{t('Index wählen')}</button>
 				</div>
 				{#if article_groups.length}
 					<div class="chips">
@@ -426,7 +428,7 @@
 								{articleGroupName(id)}
 								<button
 									type="button"
-									title="Entfernen"
+									title={t('Entfernen')}
 									onclick={() => (article_groups = article_groups.filter((w) => w !== id))}>×</button
 								>
 							</span>
@@ -435,13 +437,13 @@
 				{/if}
 
 				<div class="row">
-					<span class="label">Suchindex</span>
+					<span class="label">{t('Suchindex')}</span>
 					<select class="operator" bind:value={suchindexOp}>
 						{#each OPERATORS as o (o.value)}
 							<option value={o.value}>{o.text}</option>
 						{/each}
 					</select>
-					<button type="button" onclick={() => openPicker('suchindex')}>Index wählen</button>
+					<button type="button" onclick={() => openPicker('suchindex')}>{t('Index wählen')}</button>
 				</div>
 				{#if searchIndex.length}
 					<div class="chips">
@@ -450,7 +452,7 @@
 								{value}
 								<button
 									type="button"
-									title="Entfernen"
+									title={t('Entfernen')}
 									onclick={() => (searchIndex = searchIndex.filter((s) => s !== value))}>×</button
 								>
 							</span>
@@ -459,13 +461,13 @@
 				{/if}
 
 				<div class="row">
-					<span class="label">Lieferant</span>
+					<span class="label">{t('Lieferant')}</span>
 					<input
 						bind:value={supplierInput}
-						placeholder="Name oder Adress-Nr."
+						placeholder={t('Name oder Adress-Nr.')}
 						onkeydown={(e) => e.key === 'Enter' && addSupplier()}
 					/>
-					<button type="button" title="Weiteren Lieferanten hinzufügen" onclick={addSupplier}>
+					<button type="button" title={t('Weiteren Lieferanten hinzufügen')} onclick={addSupplier}>
 						+
 					</button>
 				</div>
@@ -476,7 +478,7 @@
 								{value}
 								<button
 									type="button"
-									title="Entfernen"
+									title={t('Entfernen')}
 									onclick={() => (suppliers = suppliers.filter((l) => l !== value))}>×</button
 								>
 							</span>
@@ -485,11 +487,11 @@
 				{/if}
 
 				<div class="row">
-					<span class="label">Hersteller</span>
+					<span class="label">{t('Hersteller')}</span>
 					<input bind:value={manufacturer} />
 				</div>
 				<div class="row">
-					<span class="label">Eigentümer</span>
+					<span class="label">{t('Eigentümer')}</span>
 					<input bind:value={owner} />
 				</div>
 			</div>
@@ -498,94 +500,94 @@
 
 			<div class="form">
 				<div class="row">
-					<span class="label">Option</span>
+					<span class="label">{t('Option')}</span>
 					<label class="check">
 						<input type="checkbox" bind:checked={excludeVirtual} />
-						exkl. virtueller Artikel
+						{t('exkl. virtueller Artikel')}
 					</label>
 				</div>
 			</div>
 		{:else}
 			<div class="form pyro">
 				<div class="row">
-					<span class="label">UN Nummer</span>
+					<span class="label">{t('UN Nummer')}</span>
 					<input bind:value={pyro.un_number} />
 				</div>
 				<div class="row">
-					<span class="label">Gefahrgutklasse</span>
+					<span class="label">{t('Gefahrgutklasse')}</span>
 					<input bind:value={pyro.hazard_class} />
 				</div>
 				<div class="row">
-					<span class="label">Masse Gefahrstoff (NEQ)</span>
-					<input class="narrow" bind:value={pyro.neq_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.neq_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Masse Gefahrstoff (NEQ)')}</span>
+					<input class="narrow" bind:value={pyro.neq_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.neq_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 				<div class="row">
-					<span class="label">UN Punkte Faktor</span>
+					<span class="label">{t('UN Punkte Faktor')}</span>
 					<input class="narrow" bind:value={pyro.un_points} inputmode="decimal" />
 				</div>
 				<div class="row">
-					<span class="label">CE-Nr.</span>
+					<span class="label">{t('CE-Nr.')}</span>
 					<input bind:value={pyro.ce_nr} />
 				</div>
 				<div class="row">
-					<span class="label">Klassifizierung</span>
+					<span class="label">{t('Klassifizierung')}</span>
 					<input bind:value={pyro.classification} />
 				</div>
 				<div class="row">
-					<span class="label">Kategorie</span>
+					<span class="label">{t('Kategorie')}</span>
 					<input bind:value={pyro.category} />
 				</div>
 				<div class="row">
-					<span class="label">Zulassungsnummer</span>
+					<span class="label">{t('Zulassungsnummer')}</span>
 					<input bind:value={pyro.approval_number} />
 				</div>
 				<div class="row">
-					<span class="label">Verpackungsgruppe</span>
+					<span class="label">{t('Verpackungsgruppe')}</span>
 					<input bind:value={pyro.packing_group} />
 				</div>
 				<div class="row">
-					<span class="label">Tunnelbegrenzungscode</span>
+					<span class="label">{t('Tunnelbegrenzungscode')}</span>
 					<input bind:value={pyro.tunnel_code} />
 				</div>
 				<div class="row">
-					<span class="label">Beförderungskategorie</span>
+					<span class="label">{t('Beförderungskategorie')}</span>
 					<input bind:value={pyro.transport_category} />
 				</div>
 				<div class="row">
-					<span class="label">Seitlicher Sicherheitsabstand</span>
-					<input class="narrow" bind:value={pyro.lateral_distance_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.lateral_distance_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Seitlicher Sicherheitsabstand')}</span>
+					<input class="narrow" bind:value={pyro.lateral_distance_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.lateral_distance_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 				<div class="row">
-					<span class="label">Senkrechter Sicherheitsabstand</span>
-					<input class="narrow" bind:value={pyro.vertical_distance_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.vertical_distance_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Senkrechter Sicherheitsabstand')}</span>
+					<input class="narrow" bind:value={pyro.vertical_distance_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.vertical_distance_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 				<div class="row">
-					<span class="label">Steighöhe</span>
-					<input class="narrow" bind:value={pyro.ascending_height_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.ascending_height_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Steighöhe')}</span>
+					<input class="narrow" bind:value={pyro.ascending_height_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.ascending_height_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 				<div class="row">
-					<span class="label">Schalldruckpegel</span>
-					<input class="narrow" bind:value={pyro.sound_pressure_level_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.sound_pressure_level_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Schalldruckpegel')}</span>
+					<input class="narrow" bind:value={pyro.sound_pressure_level_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.sound_pressure_level_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 				<div class="row">
-					<span class="label">Schalldruckreichweite</span>
-					<input class="narrow" bind:value={pyro.sound_pressure_range_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.sound_pressure_range_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Schalldruckreichweite')}</span>
+					<input class="narrow" bind:value={pyro.sound_pressure_range_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.sound_pressure_range_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 				<div class="row">
-					<span class="label">Verzögerungszeit</span>
-					<input class="narrow" bind:value={pyro.delay_time_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.delay_time_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Verzögerungszeit')}</span>
+					<input class="narrow" bind:value={pyro.delay_time_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.delay_time_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 				<div class="row">
-					<span class="label">Effektdauer</span>
-					<input class="narrow" bind:value={pyro.effect_duration_from} inputmode="decimal" placeholder="von" />
-					<input class="narrow" bind:value={pyro.effect_duration_to} inputmode="decimal" placeholder="bis" />
+					<span class="label">{t('Effektdauer')}</span>
+					<input class="narrow" bind:value={pyro.effect_duration_from} inputmode="decimal" placeholder={t('von')} />
+					<input class="narrow" bind:value={pyro.effect_duration_to} inputmode="decimal" placeholder={t('bis')} />
 				</div>
 			</div>
 		{/if}
@@ -599,11 +601,11 @@
 
 		{#if sucheditor}
 			<section class="editor">
-				<h3>Sucheditor</h3>
+				<h3>{t('Sucheditor')}</h3>
 				<div class="row">
-					<span class="label">Name</span>
-					<input bind:value={saveName} placeholder="z. B. Licht ohne Ersatzteile" />
-					<button type="button" onclick={save} disabled={busy}>Speichern</button>
+					<span class="label">{t('Name')}</span>
+					<input bind:value={saveName} placeholder={t('z. B. Licht ohne Ersatzteile')} />
+					<button type="button" onclick={save} disabled={busy}>{t('Speichern')}</button>
 				</div>
 				{#if saved.length}
 					<ul>
@@ -612,27 +614,27 @@
 								<button type="button" class="name" onclick={() => chooseSavedSearch(String(s.id))}>
 									{s.name}
 								</button>
-								<button type="button" onclick={() => remove(s.id)} disabled={busy}>Löschen</button>
+								<button type="button" onclick={() => remove(s.id)} disabled={busy}>{t('Löschen')}</button>
 							</li>
 						{/each}
 					</ul>
 				{:else}
-					<p class="small">Noch keine Suche gespeichert.</p>
+					<p class="small">{t('Noch keine Suche gespeichert.')}</p>
 				{/if}
 			</section>
 		{/if}
 
 	{#snippet actions(cancel)}
-		<button class="sw-button" type="button" onclick={cancel}>Abbrechen</button>
+		<button class="sw-button" type="button" onclick={cancel}>{t('Abbrechen')}</button>
 		<button class="sw-button" type="button" onclick={() => (sucheditor = !sucheditor)}>
-			{sucheditor ? 'Editor schließen' : 'Sucheditor'}
+			{sucheditor ? t('Editor schließen') : t('Sucheditor')}
 		</button>
-		<button class="sw-button sw-primary" type="button" onclick={search}>Suchen</button>
+		<button class="sw-button sw-primary" type="button" onclick={search}>{t('Suchen')}</button>
 	{/snippet}
 </SearchWindow>
 
 {#if selection === 'warengruppe'}
-	<SearchWindow title="Warengruppe wählen" width="24rem" onclose={() => (selection = null)}>
+	<SearchWindow title={t('Warengruppe wählen')} width="24rem" onclose={() => (selection = null)}>
 		<ul class="tree">
 			{#each articleGroupList as w (w.id)}
 				<li style="padding-left: {depth(articleGroupList, w) * 1.1}rem">
@@ -646,24 +648,24 @@
 									: article_groups.filter((x) => x !== w.id))}
 						/>
 						{w.name ?? `#${w.id}`}
-						<span class="small">{w.article_count} Artikel</span>
+						<span class="small">{t('{count} Artikel', { count: w.article_count })}</span>
 					</label>
 				</li>
 			{:else}
-				<li class="small">Keine Warengruppen angelegt.</li>
+				<li class="small">{t('Keine Warengruppen angelegt.')}</li>
 			{/each}
 		</ul>
 
 		{#snippet actions()}
 			<button class="sw-button sw-primary" type="button" onclick={() => (selection = null)}>
-				Übernehmen
+				{t('Übernehmen')}
 			</button>
 		{/snippet}
 	</SearchWindow>
 {/if}
 
 {#if selection === 'suchindex'}
-	<SearchWindow title="Suchindex wählen" width="24rem" onclose={() => (selection = null)}>
+	<SearchWindow title={t('Suchindex wählen')} width="24rem" onclose={() => (selection = null)}>
 		<ul class="tree">
 			{#each searchIndexList as k (k.id)}
 				<li style="padding-left: {depth(searchIndexList, k) * 1.1}rem">
@@ -682,13 +684,13 @@
 					</label>
 				</li>
 			{:else}
-				<li class="small">Kein Suchindex angelegt.</li>
+				<li class="small">{t('Kein Suchindex angelegt.')}</li>
 			{/each}
 		</ul>
 
 		{#snippet actions()}
 			<button class="sw-button sw-primary" type="button" onclick={() => (selection = null)}>
-				Übernehmen
+				{t('Übernehmen')}
 			</button>
 		{/snippet}
 	</SearchWindow>

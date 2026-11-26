@@ -42,18 +42,25 @@ SELECT count(*) AS total,
   FROM "Adresse" d"#;
 
 /// Stock of the rental: `"Bestand_GesamtMiete"`.
+///
+/// An article that was set inactive keeps its rows in `"Artikel_Env"` — the stock is not
+/// deleted, it is only no longer reported.
 const STOCK_SQL: &str = r#"
 SELECT COALESCE(SUM(COALESCE(e."Bestand_GesamtMiete", 0)), 0) AS rental,
        COALESCE(SUM(COALESCE(e."Bestand_GesamtNVerkauf", 0)
                     + COALESCE(e."Bestand_GesamtGVerkauf", 0)), 0) AS sale,
        COALESCE(SUM(COALESCE(e."Bestand_Festblockade", 0)), 0) AS reserved,
        COALESCE(SUM(COALESCE(e."Bestand_EntnahmeGesamt", 0)), 0) AS withdrawn
-  FROM "Artikel_Env" e"#;
+  FROM "Artikel_Env" e
+  JOIN "Artikel" a ON a."Primary_Key" = e."Artikel_Primkey"
+ WHERE COALESCE(a."Aktiv", false)"#;
 
 const DEVICES_SQL: &str = r#"
 SELECT count(*) AS devices,
        count(*) FILTER (WHERE COALESCE(g."Ausgesondert", false)) AS discarded
-  FROM "Seriennummern" g"#;
+  FROM "Seriennummern" g
+  JOIN "Artikel" a ON a."Primary_Key" = g."Artikel_PrimKey"
+ WHERE COALESCE(a."Aktiv", false)"#;
 
 /// Articles per group. A group can hold an article twice, so the members are counted
 /// distinctly — the number is "articles in this group", not "rows in the link table".
@@ -63,6 +70,8 @@ SELECT w."Primary_Key" AS id,
        count(DISTINCT aw."Artikel_Primkey") AS articles
   FROM "Storage_Warengruppe" w
   JOIN "Artikel_Warengruppe" aw ON aw."Storage_Primkey" = w."Primary_Key"
+  JOIN "Artikel" a ON a."Primary_Key" = aw."Artikel_Primkey"
+ WHERE COALESCE(a."Aktiv", false)
  GROUP BY w."Primary_Key", w."Index"
  ORDER BY count(DISTINCT aw."Artikel_Primkey") DESC, w."Index"
  LIMIT $1"#;
@@ -74,27 +83,34 @@ SELECT count(*) FILTER (
        count(*) FILTER (
            WHERE NULLIF(btrim(COALESCE(a."pyro_hazard_class_o", '')), '') IS NOT NULL
        ) AS articles_with_hazard_class
-  FROM "Artikel" a"#;
+  FROM "Artikel" a
+ WHERE COALESCE(a."Aktiv", false)"#;
 
 const PYRO_CLASSES_SQL: &str = r#"
 SELECT btrim(a."pyro_hazard_class_o") AS label,
        count(*) AS count
   FROM "Artikel" a
- WHERE NULLIF(btrim(COALESCE(a."pyro_hazard_class_o", '')), '') IS NOT NULL
+ WHERE COALESCE(a."Aktiv", false)
+   AND NULLIF(btrim(COALESCE(a."pyro_hazard_class_o", '')), '') IS NOT NULL
  GROUP BY btrim(a."pyro_hazard_class_o")
  ORDER BY count(*) DESC, label
  LIMIT $1"#;
 
+/// The quality checks only look at articles in use — an article that was set aside is
+/// not a gap that somebody has to close.
 const QUALITY_SQL: &str = r#"
 SELECT (SELECT count(*) FROM "Artikel" a
-         WHERE NOT EXISTS (SELECT 1 FROM "Artikel_Warengruppe" aw
+         WHERE COALESCE(a."Aktiv", false)
+           AND NOT EXISTS (SELECT 1 FROM "Artikel_Warengruppe" aw
                             WHERE aw."Artikel_Primkey" = a."Primary_Key")) AS articles_without_group,
        (SELECT count(*) FROM "Artikel" a
-         WHERE NOT EXISTS (SELECT 1 FROM "Art_MandantDaten" m
+         WHERE COALESCE(a."Aktiv", false)
+           AND NOT EXISTS (SELECT 1 FROM "Art_MandantDaten" m
                             WHERE m."Artikel_Primkey" = a."Primary_Key"
                               AND COALESCE(m."Mietpreis", 0) > 0)) AS articles_without_rental_price,
        (SELECT count(*) FROM "Artikel" a
-         WHERE NOT EXISTS (SELECT 1 FROM "Artikel_Env" e
+         WHERE COALESCE(a."Aktiv", false)
+           AND NOT EXISTS (SELECT 1 FROM "Artikel_Env" e
                             WHERE e."Artikel_Primkey" = a."Primary_Key"
                               AND COALESCE(e."Bestand_Gesamt", 0) > 0)) AS articles_without_stock,
        (SELECT count(*) FROM "Adresse" d
@@ -111,6 +127,8 @@ SELECT l."Primary_Key" AS id,
                     + COALESCE(e."Bestand_GesamtGVerkauf", 0)), 0) AS sale
   FROM "Storage_Lager" l
   LEFT JOIN "Artikel_Env" e ON e."Lager_Primkey" = l."Primary_Key"
+  LEFT JOIN "Artikel" a ON a."Primary_Key" = e."Artikel_Primkey"
+ WHERE e."Primary_Key" IS NULL OR COALESCE(a."Aktiv", false)
  GROUP BY l."Primary_Key", l."Name"
  ORDER BY name"#;
 
@@ -126,6 +144,7 @@ SELECT a."Primary_Key" AS id,
          LIMIT 1) AS "group",
        COALESCE(a."audit_changed_at", a."audit_created_at") AS changed_at
   FROM "Artikel" a
+ WHERE COALESCE(a."Aktiv", false)
  ORDER BY COALESCE(a."audit_changed_at", a."audit_created_at") DESC NULLS LAST,
           a."Primary_Key" DESC
  LIMIT $1"#;

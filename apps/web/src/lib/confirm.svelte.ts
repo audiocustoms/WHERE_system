@@ -3,6 +3,8 @@
  * runs through `askCancel`, so nothing is discarded by accident. The dialog
  * itself is rendered once in the layout.
  */
+import { t } from './i18n.svelte';
+
 export interface ConfirmRequest {
 	title: string;
 	message: string;
@@ -25,10 +27,10 @@ export function askConfirm(options: {
 	request?.resolve(false);
 	return new Promise((resolve) => {
 		request = {
-			title: options.title ?? 'Rückfrage',
+			title: options.title ?? t('Rückfrage'),
 			message: options.message,
-			confirmLabel: options.confirmLabel ?? 'Ja',
-			cancelLabel: options.cancelLabel ?? 'Nein',
+			confirmLabel: options.confirmLabel ?? t('Ja'),
+			cancelLabel: options.cancelLabel ?? t('Nein'),
 			resolve
 		};
 	});
@@ -43,10 +45,10 @@ export function answerConfirm(ok: boolean) {
 /** "Abbrechen" in a mask: `true` when the cancel was confirmed. */
 export function askCancel(what: string): Promise<boolean> {
 	return askConfirm({
-		title: 'Abbrechen',
-		message: `${what} wirklich abbrechen? Nicht gesicherte Eingaben gehen verloren.`,
-		confirmLabel: 'Ja, abbrechen',
-		cancelLabel: 'Weiter bearbeiten'
+		title: t('Abbrechen'),
+		message: t('{what} wirklich abbrechen? Nicht gesicherte Eingaben gehen verloren.', { what }),
+		confirmLabel: t('Ja, abbrechen'),
+		cancelLabel: t('Weiter bearbeiten')
 	});
 }
 

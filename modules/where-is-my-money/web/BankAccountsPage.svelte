@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type BankAccount, type BankAccountInput } from '$core/api';
 	import { askConfirm } from '$core/confirm.svelte';
@@ -8,9 +10,9 @@
 	type Tab = 'general' | 'sepa' | 'switzerland';
 
 	const TABS: { key: Tab; label: string }[] = [
-		{ key: 'general', label: 'Allgemein' },
+		{ key: 'general', label: t('Allgemein') },
 		{ key: 'sepa', label: 'SEPA' },
-		{ key: 'switzerland', label: 'Schweiz' }
+		{ key: 'switzerland', label: t('Schweiz') }
 	];
 
 	/** The form is the edited record; `id === null` means "new". */
@@ -176,10 +178,10 @@
 
 	async function cancel() {
 		if (changed && !(await askConfirm({
-			title: 'Abbrechen',
-			message: 'Das Bearbeiten der Bankverbindung wirklich abbrechen? Nicht gesicherte Eingaben gehen verloren.',
-			confirmLabel: 'Ja, cancel',
-			cancelLabel: 'Weiter bearbeiten'
+			title: t('Abbrechen'),
+			message: t('Das Bearbeiten der Bankverbindung wirklich abbrechen? Nicht gesicherte Eingaben gehen verloren.'),
+			confirmLabel: t('Ja, abbrechen'),
+			cancelLabel: t('Weiter bearbeiten')
 		})))
 			return;
 		if (form?.id != null) await choose(form.id);
@@ -190,10 +192,10 @@
 		if (form?.id == null) return;
 		const account = accounts.find((entry) => entry.id === form!.id);
 		const ok = await askConfirm({
-			title: 'Löschen',
-			message: `Bankverbindung „${account?.label ?? form.label}“ löschen?`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+			title: t('Löschen'),
+			message: t('Bankverbindung „{label}“ löschen?', { label: account?.label ?? form.label }),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
@@ -240,18 +242,18 @@
 	}
 </script>
 
-<svelte:head><title>Bankverbindungen — WHERE</title></svelte:head>
+<svelte:head><title>{t('Bankverbindungen — WHERE')}</title></svelte:head>
 
-<h1>Bankverbindungen</h1>
+<h1>{t('Bankverbindungen')}</h1>
 
 <div class="window">
 	<div class="left">
 		<div class="list-head">
-			<button type="button" class="square" title="Neue Bankverbindung" onclick={createNew}>+</button>
+			<button type="button" class="square" title={t('Neue Bankverbindung')} onclick={createNew}>+</button>
 			<button
 				type="button"
 				class="square"
-				title="Löschen"
+				title={t('Löschen')}
 				disabled={form?.id == null}
 				onclick={remove}>−</button
 			>
@@ -259,7 +261,7 @@
 		<div class="list">
 			<table>
 				<thead>
-					<tr><th class="center">Std</th><th class="center">EB</th><th>Bankverbindungen</th></tr>
+					<tr><th class="center">{t('Std')}</th><th class="center">{t('EB')}</th><th>{t('Bankverbindungen')}</th></tr>
 				</thead>
 				<tbody>
 					{#each accounts as account (account.id)}
@@ -271,7 +273,7 @@
 								<input
 									type="checkbox"
 									checked={account.standard}
-									title="Standard-Bankverbindung"
+									title={t('Standard-Bankverbindung')}
 									onclick={(e) => e.stopPropagation()}
 									onchange={() => toggleStandard(account)}
 								/>
@@ -281,13 +283,13 @@
 									type="checkbox"
 									checked={account.electronic_banking}
 									disabled
-									title="Kontenmappe für Electronic Banking hinterlegt"
+									title={t('Kontenmappe für Electronic Banking hinterlegt')}
 								/>
 							</td>
 							<td>{account.label}</td>
 						</tr>
 					{:else}
-						<tr><td colspan="3">{load ? 'Lade …' : 'Noch keine Bankverbindung.'}</td></tr>
+						<tr><td colspan="3">{load ? t('Lade …') : t('Noch keine Bankverbindung.')}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -295,7 +297,7 @@
 	</div>
 
 	<div class="right">
-		<div class="tab" role="tablist" aria-label="Bankverbindung">
+		<div class="tab" role="tablist" aria-label={t('Bankverbindung')}>
 			{#each TABS as entry (entry.key)}
 				<button
 					type="button"
@@ -311,7 +313,7 @@
 			<div class="sheet">
 				{#if tab === 'general'}
 					<div class="row">
-						<span class="label">Bezeichnung</span>
+						<span class="label">{t('Bezeichnung')}</span>
 						<input
 							class="text"
 							maxlength="255"
@@ -320,7 +322,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">Kontoinhaber</span>
+						<span class="label">{t('Kontoinhaber')}</span>
 						<input
 							class="text"
 							value={form.holder}
@@ -328,7 +330,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">IBAN (QR-IBAN)</span>
+						<span class="label">{t('IBAN (QR-IBAN)')}</span>
 						<input
 							class="text"
 							maxlength="34"
@@ -337,7 +339,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">BIC</span>
+						<span class="label">{t('BIC')}</span>
 						<input
 							class="text calculated"
 							maxlength="11"
@@ -346,7 +348,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">Bankname</span>
+						<span class="label">{t('Bankname')}</span>
 						<input
 							class="text"
 							value={form.institute}
@@ -354,7 +356,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">Kontonummer</span>
+						<span class="label">{t('Kontonummer')}</span>
 						<input
 							class="text"
 							maxlength="20"
@@ -363,7 +365,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">BLZ</span>
+						<span class="label">{t('BLZ')}</span>
 						<div class="field-with-button">
 							<input
 								class="text"
@@ -372,12 +374,12 @@
 								oninput={(e) => (form!.blz = e.currentTarget.value)}
 							/>
 							<button type="button" class="button" onclick={convert}>
-								Kto &amp; BLZ in IBAN &amp; BIC convert
+								{t('Kto & BLZ in IBAN & BIC convert')}
 							</button>
 						</div>
 					</div>
 					<div class="row top">
-						<span class="label">Anschrift der Bank</span>
+						<span class="label">{t('Anschrift der Bank')}</span>
 						<textarea
 							class="text"
 							rows="4"
@@ -386,18 +388,18 @@
 						></textarea>
 					</div>
 					<div class="row">
-						<span class="label">Standard Bankverbindung</span>
+						<span class="label">{t('Standard Bankverbindung')}</span>
 						<label class="check">
 							<input
 								type="checkbox"
 								checked={form.standard}
 								onchange={(e) => (form!.standard = e.currentTarget.checked)}
 							/>
-							Ja
+							{t('Ja')}
 						</label>
 					</div>
 					<div class="row">
-						<span class="label">FIBU-Konto</span>
+						<span class="label">{t('FIBU-Konto')}</span>
 						<input
 							class="text short"
 							maxlength="10"
@@ -407,7 +409,7 @@
 					</div>
 				{:else if tab === 'sepa'}
 					<div class="row">
-						<span class="label">Gläubiger-ID</span>
+						<span class="label">{t('Gläubiger-ID')}</span>
 						<input
 							class="text"
 							maxlength="255"
@@ -416,18 +418,18 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">Sammellastschrift</span>
+						<span class="label">{t('Sammellastschrift')}</span>
 						<label class="check">
 							<input
 								type="checkbox"
 								checked={form.sepa_direct_debit}
 								onchange={(e) => (form!.sepa_direct_debit = e.currentTarget.checked)}
 							/>
-							Ja
+							{t('Ja')}
 						</label>
 					</div>
 					<div class="row">
-						<span class="label">Späteste Vorlaufzeit (Werktage) bei Erstlastschriften</span>
+						<span class="label">{t('Späteste Vorlaufzeit (Werktage) bei Erstlastschriften')}</span>
 						<input
 							class="number"
 							type="number"
@@ -435,10 +437,10 @@
 							value={form.sepa_lead_first}
 							oninput={(e) => (form!.sepa_lead_first = e.currentTarget.value)}
 						/>
-						<span class="unit">Tage</span>
+						<span class="unit">{t('Tage')}</span>
 					</div>
 					<div class="row">
-						<span class="label">Späteste Vorlaufzeit (Werktage) bei Folgelastschriften</span>
+						<span class="label">{t('Späteste Vorlaufzeit (Werktage) bei Folgelastschriften')}</span>
 						<input
 							class="number"
 							type="number"
@@ -446,10 +448,10 @@
 							value={form.sepa_lead_follow}
 							oninput={(e) => (form!.sepa_lead_follow = e.currentTarget.value)}
 						/>
-						<span class="unit">Tage</span>
+						<span class="unit">{t('Tage')}</span>
 					</div>
 					<div class="row">
-						<span class="label">Späteste Abgabezeit an Werktagen</span>
+						<span class="label">{t('Späteste Abgabezeit an Werktagen')}</span>
 						<input
 							class="time"
 							type="time"
@@ -458,9 +460,9 @@
 						/>
 					</div>
 				{:else}
-					<h2>Anschrift Kontoinhaber</h2>
+					<h2>{t('Anschrift Kontoinhaber')}</h2>
 					<div class="row">
-						<span class="label">Straße</span>
+						<span class="label">{t('Straße')}</span>
 						<input
 							class="text"
 							value={form.ch_street}
@@ -468,7 +470,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">Hausnummer</span>
+						<span class="label">{t('Hausnummer')}</span>
 						<input
 							class="text short"
 							value={form.ch_house_number}
@@ -476,7 +478,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">PLZ</span>
+						<span class="label">{t('PLZ')}</span>
 						<input
 							class="text short"
 							value={form.ch_postal_code}
@@ -484,7 +486,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">Ort</span>
+						<span class="label">{t('Ort')}</span>
 						<input
 							class="text"
 							value={form.ch_city}
@@ -492,20 +494,20 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="label">Land</span>
+						<span class="label">{t('Land')}</span>
 						<div class="field-with-button">
 							<input
 								class="text short"
 								maxlength="2"
-								placeholder="CH"
+								placeholder={t('CH')}
 								value={form.ch_country}
 								oninput={(e) => (form!.ch_country = e.currentTarget.value.toUpperCase())}
 							/>
-							<span class="unit">(CH oder LI)</span>
+							<span class="unit">{t('(CH oder LI)')}</span>
 						</div>
 					</div>
 					<div class="row top">
-						<span class="label">Anschrift gesamt</span>
+						<span class="label">{t('Anschrift gesamt')}</span>
 						<textarea
 							class="text"
 							rows="3"
@@ -520,25 +522,25 @@
 						type="button"
 						class="button primary"
 						onclick={commit}
-						disabled={!form.label.trim()}>{form.id === null ? 'Anlegen' : 'Sichern'}</button
+						disabled={!form.label.trim()}>{form.id === null ? t('Anlegen') : t('Sichern')}</button
 					>
 				</div>
 			</div>
 		{:else}
 			<div class="sheet empty">
-				<p class="small">Links eine Bankverbindung wählen oder mit `+` eine neue anlegen.</p>
+				<p class="small">{t('Links eine Bankverbindung wählen oder mit `+` eine neue anlegen.')}</p>
 			</div>
 		{/if}
 	</div>
 </div>
 
 <footer class="footer">
-	<span class="small">Die Liste zeigt `Std` (Standard) und `EB` (Electronic Banking).</span>
+	<span class="small">{t('Die Liste zeigt `Std` (Standard) und `EB` (Electronic Banking).')}</span>
 	<span class="spacer"></span>
 	<button type="button" class="button" onclick={cancel} disabled={!form || !changed}>
-		Abbrechen
+		{t('Abbrechen')}
 	</button>
-	<a class="button" href="/">Schließen</a>
+	<a class="button" href="/">{t('Schließen')}</a>
 </footer>
 
 {#if error}

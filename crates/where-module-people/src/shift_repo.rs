@@ -74,7 +74,7 @@ fn row_to_shift(row: &sqlx::postgres::PgRow) -> Shift {
     }
 }
 
-/// CRUD over the shifts of the duty planning.
+/// CRUD over the shifts of the schedule planning.
 #[derive(Clone)]
 pub struct ShiftRepository {
     pool: PgPool,

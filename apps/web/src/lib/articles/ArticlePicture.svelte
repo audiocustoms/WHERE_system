@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type ArticleImage } from '../api';
 	import { escapeWindows } from '../escape.svelte';
@@ -101,38 +103,38 @@
 
 <figure class="article-picture">
 	{#if articleId === null}
-		<div class="frame empty">Bild erst nach dem Speichern</div>
+		<div class="frame empty">{t('Bild erst nach dem Speichern')}</div>
 	{:else if source}
 		<button
 			type="button"
 			class="frame"
-			title="Bild in voller Größe anzeigen"
+			title={t('Bild in voller Größe anzeigen')}
 			onclick={() => (gross = true)}
 		>
-			<img src={source} alt="Artikelbild" loading="lazy" />
-			{#if picture.placeholder}<span class="marker">Platzhalter</span>{/if}
+			<img src={source} alt={t('Artikelbild')} loading="lazy" />
+			{#if picture.placeholder}<span class="marker">{t('Platzhalter')}</span>{/if}
 		</button>
 	{:else}
-		<div class="frame empty">Kein Bild</div>
+		<div class="frame empty">{t('Kein Bild')}</div>
 	{/if}
 
 	{#if schreibbar && articleId !== null}
 		<figcaption class="tools">
 			<label class="tool-button">
-				Bild wählen
+				{t('Bild wählen')}
 				<input type="file" accept="image/*" onchange={upload} disabled={laeuft} />
 			</label>
 			<button
 				type="button"
 				class="tool-button"
 				class:active={picture.placeholder}
-				title="Animierten Platzhalter statt eines Fotos zeigen"
+				title={t('Animierten Platzhalter statt eines Fotos zeigen')}
 				onclick={() => placeholder(!picture.placeholder)}
 			>
-				Platzhalter
+				{t('Platzhalter')}
 			</button>
 			{#if picture.file}
-				<button type="button" class="tool-button" onclick={remove}>entfernen</button>
+				<button type="button" class="tool-button" onclick={remove}>{t('entfernen')}</button>
 			{/if}
 		</figcaption>
 	{/if}
@@ -144,9 +146,9 @@
 
 {#if gross && source}
 	<div class="backdrop" role="presentation">
-		<div class="fullsize" role="dialog" tabindex="-1" aria-modal="true" aria-label="Artikelbild">
-			<button type="button" class="close" title="Schließen" onclick={close}>×</button>
-			<img src={source} alt="Artikelbild in voller Größe" />
+		<div class="fullsize" role="dialog" tabindex="-1" aria-modal="true" aria-label={t('Artikelbild')}>
+			<button type="button" class="close" title={t('Schließen')} onclick={close}>×</button>
+			<img src={source} alt={t('Artikelbild in voller Größe')} />
 		</div>
 	</div>
 {/if}
@@ -158,6 +160,7 @@
 	.frame {
 		display: block;
 		width: 100%;
+		box-sizing: border-box;
 		padding: 0;
 		border: 1px solid var(--border);
 		border-radius: 4px;

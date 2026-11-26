@@ -23,13 +23,6 @@ use crate::dispo::{
 };
 use crate::dispo_demand::{self, DayProposal};
 use crate::dispo_repo::DispoRepository;
-use crate::duty::{
-    BoardQuery, DepartmentQuery, DutyEntry, DutyInput, DutyQuery, DutySeriesInput,
-    DutySeriesResult, KIND_FREE, KIND_SHIFT, KIND_SICK, KIND_VACATION, MAX_NOTE_CHARS, MonthQuery,
-    ResetReport, RestoreCell,
-};
-use crate::duty_audit::{self, AuditCell, AuditPerson, DutyAudit};
-use crate::duty_repo::DutyRepository;
 use crate::employee::{Employee, EmployeeInput, EmployeeUserInput, NextPersonnelNo};
 use crate::employee_repo::EmployeeRepository;
 use crate::exchange::{self, ExchangeQuery, ExchangeReport, ExchangeScan};
@@ -53,6 +46,13 @@ use crate::lists::{
 use crate::masterdata::{self, MasterArea, MasterReport};
 use crate::planning::PlanningRules;
 use crate::planning_repo::PlanningRepository;
+use crate::schedule::{
+    BoardQuery, DepartmentQuery, KIND_FREE, KIND_SHIFT, KIND_SICK, KIND_VACATION, MAX_NOTE_CHARS,
+    MonthQuery, ResetReport, RestoreCell, ScheduleEntry, ScheduleInput, ScheduleQuery,
+    ScheduleSeriesInput, ScheduleSeriesResult,
+};
+use crate::schedule_audit::{self, AuditCell, AuditPerson, ScheduleAudit};
+use crate::schedule_repo::ScheduleRepository;
 use crate::scope::PeopleScope;
 use crate::shift_repo::ShiftRepository;
 use crate::shifts::{Shift, ShiftExclusionsInput, ShiftInput};
@@ -77,8 +77,8 @@ fn planning(state: &AppState) -> PlanningRepository {
     PlanningRepository::new(state.pool.clone())
 }
 
-fn duty(state: &AppState) -> DutyRepository {
-    DutyRepository::new(state.pool.clone())
+fn schedule(state: &AppState) -> ScheduleRepository {
+    ScheduleRepository::new(state.pool.clone())
 }
 
 fn demand(state: &AppState) -> DemandRepository {
@@ -230,7 +230,7 @@ async fn balance_before(
 ) -> Result<HashMap<i64, i32>, ApiError> {
     let mut booked: HashMap<i64, i32> = HashMap::new();
     if start < until {
-        for entry in duty(state)
+        for entry in schedule(state)
             .range(start, until.pred_opt().unwrap_or(start))
             .await?
         {
@@ -663,7 +663,7 @@ pub struct OrderReport {
     pub written: usize,
 }
 
-/// Writes the order of the employees on the duty board; the ids come top to bottom.
+/// Writes the order of the employees on the schedule board; the ids come top to bottom.
 /// What the board writes is the visible crew, so the answer names how many rows.
 #[utoipa::path(
     put,
@@ -881,7 +881,7 @@ fn master_area(key: &str) -> Result<MasterArea, ApiError> {
 
 // ------------------------------------------------------------------------ Shifts
 
-/// All shifts of the duty planning, in their maintained order.
+/// All shifts of the schedule planning, in their maintained order.
 #[utoipa::path(
     get,
     path = "/api/v1/people/shifts",
@@ -1054,28 +1054,28 @@ pub async fn save_planning(
     Ok(Json(planning(&state).save(&input).await?))
 }
 
-// --------------------------------------------------------------------- Duty plan
+// --------------------------------------------------------------------- Schedule plan
 
-/// The duty entries of a period.
+/// The schedule entries of a period.
 #[utoipa::path(
     get,
-    path = "/api/v1/people/duty",
+    path = "/api/v1/people/schedule",
     tag = "personal",
-    params(DutyQuery),
+    params(ScheduleQuery),
     responses(
-        (status = 200, body = Vec<DutyEntry>),
+        (status = 200, body = Vec<ScheduleEntry>),
         (status = 422, description = "Invalid range", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_range(
+pub async fn schedule_range(
     State(state): State<AppState>,
     Extension(scope): Extension<DepartmentScope>,
-    Query(query): Query<DutyQuery>,
-) -> Result<Json<Vec<DutyEntry>>, ApiError> {
+    Query(query): Query<ScheduleQuery>,
+) -> Result<Json<Vec<ScheduleEntry>>, ApiError> {
     query.validate()?;
     let scope = PeopleScope::load(&state, &scope).await?;
     let allowed = scope.employee_ids(&state, false).await?;
-    let mut entries = duty(&state).range(query.from, query.to).await?;
+    let mut entries = schedule(&state).range(query.from, query.to).await?;
     if let Some(ids) = &allowed {
         entries.retain(|entry| ids.contains(&entry.employee_id));
     }
@@ -1089,19 +1089,19 @@ pub async fn duty_range(
 /// are reported.
 #[utoipa::path(
     get,
-    path = "/api/v1/people/duty/audit",
+    path = "/api/v1/people/schedule/audit",
     tag = "personal",
-    params(DutyQuery),
+    params(ScheduleQuery),
     responses(
-        (status = 200, body = DutyAudit),
+        (status = 200, body = ScheduleAudit),
         (status = 422, description = "Invalid range", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_audit(
+pub async fn schedule_audit(
     State(state): State<AppState>,
     Extension(scope): Extension<DepartmentScope>,
-    Query(query): Query<DutyQuery>,
-) -> Result<Json<DutyAudit>, ApiError> {
+    Query(query): Query<ScheduleQuery>,
+) -> Result<Json<ScheduleAudit>, ApiError> {
     query.validate()?;
     let scope = PeopleScope::load(&state, &scope).await?;
     let rules = planning(&state).get().await?;
@@ -1121,7 +1121,7 @@ pub async fn duty_audit(
     let around_from = query.from - chrono::Days::new(31);
     let around_to = query.to + chrono::Days::new(31);
     let known: HashSet<i64> = people.iter().map(|person| person.id).collect();
-    let cells: Vec<AuditCell> = duty(&state)
+    let cells: Vec<AuditCell> = schedule(&state)
         .range(around_from, around_to)
         .await?
         .into_iter()
@@ -1140,7 +1140,7 @@ pub async fn duty_audit(
         .into_iter()
         .map(|holiday| holiday.day)
         .collect();
-    Ok(Json(duty_audit::audit(
+    Ok(Json(schedule_audit::audit(
         &rules, &shifts, &people, &cells, &holidays, query.from, query.to,
     )))
 }
@@ -1149,9 +1149,9 @@ pub async fn duty_audit(
 /// without `kind` the cell is cleared.
 #[utoipa::path(
     put,
-    path = "/api/v1/people/duty",
+    path = "/api/v1/people/schedule",
     tag = "personal",
-    request_body = DutyInput,
+    request_body = ScheduleInput,
     responses(
         (status = 200, description = "Set; empty when the cell was cleared"),
         (status = 404, description = "Employee or shift unknown", body = where_api::error::Problem),
@@ -1159,20 +1159,20 @@ pub async fn duty_audit(
         (status = 422, description = "Unknown kind", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_set(
+pub async fn schedule_set(
     State(state): State<AppState>,
     Extension(scope): Extension<DepartmentScope>,
-    Json(input): Json<DutyInput>,
-) -> Result<Json<Option<DutyEntry>>, ApiError> {
+    Json(input): Json<ScheduleInput>,
+) -> Result<Json<Option<ScheduleEntry>>, ApiError> {
     let scope = PeopleScope::load(&state, &scope).await?;
     let allowed = scope.employee_ids(&state, false).await?;
     crate::scope::check_id(allowed.as_ref(), input.employee_id)?;
     check_shift_scope(&state, &scope, input.shift_id).await?;
     let rules = planning(&state).get().await?;
     match input.clean()? {
-        Some(entry) => Ok(Json(Some(duty(&state).set(&entry, &rules).await?))),
+        Some(entry) => Ok(Json(Some(schedule(&state).set(&entry, &rules).await?))),
         None => {
-            duty(&state).clear(input.employee_id, input.day).await?;
+            schedule(&state).clear(input.employee_id, input.day).await?;
             Ok(Json(None))
         }
     }
@@ -1184,27 +1184,27 @@ pub async fn duty_set(
 /// the rule that stopped it.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/series",
+    path = "/api/v1/people/schedule/series",
     tag = "personal",
-    request_body = DutySeriesInput,
+    request_body = ScheduleSeriesInput,
     responses(
-        (status = 200, description = "The written days and the rule that stopped the series", body = DutySeriesResult),
+        (status = 200, description = "The written days and the rule that stopped the series", body = ScheduleSeriesResult),
         (status = 404, description = "Shift unknown", body = where_api::error::Problem),
         (status = 422, description = "Invalid series or unknown employee", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_series(
+pub async fn schedule_series(
     State(state): State<AppState>,
     Extension(scope): Extension<DepartmentScope>,
-    Json(input): Json<DutySeriesInput>,
-) -> Result<Json<DutySeriesResult>, ApiError> {
+    Json(input): Json<ScheduleSeriesInput>,
+) -> Result<Json<ScheduleSeriesResult>, ApiError> {
     let scope = PeopleScope::load(&state, &scope).await?;
     let allowed = scope.employee_ids(&state, false).await?;
     crate::scope::check_id(allowed.as_ref(), input.employee_id)?;
     check_shift_scope(&state, &scope, input.shift_id).await?;
     let series = input.clean()?;
     let rules = planning(&state).get().await?;
-    Ok(Json(duty(&state).set_series(&series, &rules).await?))
+    Ok(Json(schedule(&state).set_series(&series, &rules).await?))
 }
 
 /// Removes the shift cells of a month the reset of the settings throws away: the
@@ -1212,7 +1212,7 @@ pub async fn duty_series(
 /// Sick stays — it is a record of the personnel file, not a part of the plan.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/reset",
+    path = "/api/v1/people/schedule/reset",
     tag = "personal",
     params(MonthQuery),
     responses(
@@ -1220,7 +1220,7 @@ pub async fn duty_series(
         (status = 422, description = "Invalid month", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_reset(
+pub async fn schedule_reset(
     State(state): State<AppState>,
     Extension(scope): Extension<DepartmentScope>,
     Query(query): Query<MonthQuery>,
@@ -1228,8 +1228,8 @@ pub async fn duty_reset(
     let (from, to) = query.range()?;
     let scope = PeopleScope::load(&state, &scope).await?;
     let cleared = match scope.departments(false) {
-        None => duty(&state).clear_shifts(from, to).await?,
-        Some(names) => duty(&state).clear_shifts_of(from, to, &names).await?,
+        None => schedule(&state).clear_shifts(from, to).await?,
+        Some(names) => schedule(&state).clear_shifts_of(from, to, &names).await?,
     };
     Ok(Json(ResetReport { cleared }))
 }
@@ -1247,7 +1247,7 @@ pub struct HolidayImportInput {
     get,
     path = "/api/v1/people/holidays",
     tag = "personal",
-    params(DutyQuery),
+    params(ScheduleQuery),
     responses(
         (status = 200, body = HolidayCalendar),
         (status = 422, description = "Invalid range", body = where_api::error::Problem)
@@ -1255,7 +1255,7 @@ pub struct HolidayImportInput {
 )]
 pub async fn holiday_range(
     State(state): State<AppState>,
-    Query(query): Query<DutyQuery>,
+    Query(query): Query<ScheduleQuery>,
 ) -> Result<Json<HolidayCalendar>, ApiError> {
     query.validate()?;
     Ok(Json(
@@ -1375,11 +1375,11 @@ pub async fn holiday_import(
 /// Adds a row the board types itself — a location whose name is free text.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/rows",
+    path = "/api/v1/people/schedule/rows",
     tag = "personal",
     responses((status = 201, body = ListEntry))
 )]
-pub async fn create_duty_row(
+pub async fn create_schedule_row(
     State(state): State<AppState>,
 ) -> Result<(StatusCode, Json<ListEntry>), ApiError> {
     let entry = people_list(&state, ListKind::Locations)
@@ -1391,7 +1391,7 @@ pub async fn create_duty_row(
 /// Renames a typed row of the board.
 #[utoipa::path(
     put,
-    path = "/api/v1/people/duty/rows/{id}",
+    path = "/api/v1/people/schedule/rows/{id}",
     tag = "personal",
     params(("id" = i64, Path, description = "Id of the row")),
     request_body = ListEntryInput,
@@ -1401,7 +1401,7 @@ pub async fn create_duty_row(
         (status = 422, description = "Name empty or longer than 100 characters", body = where_api::error::Problem)
     )
 )]
-pub async fn rename_duty_row(
+pub async fn rename_schedule_row(
     State(state): State<AppState>,
     Path(id): Path<i64>,
     Json(input): Json<ListEntryInput>,
@@ -1417,7 +1417,7 @@ pub async fn rename_duty_row(
 /// Removes a typed row of the board with its events; a house stays untouched.
 #[utoipa::path(
     delete,
-    path = "/api/v1/people/duty/rows/{id}",
+    path = "/api/v1/people/schedule/rows/{id}",
     tag = "personal",
     params(("id" = i64, Path, description = "Id of the row")),
     responses(
@@ -1425,7 +1425,7 @@ pub async fn rename_duty_row(
         (status = 404, description = "Row unknown or a house", body = where_api::error::Problem)
     )
 )]
-pub async fn delete_duty_row(
+pub async fn delete_schedule_row(
     State(state): State<AppState>,
     Path(id): Path<i64>,
 ) -> Result<Json<DeletedResponse>, ApiError> {
@@ -1440,7 +1440,7 @@ pub async fn delete_duty_row(
 /// The locations and events of a PeM export, without writing anything.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/dispo/scan",
+    path = "/api/v1/people/schedule/dispo/scan",
     tag = "personal",
     params(DispoQuery),
     request_body(content = String, description = "The xlsx file itself", content_type = "application/octet-stream"),
@@ -1469,7 +1469,7 @@ pub async fn dispo_scan(
 /// Writes the locations and events of a PeM export.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/dispo/import",
+    path = "/api/v1/people/schedule/dispo/import",
     tag = "personal",
     params(DispoQuery),
     request_body(content = String, description = "The xlsx file itself", content_type = "application/octet-stream"),
@@ -1504,7 +1504,7 @@ pub async fn dispo_import(
 /// Removes every entry of the disposition of a month.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/dispo/reset",
+    path = "/api/v1/people/schedule/dispo/reset",
     tag = "personal",
     params(MonthQuery),
     responses(
@@ -1525,7 +1525,7 @@ pub async fn dispo_reset(
 /// what the month already holds. `kind` is `dispo` or `plan`.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/exchange/{kind}/scan",
+    path = "/api/v1/people/schedule/exchange/{kind}/scan",
     tag = "personal",
     params(
         ("kind" = String, Path, description = "`dispo` or `plan`"),
@@ -1560,7 +1560,7 @@ pub async fn exchange_scan(
             require_plan_scope(&scope)?;
             let sheet = exchange::read_plan(&body)?;
             let mut preview = exchange::preview_plan(&sheet, from, to);
-            preview.existing_entries = duty(&state).range(from, to).await?.len();
+            preview.existing_entries = schedule(&state).range(from, to).await?.len();
             preview
         }
         other => {
@@ -1577,7 +1577,7 @@ pub async fn exchange_scan(
 /// `replace` the month is emptied first; locations the file names are created.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/exchange/dispo",
+    path = "/api/v1/people/schedule/exchange/dispo",
     tag = "personal",
     params(ExchangeQuery),
     request_body(content = String, description = "The file itself", content_type = "application/octet-stream"),
@@ -1615,7 +1615,7 @@ pub async fn exchange_dispo(
 /// file names have to exist, everything else is named in `warnings`.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/exchange/plan",
+    path = "/api/v1/people/schedule/exchange/plan",
     tag = "personal",
     params(ExchangeQuery),
     request_body(content = String, description = "The file itself", content_type = "application/octet-stream"),
@@ -1728,7 +1728,7 @@ pub async fn exchange_plan(
             warnings.push(note);
         }
     }
-    let written = duty(&state)
+    let written = schedule(&state)
         .restore(from, to, &cells, query.replace)
         .await?;
     Ok(Json(ExchangeReport {
@@ -1744,7 +1744,7 @@ pub async fn exchange_plan(
 /// signed-in user; the file holds only that person's days, their shifts and their times.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/ical/send",
+    path = "/api/v1/people/schedule/ical/send",
     tag = "personal",
     request_body = IcalSendInput,
     responses(
@@ -1752,13 +1752,13 @@ pub async fn exchange_plan(
         (status = 422, description = "Invalid range or no e-mail account", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_ical_send(
+pub async fn schedule_ical_send(
     State(state): State<AppState>,
     Extension(user): Extension<SessionUser>,
     Extension(scope): Extension<DepartmentScope>,
     Json(input): Json<IcalSendInput>,
 ) -> Result<Json<IcalSendReport>, ApiError> {
-    let query = DutyQuery {
+    let query = ScheduleQuery {
         from: input.from,
         to: input.to,
     };
@@ -1783,7 +1783,7 @@ pub async fn duty_ical_send(
         )));
     };
     let shifts_liste = shifts(&state).list().await?;
-    let cells = duty(&state).range(query.from, query.to).await?;
+    let cells = schedule(&state).range(query.from, query.to).await?;
     let people = scope.keep(employees(&state).list(None).await?);
     let mut bericht = IcalSendReport::default();
     for employee in people {
@@ -1848,7 +1848,7 @@ pub async fn duty_ical_send(
 
 #[utoipa::path(
     get,
-    path = "/api/v1/people/duty/dispo",
+    path = "/api/v1/people/schedule/dispo",
     tag = "personal",
     params(BoardQuery),
     responses(
@@ -1879,7 +1879,7 @@ pub async fn dispo_range(
 /// usable shift stay in `unclear` and mark their day.
 #[utoipa::path(
     get,
-    path = "/api/v1/people/duty/dispo-demand",
+    path = "/api/v1/people/schedule/dispo-demand",
     tag = "personal",
     params(
         ("from" = String, Query, description = "First day (`YYYY-MM-DD`)"),
@@ -1918,12 +1918,12 @@ pub async fn dispo_demand(
 /// scope of `Personal-Disposition` decides which of them are shown.
 #[utoipa::path(
     get,
-    path = "/api/v1/people/duty/locations",
+    path = "/api/v1/people/schedule/locations",
     tag = "personal",
     params(DepartmentQuery),
     responses((status = 200, body = Vec<ListEntry>))
 )]
-pub async fn duty_locations(
+pub async fn schedule_locations(
     State(state): State<AppState>,
     Extension(scope): Extension<DepartmentScope>,
     Query(query): Query<DepartmentQuery>,
@@ -1935,13 +1935,13 @@ pub async fn duty_locations(
     ))
 }
 
-/// Builds the duty plan of a period.
+/// Builds the schedule plan of a period.
 ///
 /// Free cells are filled from the demand of the day, following the planning
 /// rules and the shift catalogue; what cannot be filled comes back as a gap.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/generate",
+    path = "/api/v1/people/schedule/generate",
     tag = "personal",
     request_body = GenerateInput,
     responses(
@@ -1949,7 +1949,7 @@ pub async fn duty_locations(
         (status = 422, description = "Invalid period", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_generate(
+pub async fn schedule_generate(
     State(state): State<AppState>,
     Extension(scope): Extension<DepartmentScope>,
     Json(input): Json<GenerateInput>,
@@ -1993,7 +1993,7 @@ pub async fn duty_generate(
     let to = days.last().copied().unwrap_or(input.to);
     let history_from =
         from - chrono::Days::new(generate::history_days(rules.shift_rotation_days) as u64);
-    let entries = duty(&state).range(history_from, to).await?;
+    let entries = schedule(&state).range(history_from, to).await?;
     let cells: Vec<generate::Cell> = entries
         .into_iter()
         .map(|entry| generate::Cell {
@@ -2015,9 +2015,9 @@ pub async fn duty_generate(
     let mut replaced = 0usize;
     if input.overwrite {
         replaced = match scope.departments(false) {
-            None => duty(&state).clear_planned_shifts(from, to).await?,
+            None => schedule(&state).clear_planned_shifts(from, to).await?,
             Some(names) => {
-                duty(&state)
+                schedule(&state)
                     .clear_planned_shifts_of(from, to, &names)
                     .await?
             }
@@ -2025,7 +2025,7 @@ pub async fn duty_generate(
         // The free days are the markers of the plan itself: a month that is rewritten
         // gets them from this run again.
         existing.retain(|cell| !is_free_day(&shifts, cell));
-        existing.retain(|cell| cell.kind != crate::duty::KIND_SHIFT);
+        existing.retain(|cell| cell.kind != crate::schedule::KIND_SHIFT);
     }
 
     // The stored demand of the days; a day without one uses what the
@@ -2090,7 +2090,7 @@ pub async fn duty_generate(
         compensation_shift,
     };
     let plan = generate::generate(&context, &days);
-    let written = duty(&state)
+    let written = schedule(&state)
         .write_shifts(
             &plan
                 .cells
@@ -2099,7 +2099,7 @@ pub async fn duty_generate(
                 .collect::<Vec<_>>(),
         )
         .await?;
-    let free_days = duty(&state)
+    let free_days = schedule(&state)
         .write_shifts(
             &plan
                 .free
@@ -2123,7 +2123,7 @@ pub async fn duty_generate(
 /// Replaces the entries of one location on one day.
 #[utoipa::path(
     put,
-    path = "/api/v1/people/duty/dispo/{location}/{day}",
+    path = "/api/v1/people/schedule/dispo/{location}/{day}",
     tag = "personal",
     params(
         ("location" = i64, Path, description = "Id of the location"),
@@ -2156,7 +2156,7 @@ pub async fn dispo_day_set(
 /// Sets one event of the disposition aside — or puts it back into the plan.
 #[utoipa::path(
     put,
-    path = "/api/v1/people/duty/dispo/entry/{id}/ignored",
+    path = "/api/v1/people/schedule/dispo/entry/{id}/ignored",
     tag = "personal",
     params(("id" = i64, Path, description = "Id of the entry")),
     request_body = DispoIgnoredInput,
@@ -2354,17 +2354,17 @@ fn parse_day(text: &str) -> Result<chrono::NaiveDate, ApiError> {
 /// How many employees of each position the days of the period need.
 #[utoipa::path(
     get,
-    path = "/api/v1/people/duty/demand",
+    path = "/api/v1/people/schedule/demand",
     tag = "personal",
-    params(DutyQuery),
+    params(ScheduleQuery),
     responses(
         (status = 200, body = Vec<DayDemand>),
         (status = 422, description = "Invalid range", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_demand(
+pub async fn schedule_demand(
     State(state): State<AppState>,
-    Query(query): Query<DutyQuery>,
+    Query(query): Query<ScheduleQuery>,
 ) -> Result<Json<Vec<DayDemand>>, ApiError> {
     query.validate()?;
     Ok(Json(demand(&state).range(query.from, query.to).await?))
@@ -2373,7 +2373,7 @@ pub async fn duty_demand(
 /// Replaces the demand of one day; positions without a number are dropped.
 #[utoipa::path(
     put,
-    path = "/api/v1/people/duty/demand/{day}",
+    path = "/api/v1/people/schedule/demand/{day}",
     tag = "personal",
     params(("day" = String, Path, description = "Day (`YYYY-MM-DD`)")),
     request_body = DemandInput,
@@ -2382,7 +2382,7 @@ pub async fn duty_demand(
         (status = 422, description = "Validation failed", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_demand_set(
+pub async fn schedule_demand_set(
     State(state): State<AppState>,
     Path(day): Path<String>,
     Json(input): Json<DemandInput>,
@@ -2395,7 +2395,7 @@ pub async fn duty_demand_set(
 /// Copies the demand of one day onto the given days and replaces them.
 #[utoipa::path(
     post,
-    path = "/api/v1/people/duty/demand/copy",
+    path = "/api/v1/people/schedule/demand/copy",
     tag = "personal",
     request_body = DemandCopyInput,
     responses(
@@ -2403,7 +2403,7 @@ pub async fn duty_demand_set(
         (status = 422, description = "Validation failed", body = where_api::error::Problem)
     )
 )]
-pub async fn duty_demand_copy(
+pub async fn schedule_demand_copy(
     State(state): State<AppState>,
     Json(input): Json<DemandCopyInput>,
 ) -> Result<Json<DemandCopied>, ApiError> {

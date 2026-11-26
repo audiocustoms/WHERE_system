@@ -8,7 +8,7 @@
 //!   departments, the positions and the locations;
 //! * `employees` — one row per person with the columns of the mask;
 //! * `shifts` — `Kürzel; Name; Beginn; Ende; Pause; Band; Nur Azubis; Farbe; Aktiv;
-//!   Ausgeschlossene Positionen`, the shifts of the duty planning.
+//!   Ausgeschlossene Positionen`, the shifts of the schedule planning.
 //!
 //! The pages write CSV (`;`, UTF-8 with BOM) — see
 //! `modules/where-are-my-people/web/stammdaten-tausch.ts` — and the reader takes CSV
@@ -39,7 +39,7 @@ pub enum MasterArea {
     Lists,
     /// The employee master.
     Employees,
-    /// The shifts of the duty planning.
+    /// The shifts of the schedule planning.
     Shifts,
 }
 

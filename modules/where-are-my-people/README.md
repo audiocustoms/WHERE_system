@@ -29,7 +29,7 @@ the API ports are shared with `WHERE - is my stuff?` — on a machine where the 
 installed later, both applications work on the same database and the same tenants
 (see the main [README](../../README.md#two-desktop-applications-one-database)).
 
-An installation without the core application starts on the **duty plan**
+An installation without the core application starts on the **schedule**
 (`/people/schedule`) — the working page of the product; an account that may not read it
 lands on the employee list instead.
 
@@ -51,11 +51,11 @@ registers a different set.
 | `web/PlanningPage.svelte` | Settings (`/people/planning`): shifts and rules |
 | `web/ModuleSettingsPage.svelte` | Settings of the product (`/admin/modules/people`): the resets of a month |
 | `web/ResetMonthDialog.svelte` | Asks for the month a reset applies to |
-| `web/DutyPlanPage.svelte` | Duty plan (`/people/schedule`): board of employees × days |
-| `web/DutyPrintDialog.svelte` | Printing the plan: period, paper, preview, pages of one week |
-| `web/DutyHideLocationsDialog.svelte` | `Ausblenden`: which locations the board shows |
-| `web/DutyExchangeDialog.svelte` | `Import / Export` of a month: the sheet, the disposition, the plan and the PeM export |
-| `web/DutyLocationFlags.svelte` | The flags of a location: the crew this house needs for each |
+| `web/SchedulePage.svelte` | Schedule (`/people/schedule`): board of employees × days |
+| `web/SchedulePrintDialog.svelte` | Printing the plan: period, paper, preview, pages of one week |
+| `web/ScheduleHideLocationsDialog.svelte` | `Ausblenden`: which locations the board shows |
+| `web/ScheduleExchangeDialog.svelte` | `Import / Export` of a month: the sheet, the disposition, the plan and the PeM export |
+| `web/ScheduleLocationFlags.svelte` | The flags of a location: the crew this house needs for each |
 | `web/roster-report.ts` | The month as the windows read it (`ladeMonat`, `baueBericht`) |
 | `web/roster-export.ts` | The printed sheet, the exchange tables and the three file formats |
 | `web/roster-exchange.ts` | The two exchange sheets: disposition and plan of a month |
@@ -74,12 +74,12 @@ master-data import accepts as band (`früh`, `spät`, `zwischen`, `frei`).
 The backend (`crates/where-module-people`) is converted; `ShiftBand` is
 `Early | Late | Intermediate | Free` and stores `early | late | intermediate | free`
 (`migrations/1950_people_shift_band_english.sql`). In the web part the board
-(`DutyPlanPage.svelte`) and the dialogs `DutyJumpDialog`, `DutyDepartmentDialog`,
-`DutyHideLocationsDialog`, `DutyLocationDialog`, `DutyLocationFlags`, `DutySeriesDialog`,
-`DutyFreeTimeDialog`, `DutyDispoDayDialog`, `DutyGenerateDialog`, `ResetMonthDialog`,
+(`SchedulePage.svelte`) and the dialogs `ScheduleJumpDialog`, `ScheduleDepartmentDialog`,
+`ScheduleHideLocationsDialog`, `ScheduleLocationDialog`, `ScheduleLocationFlags`, `ScheduleSeriesDialog`,
+`ScheduleFreeTimeDialog`, `ScheduleDispoDayDialog`, `ScheduleGenerateDialog`, `ResetMonthDialog`,
 `ModuleSettingsPage`, `PeopleListsPage`, `PeopleListPanel`, `EmployeesPage` and
-`EmployeeForm` are converted. Still to convert: `PlanningPage`, `DutyPrintDialog`,
-`DutyExchangeDialog`, `DutyDemandDialog` and the export chain they share
+`EmployeeForm` are converted. Still to convert: `PlanningPage`, `SchedulePrintDialog`,
+`ScheduleExchangeDialog`, `ScheduleDemandDialog` and the export chain they share
 (`roster-export.ts`, `roster-report.ts`, `roster-exchange.ts`,
 `master-data-exchange.ts`, `MasterExchangeDialog.svelte`) — and after that the core under
 `apps/web/src`. The session log holds the detailed plan for that rest: order of work, the
@@ -115,11 +115,11 @@ chosen beside it; a value that is no longer in the master data stays selectable,
 renamed location follows into the records. Above the
 `Status` switch sits **`Mitarbeiterart` / `Auszubildende/r`**
 (`is_apprentice`, off by default, `migrations/1915_people_apprentice_rule.sql`);
-it is what the apprentice rule of the duty plan looks at. Underneath `aktiv` sits
+it is what the apprentice rule of the schedule looks at. Underneath `aktiv` sits
 the row `Disposition` with **`nicht automatisch disponierbar`** (`auto_plan`, on by
 default = the person may be planned automatically,
 `migrations/1933_people_auto_plan.sql`): when it is ticked, the generator of the
-duty plan skips the employee. Planning by hand on the board is unaffected, and a
+schedule skips the employee. Planning by hand on the board is unaffected, and a
 cell set by hand keeps counting as coverage. Birth date, place
 of birth, address, social security and tax number belong to the right
 `personal.persoenliche-daten-sehen`: without this right the API neither returns nor
@@ -149,6 +149,13 @@ An employee can be the person behind an account of the user administration:
 account, one account belongs to one employee (unique index). The reference is loose on
 purpose — the accounts live in the installation database, the employees in the database
 of the tenant — so nothing is cascaded.
+
+The column is an **`integer`**, like `User_Prefs."Primary_Key"` it points at; the masks
+read it as `i32`. Databases that ran the first version of `1947` carry it as `bigint` (the
+file was changed after it had been applied, and the migration was already marked as done),
+and there every read of an employee failed with *„Option<i32> is not compatible with
+INT8"*. `migrations/1952_people_employee_user_int.sql` converts such a column to
+`integer`; on an installation that was right all along it changes nothing.
 
 - `Admin → Benutzerverwaltung` offers the row `Mitarbeiterliste` below `Anmeldename`
   when the personnel module is installed. Picking an employee fills the mask: the login
@@ -220,17 +227,17 @@ removes it again. Without a colour the field shows a white square with a stroke 
 it, and a click opens the picker. The board tints
 the name column of every employee of that sub-department — of their department when the
 sub-department has no colour — and the name cell of the location's disposition row — see
-[Duty plan (board)](#duty-plan-board); the colours of a position are master data without
+[Schedule (board)](#schedule-board); the colours of a position are master data without
 a consumer yet. An employee without a colour on either level, a row without a colour, or
 a value that is no longer in the master data stays untinted.
 
 **A location carries its settings**: a click on the name of a location row of the
-duty board — or on `⚙` of a row the board typed itself (see
-[Duty plan (board)](#duty-plan-board)) — opens `web/DutyLocationDialog.svelte` with
+schedule board — or on `⚙` of a row the board typed itself (see
+[Schedule (board)](#schedule-board)) — opens `web/ScheduleLocationDialog.svelte` with
 `Einstellungen`: the switch
 **`Meister benötigt`** (`where_people_locations."needs_foreman"`,
 `migrations/1934_people_location_foreman.sql`, default on) and the **flags of that
-house** (`web/DutyLocationFlags.svelte`, see [Flags](#flags)). Cleared, the house is
+house** (`web/ScheduleLocationFlags.svelte`, see [Flags](#flags)). Cleared, the house is
 run without a foreman: neither the demand derived from the disposition nor the
 generator plans the position `Meister` there, and a hand-entered demand row for it
 is dropped without becoming a gap. Written through
@@ -287,24 +294,24 @@ new sign-in. Inside the module:
   disposition, `GET`, `PUT` and `DELETE /api/v1/people/{id}` answer `403` outside of
   them, and `POST`/`PUT` refuse a department that is not in this scope. The personnel
   file (`…/masterdata/employees`) follows the same list.
-- **`Personal-Disposition`** — the board (`GET …/people/duty`) shows only the cells of
-  this scope; `PUT …/duty`, `…/duty/series` refuse another employee, the audit checks
-  only their cells, and `POST …/duty/generate` plans only them — including `overwrite`,
-  which clears only their planned shifts. `POST …/duty/reset` clears only their month,
-  and the plan file (`…/duty/exchange/plan`) is refused for a restricted disposition.
+- **`Personal-Disposition`** — the board (`GET …/people/schedule`) shows only the cells of
+  this scope; `PUT …/schedule`, `…/schedule/series` refuse another employee, the audit checks
+  only their cells, and `POST …/schedule/generate` plans only them — including `overwrite`,
+  which clears only their planned shifts. `POST …/schedule/reset` clears only their month,
+  and the plan file (`…/schedule/exchange/plan`) is refused for a restricted disposition.
   The **shift catalogue** follows the same list: `GET …/people/shifts` leaves out every
-  shift whose department is outside this scope, naming such a shift in `PUT …/duty` or a
+  shift whose department is outside this scope, naming such a shift in `PUT …/schedule` or a
   series answers `403`, and the generator plans only the shifts it was handed. The
   catalogue itself is maintained along the same line: `POST …/people/shifts` only takes a
   department of this scope, `PUT` and `DELETE` refuse a shift outside of it (`403`), and
   the order of the shifts and the rules of the planning stay with the administration.
   The **locations of the board** are scoped as well: a location belongs to the department
-  of its sub-department, and `GET …/people/duty/locations` returns only those of this
-  scope (a location without a sub-department belongs to nobody); `GET …/people/duty/dispo`
-  and `…/duty/dispo-demand` drop the events of the other houses.
+  of its sub-department, and `GET …/people/schedule/locations` returns only those of this
+  scope (a location without a sub-department belongs to nobody); `GET …/people/schedule/dispo`
+  and `…/schedule/dispo-demand` drop the events of the other houses.
   A department of `Personal` never opens the board and the other way round.
 - Master data (departments, positions, locations, flags, planning) and the disposition
-  (`…/duty/dispo*`, which names houses and events, not people) stay reachable — they are
+  (`…/schedule/dispo*`, which names houses and events, not people) stay reachable — they are
   the tool of the disposition. The shifts and the rows of the board are the exception:
   they follow the departments of this scope (see above).
 
@@ -357,10 +364,10 @@ a code (1–20 characters, unique ignoring case), the name behind it (`Vst` →
   model and the API but have no mask any more: the staffing of a house says what it
   needs.
 
-## Duty-plan settings
+## Schedule settings
 
 `Stammdaten → Personal → Dienstplan` (`/people/planning`) collects everything
-that the generation of duty plans needs (`migrations/1898_people_shifts.sql`).
+that the generation of schedules needs (`migrations/1898_people_shifts.sql`).
 Reading takes `personaldispo.personaldispo-lesen`, a new shift
 `personaldispo.personaldispo-anlegen`, changing one `personaldispo.personaldispo-editieren`
 (the administration always). A dispatcher only reaches the shifts of the departments his
@@ -409,7 +416,7 @@ It is a marker on the board (hatched cell, `Frei` in the cell) and the input for
 rest rules: the cell ends the `max_consecutive_days` run, starts
 `min_consecutive_days` again and counts as a day off, while `shift_rotation_days`
 is untouched — the employee keeps the band they worked before the free day. A
-free day is never read as work (the rule check skips it, `src/duty_repo.rs`), a
+free day is never read as work (the rule check skips it, `src/schedule_repo.rs`), a
 series of free days needs no rule check at all, and a regeneration of the plan
 leaves the free days standing like an absence — without `overwrite` every free day
 is a cell that keeps its day, and only `overwrite` clears the month and writes the
@@ -417,7 +424,7 @@ free days anew.
 
 **`apprentice_only`** closes a shift for everybody who is not an apprentice. The
 apprentice shifts of the theatre (`F-AZ`, `S-AZ`, `S-WE-AZ`, `BS`) carry it, and
-`src/duty_repo.rs` refuses anybody else with `409` (*Only apprentices may be
+`src/schedule_repo.rs` refuses anybody else with `409` (*Only apprentices may be
 planned into this shift.*) — for a single cell and for a series alike. The rule
 reads one way only: an apprentice may work a regular shift as well. The planner
 often writes the apprentice's days by hand **before** the generator fills the rest,
@@ -428,7 +435,7 @@ it. The generator plans apprentices into their own shifts only.
 late shift. A shift of the band `spaet` may only be worked there when it carries the
 weekend marker `WE` in its short name or its name (`S-WE`, `S-WE-AZ`); the early
 shifts and the `Zwischenschichten` are free, a `WE` inside a word (`Wochenende`)
-counts nothing. `src/duty_repo.rs` answers `409` (*The late shift is not worked on
+counts nothing. `src/schedule_repo.rs` answers `409` (*The late shift is not worked on
 Saturday or Sunday.*), a series stops with `blocked.reason = weekend`, and the
 generator never gives `S` there.
 
@@ -439,7 +446,7 @@ like on employees and locations, so a renamed department keeps the old name unti
 the shift is edited. A dispatcher only sees, plans and maintains the shifts his
 `Personal-Disposition` scope covers (`src/routes.rs`, `list_shifts`,
 `check_stored_shift`): the list leaves out every shift of a foreign department,
-`PUT …/duty` and a series answer `403`, `POST`/`PUT`/`DELETE` of the catalogue refuse a
+`PUT …/schedule` and a series answer `403`, `POST`/`PUT`/`DELETE` of the catalogue refuse a
 foreign department, and the generator only picks from the shifts he may see. An empty
 department is open to everybody with the disposition right — it is read by all of them
 but changed by the administration alone.
@@ -453,7 +460,7 @@ day, where it is closest to the plan (`POSITIONEN AUSSCHLIESSEN` below each shif
 `PUT /api/v1/people/shifts/{id}/exclusions` with `{ "positions": ["Meister"] }`
 replaces the list of one shift and answers with the shift (empty strings dropped,
 case-insensitive duplicates counted once, at most 50 entries, at most 100
-characters each, `*` refused with `422`). Planning respects it in `src/duty_repo.rs`:
+characters each, `*` refused with `422`). Planning respects it in `src/schedule_repo.rs`:
 a single cell answers `409` (`The position Meister is excluded from this shift.`),
 a series stops with `blocked.reason = excluded_position`, and the cell menu greys
 the shift out for that employee with `· Position ausgeschlossen`.
@@ -508,12 +515,12 @@ can be switched off elsewhere (`migrations/1914_people_german_rules.sql`,
 `1915_people_apprentice_rule.sql`):
 
 - `extended_sunday_rest` — after a Sunday shift the law asks for a **compensation
-  day** (§ 11 Abs. 3 ArbZG): one whole day without work, and the duty after that day
+  day** (§ 11 Abs. 3 ArbZG): one whole day without work, and the shift after that day
   may only start once the regular rest has passed as well — **24 + 11 hours** with
   the default 11 hours. The day *before* the compensation day keeps the ordinary rest:
   a Monday after Sunday work is allowed when the 11 hours hold, and the compensation
-  may fall on any later day of the week (the first day without a duty after the
-  Sunday). `src/duty_rules.rs` checks it in `compensation_kept`
+  may fall on any later day of the week (the first day without a shift after the
+  Sunday). `src/schedule_rules.rs` checks it in `compensation_kept`
   (`BLOCK_COMPENSATION` = `compensation_rest`), the generator keeps the same state in
   `generate.rs` (`Record::book`/`Record::rest`) and the audit reads the rule with the
   rest.
@@ -524,19 +531,19 @@ can be switched off elsewhere (`migrations/1914_people_german_rules.sql`,
   may never be alone in a shift: on every day a **colleague who is
   no apprentice** has to be planned in the **same** shift — his position,
   department and location do not matter, and another apprentice does not count
-  (`duty_audit.rs` builds that set from `where_employees` and takes
+  (`schedule_audit.rs` builds that set from `where_employees` and takes
   `NOT is_apprentice`). Free time windows have no shift, so any non-apprentice
   planned that day counts.
   Writing a cell does **not** ask the rule: the planner sets the apprentice's days
   by hand before the generator fills the rest, and a `409` there would stand in the
   way of exactly that. The rule is what the **print check** asks: `Drucken` runs
-  `POST /api/v1/people/duty/audit` and lists every cell that breaks a rule —
+  `POST /api/v1/people/schedule/audit` and lists every cell that breaks a rule —
   `apprentice_alone` (*Auszubildende/r darf nicht allein in einer Schicht sein*),
   the window offers `Abbrechen` / `Trotzdem drucken`, and the board marks the day.
   It applies to the shifts open to everybody — a regular shift the apprentice holds
   alone is the case it is there for. An `apprentice_only` shift takes no journeyman
   at all, so the rule would report every `BS` day; the audit keeps it out there
-  (`duty_audit.rs` sets `Company::apprentice` to `false` for such a shift).
+  (`schedule_audit.rs` sets `Company::apprentice` to `false` for such a shift).
   The plan generator asks the rule itself and never plans an apprentice alone
   (`src/generate.rs`), and only into apprentice shifts.
 
@@ -624,7 +631,7 @@ when it holds the start and keeps **two hours** of it afterwards
 is never a competitor, and a nearer start only decides between equals. The three
 hours before the curtain (`MIN_LEAD`) may be shared by two crews of the same house.
 
-**Demand from the disposition**: `GET /api/v1/people/duty/dispo-demand?from=&to=`
+**Demand from the disposition**: `GET /api/v1/people/schedule/dispo-demand?from=&to=`
 (`personal.personal-lesen`) derives, per day, the staffing the disposition asks for
 (`src/dispo_demand.rs`), as `{ day, entries, unclear, marked }`:
 
@@ -691,7 +698,7 @@ hours before the curtain (`MIN_LEAD`) may be shared by two crews of the same hou
   the date cell for that day, and the `Personalbedarf` window lists the events
   under `Bedarf aus der Dispo` together with their reason. `Übernehmen` copies the
   derived rows into the rows of the day — `Speichern` writes them.
-- **Setting an event aside** (`ignored`, `PUT /api/v1/people/duty/dispo/entry/{id}/ignored`
+- **Setting an event aside** (`ignored`, `PUT /api/v1/people/schedule/dispo/entry/{id}/ignored`
   with `{ "ignored": true }`): the event stays in the disposition and on the board,
   but it asks for nobody and no longer marks its day — the `Ignorieren` button sits
   next to the event in `Personalbedarf`, `Beachten` takes it back. The flag travels
@@ -700,7 +707,7 @@ hours before the curtain (`MIN_LEAD`) may be shared by two crews of the same hou
   in the top left corner of the date cell stands for a rule the written plan of that
   day breaks. A click on the date opens `Personalbedarf`, which names them at the top
   (`Regelverstöße`: who, and which rule — the same list the print window shows). The
-  audit comes from `GET /api/v1/people/duty/audit` for the shown month and is
+  audit comes from `GET /api/v1/people/schedule/audit` for the shown month and is
   refreshed after every written cell. The number in the top right is the staffing
   demand, the `?` next to it the unclear disposition.
 
@@ -746,13 +753,13 @@ Two options empty one month of the module's data; each one first asks for the mo
 
 | Option | API | What it removes |
 | --- | --- | --- |
-| `Schichten zurücksetzen` | `POST /people/duty/reset?month=11&year=2026` | every shift of that month (free days included), every free time window and every vacation |
-| `Dispo zurücksetzen` | `POST /people/duty/dispo/reset?month=11&year=2026` | every entry of `where_people_dispo_entries` in that month |
+| `Schichten zurücksetzen` | `POST /people/schedule/reset?month=11&year=2026` | every shift of that month (free days included), every free time window and every vacation |
+| `Dispo zurücksetzen` | `POST /people/schedule/dispo/reset?month=11&year=2026` | every entry of `where_people_dispo_entries` in that month |
 
 Both answer `{ "cleared": 12 }` and the page names the result
 (`12 Schichten im November 2026 entfernt.`, `Keine Termine im April 2027.`).
 
-- The shift reset uses `DutyRepository::clear_shifts` and empties the plan of the
+- The shift reset uses `ScheduleRepository::clear_shifts` and empties the plan of the
   month: `kind = 'shift'` — the free days `FT`/`SoFT` (`where_people_shifts.band =
   'frei'`) included —, `kind = 'free'` (a free time window) and `kind = 'vacation'`.
   Only `kind = 'sick'` stays: a sick day is a record of the personnel file, not a
@@ -764,16 +771,16 @@ Both answer `{ "cleared": 12 }` and the page names the result
   again, so a corrected import needs no extra step.
 - Both routes are admin-only (`crates/where-api/src/authz.rs`) and sit behind the
   module gate; `month` outside 1–12 and a year outside 1900–2999 answer `422`
-  (`duty::month_range`, also used by the PeM import).
+  (`schedule::month_range`, also used by the PeM import).
 
-## Duty plan (board)
+## Schedule (board)
 
 The `Dienstplan` tile of the side bar opens `/people/schedule`: a board
 with the active employees as rows and the days of the month as columns
-(`web/DutyPlanPage.svelte`). It always shows **one month**, with ◀ / Heute / ▶.
+(`web/SchedulePage.svelte`). It always shows **one month**, with ◀ / Heute / ▶.
 Above the board a legend lists every shift with its
 short name, time and color, next to `Krank (K)` and `Urlaub (U)` in the configured
-absence colors (`web/DutyPlanPage.svelte`). It carries **one line per entry** —
+absence colors (`web/SchedulePage.svelte`). It carries **one line per entry** —
 short name, name and time side by side, the absences in two columns at the right —
 so it stays around 60 px high and the board keeps the height of the window.
 
@@ -804,15 +811,15 @@ month are told apart at a glance; without a colour the row keeps the light band 
 always had.
 
 **Only the houses of the own department**: the `Standorte` rows come from
-`GET /api/v1/people/duty/locations`, which hands out the locations of the departments of
+`GET /api/v1/people/schedule/locations`, which hands out the locations of the departments of
 the session's `Personal-Disposition` — a location belongs to the department of the
 sub-department that works there, and a location without a sub-department belongs to
 nobody, so a restricted dispatcher does not see it. The events follow:
-`GET …/people/duty/dispo` and `…/duty/dispo-demand` drop the days of the other houses.
+`GET …/people/schedule/dispo` and `…/schedule/dispo-demand` drop the days of the other houses.
 Without a department entry in the group every location is shown, as before.
 
 **`Zeige Abteilung`** narrows the board for the administration: the button sits right next
-to `Springe zu` and opens a window (`web/DutyDepartmentDialog.svelte`) with `alle` and the
+to `Springe zu` and opens a window (`web/ScheduleDepartmentDialog.svelte`) with `alle` and the
 departments of the master data — the current one is marked. A click reloads the month with
 `?department=<name>` — the houses of the department, their disposition and their demand,
 and the employees of that department; the button then carries the choice
@@ -847,7 +854,7 @@ as wide as it** — both live in one grid of the name cell (`grid-template-colum
 1fr`, the switch and `Ausblenden` in its first column, `+` right-aligned in the second), so
 the two frames stay flush even when the label grows to `Ausblenden · 2`; the buttons inside
 `.dispoModus` fill their frame (`flex: 1 1 auto`). It opens
-`web/DutyHideLocationsDialog.svelte` with every location the user may see (the list of
+`web/ScheduleHideLocationsDialog.svelte` with every location the user may see (the list of
 `GET …/people/lists/locations` of that scope), each with a tick — all ticked when the
 window opens. Removing a tick hides that location in the board at once: its row of the
 disposition disappears and the switch shows how many are hidden (`Ausblenden · 2`). It
@@ -863,7 +870,7 @@ and the `×` close the window like `Schließen`.
   reaches: the days that follow stay visible, so the last days of a period end up
   where the board ends.
 - **Springe zu** in the toolbar opens a calendar window
-  (`web/DutyJumpDialog.svelte`) with the month the board shows; ‹ › page through
+  (`web/ScheduleJumpDialog.svelte`) with the month the board shows; ‹ › page through
   the months. It marks today and the days of the shown period; a click on a day
   jumps the board to its month and closes the window (Escape and the `×` close it
   without a jump).
@@ -893,9 +900,9 @@ and the `×` close the window like `Schließen`.
   (`Diese Datei wurde für … bereits geschrieben`) and keeps `Importieren` disabled
   until `Einträge dieses Monats ersetzen` is ticked.
 - **A day's entries are edited in place**: a click on a day cell of a disposition row
-  opens `web/DutyDispoDayDialog.svelte` with one row per entry — a narrow time field
+  opens `web/ScheduleDispoDayDialog.svelte` with one row per entry — a narrow time field
   and a text field, `−` removes a line, `+ Termin hinzufügen` appends one, `Speichern`
-  writes the whole day through `PUT /api/v1/people/duty/dispo/{location}/{day}` with
+  writes the whole day through `PUT /api/v1/people/schedule/dispo/{location}/{day}` with
   `{ "entries": [{ "starts_at": "18:00", "title": "…", "flag": "Vst" }] }`. The day
   is replaced as a
   whole (ids churn, nothing references them), the order of the array is the order on
@@ -905,14 +912,14 @@ and the `×` close the window like `Schließen`.
   accepts `8`, `830`, `8.30` and `18:00` and stores `HH:MM`; the text is trimmed and
   takes 1–200
   characters, a day at most 50 entries. `Schließen` (and Escape) leave the day as it
-  was. Read side: `GET /api/v1/people/duty/dispo?from=&to=`.
+  was. Read side: `GET /api/v1/people/schedule/dispo?from=&to=`.
 - **Dienstplan generieren** — the green button at the right end of the toolbar (only
-  with `personal.personal-editieren`) opens `web/DutyGenerateDialog.svelte`. It asks
+  with `personal.personal-editieren`) opens `web/ScheduleGenerateDialog.svelte`. It asks
   for the period as `Von – bis` (opening on the days the board shows), as `Woche`
   (`KW` + year) or as `Monat` (month + year); the line below the switches names the
   resolved period and its length, and `Bereits geplante Schichten ersetzen` decides
   whether the shift cells that are already there are rebuilt. `Generieren` writes the
-  plan through `POST /api/v1/people/duty/generate` and reports
+  plan through `POST /api/v1/people/schedule/generate` and reports
   `<n> Zellen geschrieben · <n> unverändert[ · <n> ersetzt]`, how many days it
   checked, how many demand rows stayed open per day and which days had no readable
   shift in the disposition (`?` on the board). `Fertig` closes the window; the board
@@ -934,7 +941,7 @@ and the `×` close the window like `Schließen`.
   counts — the notes below it (`… BEL-Besprechung inkl. Toneinrichtung`) are no flag.
   A copy of the export covers this in the tests
   (`crates/where-module-people/tests/fixtures/peM-dispo.xlsx`).
-  API: `POST /api/v1/people/duty/dispo/scan?month=&year=` and `…/dispo/import` take
+  API: `POST /api/v1/people/schedule/dispo/scan?month=&year=` and `…/dispo/import` take
   the xlsx as the request body and answer
   `{ locations, days, warnings, already_imported, existing_entries }` and
   `{ locations, locations_created, flags_created, days, entries_created, warnings }`;
@@ -968,24 +975,24 @@ and the `×` close the window like `Schließen`.
   `Ist − Soll` from the start of the hours account to the shown month — that start
   is `balance_from` in the settings (`migrations/1913_people_planning_balance_from.sql`),
   without a date it is 1 January. The board reads the plan of the whole year for
-  that (`GET …/duty?from=<year>-01-01&to=<end of month>`).
+  that (`GET …/schedule?from=<year>-01-01&to=<end of month>`).
 - Besides the houses of the master data the board carries **rows of its own**: a
   disposition row whose first column is **free text** instead of a location
   ("Technik", "Bühne links"). Such a row *is* a location with `is_text = true`
   (`migrations/1949_people_location_text.sql`), so it behaves in everything like a
   house: its day cells take Termine (time, text and flag — the dialog of a
   location), its name opens `Einstellungen` with `Meister benötigt` and the staffing
-  of every flag (`web/DutyLocationDialog.svelte`, `web/DutyLocationFlags.svelte`),
+  of every flag (`web/ScheduleLocationDialog.svelte`, `web/ScheduleLocationFlags.svelte`),
   and its events reach the demand and the generator like the events of a house. The
   only differences: the name is typed (unique only among houses — two typed rows may
   share one), the mask and the master-data list leave the rows out, and they belong
   to no department, so every dispatcher sees them.
   The `+` beside `Sticky | Scroll` adds a row (`Neue Zeile`, at the end of the
   disposition); its name is edited in place, `⚙` opens the settings and `−` removes
-  the row with its events. API: `POST /api/v1/people/duty/rows`,
-  `PUT /api/v1/people/duty/rows/{id}` with `{ name }`, `DELETE …/rows/{id}`
+  the row with its events. API: `POST /api/v1/people/schedule/rows`,
+  `PUT /api/v1/people/schedule/rows/{id}` with `{ name }`, `DELETE …/rows/{id}`
   (a house answers `404`; name empty or longer than 100 characters `422`).- Clicking a **date** opens the **staffing demand** of that day
-  (`web/DutyDemandDialog.svelte`). It shows one block per shift with a row
+  (`web/ScheduleDemandDialog.svelte`). It shows one block per shift with a row
   per position and
   the number of employees needed (`where_people_duty_demand`, primary key
   `day, shift_id, position`, `migrations/1912_people_duty_demand_position.sql`).
@@ -999,7 +1006,7 @@ and the `×` close the window like `Schließen`.
   badge in the top right corner of the date cell (red while the plan stays below it) and
   the footer counts `Eingeteilt/Bedarf`. The flags of a house are not part of this
   window any more: they live in the `Einstellungen` window of the location (see above).
-  API: `GET /api/v1/people/duty/demand?from=&to` (at most 400 days),
+  API: `GET /api/v1/people/schedule/demand?from=&to` (at most 400 days),
   `PUT …/demand/{day}` with `{ entries: [{ shift_id, position, location, needed }] }`
   (replaces the day, numbers 0–99, unknown shifts `404`, `422` otherwise) and
   `POST …/demand/copy` with `{ from, to: [days] }`. A row that a house binds carries
@@ -1028,11 +1035,11 @@ and the `×` close the window like `Schließen`.
 - **Under the shift sits the free text of the cell** (`where_people_duty_entries.note`,
   `migrations/1936_people_duty_note.sql`, at most 200 characters): one line per
   filled cell, empty until someone writes — `Tausch mit Kollegen`, `fährt den Bus`,
-  `Einweisung`. It is saved on blur/Enter as part of the cell (`PUT …/duty` with the
+  `Einweisung`. It is saved on blur/Enter as part of the cell (`PUT …/schedule` with the
   kind and the shift of the cell), it stays with the day when the shift changes and it
   goes away with the cell. The note belongs to the cell, not to the shift, so the
   generator leaves it alone when it writes a shift over a day.
-- **freie Eingabe …** opens `web/DutyFreeTimeDialog.svelte` for that one day:
+- **freie Eingabe …** opens `web/ScheduleFreeTimeDialog.svelte` for that one day:
   `Von (24 h)`, `Bis (24 h)` and `Pause (Min.)`, typed as in the shift form
   (`8`, `830`, `8.30` become `08:00`, `08:30`). The window shows the net hours
   below the fields and refuses an unreadable time, equal start and end, and a
@@ -1042,17 +1049,17 @@ and the `×` close the window like `Schließen`.
   counts as work in the hours of the month and in the day's `Eingeteilt`; opening
   the dialog again shows the times of that cell. After `Übernehmen` the board asks
   **Tage in Folge** for the free time just like for a shift, so the typed window is
-  written onto several days in a row (`POST …/duty/series` with `kind = free` and
+  written onto several days in a row (`POST …/schedule/series` with `kind = free` and
   its three values).
 - Choosing a **shift** or finishing **freie Eingabe …** first asks **Tage in Folge**
-  (`web/DutySeriesDialog.svelte`):
+  (`web/ScheduleSeriesDialog.svelte`):
   one number, the selected day included, and a live preview of the range
   (`Mo., 16.11.2026 – Fr., 20.11.2026`). `1` writes the single cell as before;
   `2` to `366` write the same shift or the same time window onto that many
   consecutive days in one call and
   replace whatever planned there. `Krank (K)`, `Urlaub (U)` and clearing still
   write the one cell.
-- A series keeps the **planning rules** (`src/duty_rules.rs`, nothing is written the
+- A series keeps the **planning rules** (`src/schedule_rules.rs`, nothing is written the
   frontend could not see): it stops at the first day that breaks one, so the days
   stay in a row — Sunday work without `sunday_work_allowed`, a public holiday
   without `holiday_work_allowed`, a day already planned
@@ -1070,7 +1077,7 @@ and the `×` close the window like `Schließen`.
   apprentice rule (`apprentice_needs_company`) is no stop for a series either: what
   matters is the print, where the check names every apprentice left alone.
   Messages under the dates — a stop of a series, a refusal of the API — clear
-  themselves after **10 seconds** (`DutyPlanPage.svelte`), so the board keeps its
+  themselves after **10 seconds** (`SchedulePage.svelte`), so the board keeps its
   height.
 - One entry per employee and day (`where_people_duty_entries`,
   `migrations/1902_people_duty_entries.sql`): saving again replaces the cell,
@@ -1083,13 +1090,13 @@ and the `×` close the window like `Schließen`.
 - The footer counts per day how many employees are in a **shift or a free time** —
   sick and vacation do not count; Sundays are highlighted.
 - Reading with `personal.personal-lesen`, writing with
-  `personal.personal-editieren`. API: `GET /api/v1/people/duty?from=&to=`
-  (at most 400 days, otherwise `422`), `PUT /api/v1/people/duty` with
+  `personal.personal-editieren`. API: `GET /api/v1/people/schedule?from=&to=`
+  (at most 400 days, otherwise `422`), `PUT /api/v1/people/schedule` with
   `{ employee_id, day, kind, shift_id }` — without `kind` (or `kind: null`) the
   cell is cleared, `kind: "shift"` requires a `shift_id` (otherwise `422`),
   `kind: "free"` needs `starts_at`, `ends_at` as `HH:MM` and an optional
   `break_minutes` (0–720, shorter than the window) — and
-  `POST /api/v1/people/duty/series` with
+  `POST /api/v1/people/schedule/series` with
   `{ employee_id, day, days, kind, shift_id }` for `days` days in a row (1–366,
   the first day included; a series always needs a kind and answers with
   `{ entries, requested, blocked }`; free times carry their clocks here too,
@@ -1223,7 +1230,7 @@ disposition asks for (`dispo-demand`), so an imported PeM month is enough to pla
 
 ## Checking a written plan
 
-`GET /api/v1/people/duty/audit?from=&to=` (`src/duty_audit.rs`, personnel right)
+`GET /api/v1/people/schedule/audit?from=&to=` (`src/schedule_audit.rs`, personnel right)
 checks the plan that stands in the database the way the series check would, and
 reports every cell that breaks a rule instead of stopping at the first one:
 `{ checked, violations: [{ employee_id, day, reason }] }`. The days around the
@@ -1249,7 +1256,7 @@ generieren`. It first runs the
 check of the month above; a broken rule opens the window of the rule check with the
 days and the reasons (`Abbrechen` / `Trotzdem drucken`) and the print window only
 opens when the plan is clean or the planner wants it anyway. A quiet plan goes
-straight to the print window (`web/DutyPrintDialog.svelte`).
+straight to the print window (`web/SchedulePrintDialog.svelte`).
 
 The window prints **one month** — the month of the board, from its first to its last
 day — and asks for the paper only: **DIN A3 quer** by default, also `A3 hoch`,
@@ -1302,7 +1309,7 @@ the staff needs: it is capped at 40 % of the sheet. `blattmass(bericht, seite)` 
 every dispo row and the wrapped lines themselves — and the preview and the PDF both
 read it, so a printed page and an exported one break their lines at the same place.
 
-**Import / Export** sits left of `Drucken` and opens `web/DutyExchangeDialog.svelte`.
+**Import / Export** sits left of `Drucken` and opens `web/ScheduleExchangeDialog.svelte`.
 The window asks for the month and the year first; both blocks below work on that
 month, whatever the board shows.
 
@@ -1334,7 +1341,7 @@ the file.
 ## Exchanging a month
 
 `Import / Export` (left of `Drucken`) is the one window for both directions
-(`web/DutyExchangeDialog.svelte`). The export hands a month out, the import takes
+(`web/ScheduleExchangeDialog.svelte`). The export hands a month out, the import takes
 files back in — the disposition and the plan as the module writes them, and the xlsx
 disposition of PeM. All three scopes of the import ask the same four questions:
 
@@ -1351,7 +1358,7 @@ disposition of PeM. All three scopes of the import ask the same four questions:
 - **Zeilen ohne Uhrzeit ebenfalls übernehmen** — for the disposition only: a cell like
   `i.A. an die Vorstellung` carries no time and is dropped when the switch is off.
 
-`POST /api/v1/people/duty/exchange/{dispo|plan}/scan?month=&year=&only_with_time=`
+`POST /api/v1/people/schedule/exchange/{dispo|plan}/scan?month=&year=&only_with_time=`
 reads a file without writing and answers `rows`, `days`, `groups` (the locations of a
 disposition, the people of a plan), `warnings`, `existing_entries` and
 `already_imported`.
@@ -1386,7 +1393,7 @@ CSV, `,` accepted as separator too) and takes the dates as `TT.MM.JJJJ` or
   not have — the 31st of February — and every other row that does not fit — an unknown
   personnel number, an unknown shift, a window without start or end — is skipped and
   named with its line in `warnings`; the window shows `rows` and `written` and the
-  warnings below the buttons. `POST /api/v1/people/duty/exchange/dispo` and
+  warnings below the buttons. `POST /api/v1/people/schedule/exchange/dispo` and
   `…/exchange/plan` (right `personal.personal-editieren`) take `replace` and — for the
   disposition — `only_with_time`; locations the disposition names are created.
 
@@ -1394,7 +1401,7 @@ CSV, `,` accepted as separator too) and takes the dates as `TT.MM.JJJJ` or
 ## Sending the plan as a calendar
 
 Below the import part of `Import / Export` sits the block `ICS`
-(`web/DutyExchangeDialog.svelte`): `Persönlicher Dienstplan senden` opens the list of the
+(`web/ScheduleExchangeDialog.svelte`): `Persönlicher Dienstplan senden` opens the list of the
 people of the view that have an e-mail address, a checkmark chooses them, `Senden` sends
 each one their own calendar. The mail goes to the address in the personnel file — the
 sender is the e-mail account of the signed-in user (`"User_ITPrefs"`: `"Emailadress"`,
@@ -1403,7 +1410,7 @@ installation database and is reached through `AppState::installation_pool()`. An
 without a server or an address is refused before the first message:
 `422 Für diesen Benutzer ist kein eMail-Konto eingerichtet.`
 
-`POST /api/v1/people/duty/ical/send` takes `{ "from", "to", "employee_ids" }` and answers
+`POST /api/v1/people/schedule/ical/send` takes `{ "from", "to", "employee_ids" }` and answers
 `{ "sent", "skipped": [{ "name", "reason" }] }`; only the people the dispo rights of the
 session cover are reached (`personaldispo.personaldispo-lesen`). Who gets nothing is named
 with the reason — `keine eMail-Adresse`, `keine Schicht im Zeitraum`, or what the server

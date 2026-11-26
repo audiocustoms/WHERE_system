@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -88,18 +90,18 @@
 	}
 
 	const columns: { key: AddressSort; title: string }[] = [
-		{ key: 'type', title: 'Typ' },
-		{ key: 'number', title: 'Kundennummer' },
-		{ key: 'name', title: 'Name' },
-		{ key: 'country', title: 'Land' },
-		{ key: 'postal_code', title: 'PLZ' },
-		{ key: 'city', title: 'Ort' }
+		{ key: 'type', title: t('Typ') },
+		{ key: 'number', title: t('Kundennummer') },
+		{ key: 'name', title: t('Name') },
+		{ key: 'country', title: t('Land') },
+		{ key: 'postal_code', title: t('PLZ') },
+		{ key: 'city', title: t('Ort') }
 	];
 
 	const bestand: { key: AddressState; title: string }[] = [
-		{ key: 'active', title: 'active' },
-		{ key: 'inactive', title: 'inaktiv' },
-		{ key: 'all', title: 'alle' }
+		{ key: 'active', title: t('aktiv') },
+		{ key: 'inactive', title: t('inaktiv') },
+		{ key: 'all', title: t('alle') }
 	];
 
 	/** Codes the address is filed under (order as in the role column). */
@@ -135,33 +137,41 @@
 </script>
 
 {#if !auth.hasRight(RIGHT.mayReadAddresses)}
-	<AccessDenied pageName="Adressen" right={RIGHT.mayReadAddresses} rightLabel="Adresse lesen" />
+	<AccessDenied
+		pageName={t('Adressen')}
+		right={RIGHT.mayReadAddresses}
+		rightLabel={t('Adresse lesen')}
+	/>
 {:else}
-<h1>Adressen</h1>
+<h1>{t('Adressen')}</h1>
 
 <section>
-	<h2>Bestand ({total})</h2>
+	<h2>{t('Bestand ({n})', { n: total })}</h2>
 	{#if filterText.length}
 		<p class="filter">
-			Suchmaske: {filterText.join(' · ')}
-			<button class="reset" onclick={resetFilter}>Filter zurücksetzen</button>
+			{t('Suchmaske:')} {filterText.join(' · ')}
+			<button class="reset" onclick={resetFilter}>{t('Filter zurücksetzen')}</button>
 		</p>
 	{/if}
 	<div class="toolbar">
 		<input
-			placeholder="Suche (Name, Kundennr.)"
+			placeholder={t('Suche (Name, Kundennr.)')}
 			bind:value={search}
 			onkeydown={(e) => e.key === 'Enter' && quickSearch()}
 		/>
-		<button onclick={quickSearch} disabled={loading}>{loading ? 'Lade …' : 'Suchen'}</button>
-		<span class="stock" role="group" aria-label="Bestand">
+		<button onclick={quickSearch} disabled={loading}
+			>{loading ? t('Lade …') : t('Suchen')}</button
+		>
+		<span class="stock" role="group" aria-label={t('Bestand')}>
 			{#each bestand as option (option.key)}
 				<button
 					class="choice"
 					class:active={bestandFilter === option.key}
 					aria-pressed={bestandFilter === option.key}
 					disabled={loading || !!filter}
-					title={filter ? 'Die Suchmaske bestimmt den Bestand — Filter zurücksetzen' : undefined}
+					title={filter
+						? t('Die Suchmaske bestimmt den Bestand — Filter zurücksetzen')
+						: undefined}
 					onclick={() => chooseState(option.key)}>{option.title}</button
 				>
 			{/each}
@@ -175,7 +185,9 @@
 						<button
 							class="sort"
 							disabled={!!filter}
-							title={filter ? 'Die Suchmaske sortiert nach Name — Filter zurücksetzen' : 'Nach {spalte.titel} sortieren'}
+							title={filter
+								? t('Die Suchmaske sortiert nach Name — Filter zurücksetzen')
+								: t('Nach {spalte} sortieren', { spalte: column.title })}
 							onclick={() => sortBy(column.key)}
 						>
 							{column.title}
@@ -185,7 +197,7 @@
 						</button>
 					</th>
 				{/each}
-				<th class="communication">Kommunikation</th>
+				<th class="communication">{t('Kommunikation')}</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -193,7 +205,7 @@
 				<tr
 					class:inactive={!a.active}
 					tabindex="0"
-					title="Adresse öffnen"
+					title={t('Adresse öffnen')}
 					onclick={() => openAddressEdit(a)}
 					onkeydown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
@@ -217,7 +229,7 @@
 					</td>
 				</tr>
 			{:else}
-				<tr class="empty"><td colspan="7">Keine Datensätze.</td></tr>
+				<tr class="empty"><td colspan="7">{t('Keine Datensätze.')}</td></tr>
 			{/each}
 		</tbody>
 	</table>

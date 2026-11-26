@@ -1,4 +1,4 @@
-//! Shifts of the duty planning.
+//! Shifts of the schedule planning.
 //!
 //! A shift is a time window with a break. Several shifts per day are allowed;
 //! if the end lies before the start, the shift runs past midnight.

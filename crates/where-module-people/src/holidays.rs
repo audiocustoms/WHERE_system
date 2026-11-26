@@ -1,6 +1,6 @@
 //! Public and school holidays of the tenant.
 //!
-//! The duty plan needs them for two things: `holiday_work_allowed` can only be
+//! The schedule plan needs them for two things: `holiday_work_allowed` can only be
 //! checked against a calendar, and the school holidays tell the planner when
 //! vacation is asked for. Both come from the OpenHolidays API, which needs no
 //! key and no manual address — the settings only say *what* is imported and for

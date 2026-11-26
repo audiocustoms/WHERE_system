@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api, errorText, type Dashboard } from '../lib/api';
@@ -39,7 +41,7 @@
 	onMount(load);
 
 	// Without the core application the dashboard stays empty: `WHERE - are my people?`
-	// starts at its board — the duty plan if the account may read it, otherwise at the
+	// starts at its board — the schedule if the account may read it, otherwise at the
 	// employee list.
 	$effect(() => {
 		if (!modules.ready || modules.isInstalled('stuff') || !modules.isInstalled('people')) return;
@@ -79,92 +81,108 @@
 </script>
 
 <header class="page-head">
-	<h1>Zentrale</h1>
+	<h1>{t('Zentrale')}</h1>
 	<div class="status">
 		{#if error}
-			<span class="badge bad">nicht erreichbar</span>
+			<span class="badge bad">{t('nicht erreichbar')}</span>
 		{:else if health}
-			<span class="badge good">verbunden · v{health.version}</span>
+			<span class="badge good">{t('verbunden · v{version}', { version: health.version })}</span>
 		{:else}
-			<span class="badge">verbinde …</span>
+			<span class="badge">{t('verbinde …')}</span>
 		{/if}
 		<button type="button" onclick={load} disabled={loading}>
-			{loading ? 'Lade …' : 'Aktualisieren'}
+			{loading ? t('Lade …') : t('Aktualisieren')}
 		</button>
 	</div>
 </header>
 
 {#if error}
 	<div class="notice">
-		<strong>Die Übersicht konnte nicht geladen werden.</strong>
+		<strong>{t('Die Übersicht konnte nicht geladen werden.')}</strong>
 		<p>{error}</p>
 	</div>
 {:else if !data}
-	<p class="empty">Kennzahlen werden geladen …</p>
+	<p class="empty">{t('Kennzahlen werden geladen …')}</p>
 {:else}
 	<section class="metrics">
 		<article class="metric">
-			<h2>Artikel</h2>
+			<h2>{t('Artikel')}</h2>
 			<p class="value">{count(data.articles.total)}</p>
 			<p class="detail">
-				{count(data.articles.active)} active · {count(data.articles.inactive)} inaktiv
+				{t('{active} active · {inactive} inactive', {
+					active: count(data.articles.active),
+					inactive: count(data.articles.inactive)
+				})}
 				{#if data.articles.virtual_articles}
-					· {count(data.articles.virtual_articles)} Dienstleistung
+					{t('· {n} Dienstleistung', { n: count(data.articles.virtual_articles) })}
 				{/if}
 			</p>
 			<p class="detail">
 				{#if data.articles.changed_last_30_days}
-					{count(data.articles.changed_last_30_days)} in 30 Tagen bearbeitet
+					{t('{n} in 30 Tagen bearbeitet', { n: count(data.articles.changed_last_30_days) })}
 				{:else}
-					seit 30 Tagen unverändert
+					{t('seit 30 Tagen unverändert')}
 				{/if}
 			</p>
-			<a class="footnote" href="/articles">Zur Artikelliste</a>
+			<a class="footnote" href="/articles">{t('Zur Artikelliste')}</a>
 		</article>
 
 		<article class="metric">
-			<h2>Adressen</h2>
+			<h2>{t('Adressen')}</h2>
 			<p class="value">{count(data.addresses.total)}</p>
 			<p class="detail">
-				{count(data.addresses.customers)} Kunden · {count(data.addresses.suppliers)} Lieferanten
+				{t('{customers} Kunden · {suppliers} Lieferanten', {
+					customers: count(data.addresses.customers),
+					suppliers: count(data.addresses.suppliers)
+				})}
 			</p>
 			<p class="detail">
-				{count(data.addresses.interested)} Interessenten · {count(data.addresses.locations)} Locations
+				{t('{interested} Interessenten · {locations} Locations', {
+					interested: count(data.addresses.interested),
+					locations: count(data.addresses.locations)
+				})}
 				{#if data.addresses.vip}
-					· {count(data.addresses.vip)} VIP
+					{t('· {n} VIP', { n: count(data.addresses.vip) })}
 				{/if}
 			</p>
-			<a class="footnote" href="/addresses">Zur Adressliste</a>
+			<a class="footnote" href="/addresses">{t('Zur Adressliste')}</a>
 		</article>
 
 		{#if pricingEnabled}
 			<article class="metric">
-				<h2>Bestand Miete</h2>
+				<h2>{t('Bestand Miete')}</h2>
 				<p class="value">{quantity(data.stock.rental)}</p>
-				<p class="detail">Verkauf: {quantity(data.stock.sale)} Einheiten</p>
 				<p class="detail">
-					{quantity(data.stock.reserved)} reserviert · {quantity(data.stock.withdrawn)} entnommen
+					{t('Verkauf: {n} Einheiten', { n: quantity(data.stock.sale) })}
 				</p>
-				<a class="footnote" href="/articles">Zum Bestand</a>
+				<p class="detail">
+					{t('{reserved} reserviert · {withdrawn} entnommen', {
+						reserved: quantity(data.stock.reserved),
+						withdrawn: quantity(data.stock.withdrawn)
+					})}
+				</p>
+				<a class="footnote" href="/articles">{t('Zum Bestand')}</a>
 			</article>
 		{/if}
 
 		<article class="metric">
-			<h2>Geräte</h2>
+			<h2>{t('Geräte')}</h2>
 			<p class="value">{count(data.stock.devices)}</p>
 			<p class="detail">
-				{count(Math.max(0, data.stock.devices - data.stock.discarded_devices))} im Bestand
+				{t('{n} im Bestand', {
+					n: count(Math.max(0, data.stock.devices - data.stock.discarded_devices))
+				})}
 				{#if data.stock.discarded_devices}
-					· {count(data.stock.discarded_devices)} ausgesondert
+					{t('· {n} ausgesondert', { n: count(data.stock.discarded_devices) })}
 				{/if}
 			</p>
-			<p class="detail">Geräte und Chargen aus dem Wareneingang</p>
+			<p class="detail">{t('Geräte und Chargen aus dem Wareneingang')}</p>
 		</article>
 	</section>
 
 	<div class="grid">
 		<section class="card">
-			<h2>Zuletzt bearbeitete Artikel</h2>
+			<h2>{t('Zuletzt bearbeitete Artikel')}</h2>
 			{#if data.recent_articles.length}
 				<ul class="list">
 					{#each data.recent_articles as artikel (artikel.id)}
@@ -172,19 +190,19 @@
 							<button type="button" onclick={() => openArticle(artikel.id)}>
 								<span class="no">{artikel.article_no}</span>
 								<span class="name">{artikel.name ?? '—'}</span>
-								<span class="meta">{artikel.group ?? 'ohne Warengruppe'}</span>
+								<span class="meta">{artikel.group ?? t('ohne Warengruppe')}</span>
 								<span class="time">{seit(artikel.changed_at)}</span>
 							</button>
 						</li>
 					{/each}
 				</ul>
 			{:else}
-				<p class="empty">Noch keine Artikel angelegt.</p>
+				<p class="empty">{t('Noch keine Artikel angelegt.')}</p>
 			{/if}
 		</section>
 
 		<section class="card">
-			<h2>Neueste Adressen</h2>
+			<h2>{t('Neueste Adressen')}</h2>
 			{#if data.recent_addresses.length}
 				<ul class="list">
 					{#each data.recent_addresses as address (address.id)}
@@ -192,32 +210,32 @@
 							<button
 								type="button"
 								onclick={() => openAddress(address.id)}
-								title="Adresse öffnen"
+								title={t('Adresse öffnen')}
 							>
 								<span class="no">{address.customer_no ?? '—'}</span>
 								<span class="name">{address.name ?? '—'}</span>
 								<span class="meta">{address.city ?? ''}</span>
 								<span class="time" class:inactive={!address.active}>
-									{address.active ? 'active' : 'inaktiv'}
+									{address.active ? t('aktiv') : t('inaktiv')}
 								</span>
 							</button>
 						</li>
 					{/each}
 				</ul>
 			{:else}
-				<p class="empty">Noch keine Adressen angelegt.</p>
+				<p class="empty">{t('Noch keine Adressen angelegt.')}</p>
 			{/if}
-			<a class="footnote" href="/addresses">Alle Adressen</a>
+			<a class="footnote" href="/addresses">{t('Alle Adressen')}</a>
 		</section>
 
 		<section class="card">
-			<h2>Warengruppen</h2>
+			<h2>{t('Warengruppen')}</h2>
 			{#if data.groups.length}
 				<ul class="bars">
 					{#each data.groups as group (group.id)}
 						<li>
-							<a href={`/articles?group=${group.id}`} title="Artikel dieser Warengruppe zeigen">
-								<span class="label">{group.name ?? `Gruppe ${group.id}`}</span>
+							<a href={`/articles?group=${group.id}`} title={t('Artikel dieser Warengruppe zeigen')}>
+								<span class="label">{group.name ?? t('Gruppe {id}', { id: group.id })}</span>
 								<span class="track">
 									<span
 										class="fill"
@@ -230,21 +248,21 @@
 					{/each}
 				</ul>
 			{:else}
-				<p class="empty">Keine Warengruppen angelegt.</p>
+				<p class="empty">{t('Keine Warengruppen angelegt.')}</p>
 			{/if}
-			<a class="footnote" href="/admin/articles">Warengruppen pflegen</a>
+			<a class="footnote" href="/admin/articles">{t('Warengruppen pflegen')}</a>
 		</section>
 
 		<section class="card">
-			<h2>Lager</h2>
+			<h2>{t('Lager')}</h2>
 			{#if data.warehouses.length}
 				<table>
 					<thead>
 						<tr>
-							<th>Lager</th>
+							<th>{t('Lager')}</th>
 							{#if pricingEnabled}
-								<th class="count">Miete</th>
-								<th class="count">Verkauf</th>
+								<th class="count">{t('Miete')}</th>
+								<th class="count">{t('Verkauf')}</th>
 							{/if}
 						</tr>
 					</thead>
@@ -261,16 +279,18 @@
 					</tbody>
 				</table>
 			{:else}
-				<p class="empty">Kein Lager angelegt.</p>
+				<p class="empty">{t('Kein Lager angelegt.')}</p>
 			{/if}
 		</section>
 
 		<section class="card">
-			<h2>Pyro-Register</h2>
+			<h2>{t('Pyro-Register')}</h2>
 			<p class="detail">
-				{count(data.pyro.articles)} Artikel mit UN-Nr.
+				{t('{n} Artikel mit UN-Nr.', { n: count(data.pyro.articles) })}
 				{#if data.pyro.articles_with_hazard_class}
-					· {count(data.pyro.articles_with_hazard_class)} mit Gefahrklasse
+					{t('· {n} mit Gefahrklasse', {
+						n: count(data.pyro.articles_with_hazard_class)
+					})}
 				{/if}
 			</p>
 			{#if data.pyro.hazard_classes.length}
@@ -280,7 +300,7 @@
 							<button
 								type="button"
 								onclick={() => searchPyro(className.label)}
-								title="Artikel mit dieser Gefahrklasse zeigen"
+								title={t('Artikel mit dieser Gefahrklasse zeigen')}
 							>
 								<span class="label">{className.label}</span>
 								<span class="track">
@@ -293,52 +313,54 @@
 					{/each}
 				</ul>
 			{:else}
-				<p class="empty">Kein Artikel mit pyrotechnischen Kennwerten.</p>
+				<p class="empty">{t('Kein Artikel mit pyrotechnischen Kennwerten.')}</p>
 			{/if}
 		</section>
 
 		<section class="card">
-			<h2>Datenqualität</h2>
+			<h2>{t('Datenqualität')}</h2>
 			<ul class="list compact">
 				<li>
-					<a href="/articles?group=0" title="Artikel ohne Warengruppe zeigen">
-						<span class="name">Artikel ohne Warengruppe</span>
+					<a href="/articles?group=0" title={t('Artikel ohne Warengruppe zeigen')}>
+						<span class="name">{t('Artikel ohne Warengruppe')}</span>
 						<span class="count">{count(data.quality.articles_without_group)}</span>
 					</a>
 				</li>
 				{#if pricingEnabled}
 					<li>
 						<span class="row">
-							<span class="name">Artikel ohne Mietpreis</span>
+							<span class="name">{t('Artikel ohne Mietpreis')}</span>
 							<span class="count">{count(data.quality.articles_without_rental_price)}</span>
 						</span>
 					</li>
 				{/if}
 				<li>
 					<span class="row">
-						<span class="name">Artikel ohne Bestand</span>
+						<span class="name">{t('Artikel ohne Bestand')}</span>
 						<span class="count">{count(data.quality.articles_without_stock)}</span>
 					</span>
 				</li>
 				<li>
 					<span class="row">
-						<span class="name">Adressen ohne E-Mail</span>
+						<span class="name">{t('Adressen ohne E-Mail')}</span>
 						<span class="count">{count(data.quality.addresses_without_email)}</span>
 					</span>
 				</li>
 				<li>
 					<span class="row">
-						<span class="name">Adressen ohne Kunden-/Lieferantennummer</span>
+						<span class="name">{t('Adressen ohne Kunden-/Lieferantennummer')}</span>
 						<span class="count">{count(data.quality.addresses_without_number)}</span>
 					</span>
 				</li>
 			</ul>
-			<p class="detail">Die Zahl ist ein Hinweis auf fehlende Pflege, kein Fehler.</p>
+			<p class="detail">{t('Die Zahl ist ein Hinweis auf fehlende Pflege, kein Fehler.')}</p>
 		</section>
 	</div>
 
 	{#if updated}
-		<p class="stamp">Stand {updated} · alle Angaben aus der laufenden Datenbank</p>
+		<p class="stamp">
+			{t('Stand {time} · alle Angaben aus der laufenden Datenbank', { time: updated })}
+		</p>
 	{/if}
 {/if}
 

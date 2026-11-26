@@ -10,8 +10,8 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::duty::KIND_SHIFT;
 use crate::employee::Employee;
+use crate::schedule::KIND_SHIFT;
 use crate::shifts::Shift;
 
 /// What the board sends: the period and the employees whose calendar goes out.
@@ -69,7 +69,7 @@ pub struct IcalMonth {
 /// shift; a free day keeps none and counts as the whole day.
 pub fn month_of(
     employee: &Employee,
-    cells: &[crate::duty::DutyEntry],
+    cells: &[crate::schedule::ScheduleEntry],
     shifts: &[Shift],
 ) -> IcalMonth {
     let id = employee.id.unwrap_or_default();
@@ -106,7 +106,7 @@ pub fn month_of(
 }
 
 /// The times of one day: the cell, else the shift. A free day carries none.
-fn clock_of(cell: &crate::duty::DutyEntry, shift: Option<&Shift>) -> (String, String) {
+fn clock_of(cell: &crate::schedule::ScheduleEntry, shift: Option<&Shift>) -> (String, String) {
     if shift.is_some_and(|entry| entry.band.is_free()) {
         return (String::new(), String::new());
     }
@@ -244,7 +244,7 @@ fn escape(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::duty::DutyEntry;
+    use crate::schedule::ScheduleEntry;
     use crate::shifts::{ShiftBand, ShiftInput};
 
     fn employee() -> Employee {
@@ -287,8 +287,8 @@ mod tests {
         }
     }
 
-    fn cell(day: NaiveDate, kind: &str) -> DutyEntry {
-        let mut entry = DutyEntry::default();
+    fn cell(day: NaiveDate, kind: &str) -> ScheduleEntry {
+        let mut entry = ScheduleEntry::default();
         entry.employee_id = 7;
         entry.day = day;
         entry.kind = kind.to_string();

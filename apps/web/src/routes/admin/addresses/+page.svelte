@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type SettingsArea } from '../../../lib/api';
 	import { askCancel } from '../../../lib/confirm.svelte';
@@ -21,40 +23,46 @@
 	/** Layout as in `img/Admin Menü/Adressen/Adresseneinstellungen.PNG`. */
 	const GROUPS: Group[] = [
 		{
-			title: 'Adresse',
+			title: t('Adresse'),
 			entries: [
-				{ label: 'Anreden & Anredeformen', target: { kind: 'liste', area: 'anreden' } },
-				{ label: 'Adressgruppen', target: { kind: 'liste', area: 'adressgruppen' } },
-				{ label: 'Einstell. für neue Adr./Knd./Lief.', target: { kind: 'neukunde' } },
-				{ label: 'Google Maps & Routenplanung', target: { kind: 'maps' } },
+				{ label: t('Anreden & Anredeformen'), target: { kind: 'liste', area: 'anreden' } },
+				{ label: t('Adressgruppen'), target: { kind: 'liste', area: 'adressgruppen' } },
 				{
-					label: 'Kundenseitige Preisklassenkategorien',
+					label: t('Einstell. für neue Adr./Knd./Lief.'),
+					target: { kind: 'neukunde' }
+				},
+				{ label: t('Google Maps & Routenplanung'), target: { kind: 'maps' } },
+				{
+					label: t('Kundenseitige Preisklassenkategorien'),
 					target: { kind: 'liste', area: 'preisklassen' },
 				},
 			],
 		},
 		{
-			title: 'Adresse : Mitarbeiter',
+			title: t('Adresse : Mitarbeiter'),
 			entries: [
 				{
-					label: 'Mitarbeiterqualifikationen ändern…',
+					label: t('Mitarbeiterqualifikationen ändern…'),
 					target: { kind: 'liste', area: 'qualifikationen' },
 				},
 			],
 		},
 		{
-			title: 'Adresse : Location',
+			title: t('Adresse : Location'),
 			entries: [
-				{ label: 'Status Location ändern…', target: { kind: 'liste', area: 'status-location' } },
 				{
-					label: 'Kategorie Location ändern…',
+					label: t('Status Location ändern…'),
+					target: { kind: 'liste', area: 'status-location' },
+				},
+				{
+					label: t('Kategorie Location ändern…'),
 					target: { kind: 'liste', area: 'kategorie-location' },
 				},
 				{
-					label: 'Stromanschlüsse Location ändern…',
+					label: t('Stromanschlüsse Location ändern…'),
 					target: { kind: 'liste', area: 'stromanschluesse' },
 				},
-				{ label: 'Merkmale ändern…', target: { kind: 'liste', area: 'merkmale-location' } },
+				{ label: t('Merkmale ändern…'), target: { kind: 'liste', area: 'merkmale-location' } },
 			],
 		},
 	];
@@ -119,7 +127,7 @@
 	}
 
 	async function cancel() {
-		if (changed && !(await askCancel('Das Bearbeiten der Adresseinstellungen'))) return;
+		if (changed && !(await askCancel(t('Das Bearbeiten der Adresseinstellungen')))) return;
 		await loadAll();
 	}
 
@@ -130,18 +138,18 @@
 	/** A button opens a window when the list behind it exists. */
 	function oeffne(target: Target) {
 		if (target.kind === 'liste' && !area(target.area)) {
-			error = `Die Liste „${target.area}“ fehlt in dieser Installation.`;
+			error = t('Die Liste „{area}“ fehlt in dieser Installation.', { area: target.area });
 			return;
 		}
 		isOpen = target;
 	}
 </script>
 
-<svelte:head><title>Adresseinstellungen — WHERE</title></svelte:head>
+<svelte:head><title>{t('Adresseinstellungen — WHERE')}</title></svelte:head>
 
-<h1>Adresseinstellungen</h1>
+<h1>{t('Adresseinstellungen')}</h1>
 
-<section class="selection" aria-label="Adresseinstellungen">
+<section class="selection" aria-label={t('Adresseinstellungen')}>
 	{#each GROUPS as group (group.title)}
 		<h2>{group.title}</h2>
 		{#each group.entries as entry (entry.label)}
@@ -151,14 +159,14 @@
 		{/each}
 	{/each}
 
-	<h2>Adresse : Briefanschrift</h2>
+	<h2>{t('Adresse : Briefanschrift')}</h2>
 	<label class="check">
 		<input
 			type="checkbox"
 			checked={bool('address.brief.anrede')}
 			onchange={(e) => setzeBool('address.brief.anrede', e.currentTarget.checked)}
 		/>
-		Bei Einzelpersonen Anrede ausgeben
+		{t('Bei Einzelpersonen Anrede ausgeben')}
 	</label>
 	<label class="check">
 		<input
@@ -166,10 +174,10 @@
 			checked={bool('address.brief.leerzeile')}
 			onchange={(e) => setzeBool('address.brief.leerzeile', e.currentTarget.checked)}
 		/>
-		Leerzeile zwischen Straße und Ort einfügen
+		{t('Leerzeile zwischen Straße und Ort einfügen')}
 	</label>
 
-	<h2>Adresse : Listendarstellung Einzelperson</h2>
+	<h2>{t('Adresse : Listendarstellung Einzelperson')}</h2>
 	<label class="check">
 		<input
 			type="radio"
@@ -177,7 +185,7 @@
 			checked={(prefs['address.darstellung.name'] ?? 'nachname') === 'nachname'}
 			onchange={() => setze('address.darstellung.name', 'nachname')}
 		/>
-		Nachname, Vorname „Spitzname“
+		{t('Nachname, Vorname „Spitzname“')}
 	</label>
 	<label class="check">
 		<input
@@ -186,7 +194,7 @@
 			checked={prefs['address.darstellung.name'] === 'vorname'}
 			onchange={() => setze('address.darstellung.name', 'vorname')}
 		/>
-		Vorname „Spitzname“ Nachname
+		{t('Vorname „Spitzname“ Nachname')}
 	</label>
 </section>
 
@@ -197,12 +205,12 @@
 			checked={bool('address.indizes.nurHier')}
 			onchange={(e) => setzeBool('address.indizes.nurHier', e.currentTarget.checked)}
 		/>
-		Indizes nur hier änderbar
+		{t('Indizes nur hier änderbar')}
 	</label>
 	<span class="spacer"></span>
-	<button type="button" class="btn" onclick={cancel} disabled={load}>Abbrechen</button>
+	<button type="button" class="btn" onclick={cancel} disabled={load}>{t('Abbrechen')}</button>
 	<button type="button" class="btn primary" onclick={commit} disabled={!changed}>
-		Sichern
+		{t('Sichern')}
 	</button>
 </footer>
 
@@ -222,23 +230,23 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Neukunde"
+			aria-label={t('Neukunde')}
 			style="width: min(34rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
-				<span class="sw-title">Einstellungen für neue Adressen, Kunden und Lieferanten</span>
-				<button class="sw-close" type="button" title="Schließen" onclick={() => (isOpen = null)}>×</button>
+				<span class="sw-title">{t('Einstellungen für neue Adressen, Kunden und Lieferanten')}</span>
+				<button class="sw-close" type="button" title={t('Schließen')} onclick={() => (isOpen = null)}>×</button>
 			</div>
 			<div class="sw-content">
-				<h3>Adressen <span class="small">(mandantenunabhängig)</span></h3>
+				<h3>{t('Adressen')} <span class="small">{t('(mandantenunabhängig)')}</span></h3>
 				<label class="check">
 					<input
 						type="checkbox"
 						checked={bool('address.neukunde.indexpflicht')}
 						onchange={(e) => setzeBool('address.neukunde.indexpflicht', e.currentTarget.checked)}
 					/>
-					Adresse muss zum Sichern einen Index besitzen
+					{t('Adresse muss zum Sichern einen Index besitzen')}
 				</label>
 				<label class="check">
 					<input
@@ -246,7 +254,7 @@
 						checked={bool('address.neukunde.serienbrief')}
 						onchange={(e) => setzeBool('address.neukunde.serienbrief', e.currentTarget.checked)}
 					/>
-					„Teilnahme an Serienbriefversand“ aktivieren
+					{t('„Teilnahme an Serienbriefversand“ aktivieren')}
 				</label>
 				<label class="check">
 					<input
@@ -254,7 +262,7 @@
 						checked={bool('address.neukunde.serienmail')}
 						onchange={(e) => setzeBool('address.neukunde.serienmail', e.currentTarget.checked)}
 					/>
-					„Teilnahme an Serien-eMail“ aktivieren
+					{t('„Teilnahme an Serien-eMail“ aktivieren')}
 				</label>
 				<label class="check">
 					<input
@@ -262,19 +270,19 @@
 						checked={bool('address.neukunde.suchindex')}
 						onchange={(e) => setzeBool('address.neukunde.suchindex', e.currentTarget.checked)}
 					/>
-					Suchindex automatisch hinterlegen
+					{t('Suchindex automatisch hinterlegen')}
 				</label>
 				<div class="row">
 					<input
 						class="text"
-						placeholder="Index"
+						placeholder={t('Index')}
 						value={prefs['address.neukunde.index'] ?? ''}
 						oninput={(e) => setze('address.neukunde.index', e.currentTarget.value)}
 					/>
-					<span class="small">Der Index wird beim Anlegen vorbelegt.</span>
+					<span class="small">{t('Der Index wird beim Anlegen vorbelegt.')}</span>
 				</div>
 
-				<h3>Kunden <span class="small">(mandantenabhängig)</span></h3>
+				<h3>{t('Kunden')} <span class="small">{t('(mandantenabhängig)')}</span></h3>
 				<div class="row">
 					<label class="check">
 						<input
@@ -282,7 +290,7 @@
 							checked={bool('address.kunden.versicherung')}
 							onchange={(e) => setzeBool('address.kunden.versicherung', e.currentTarget.checked)}
 						/>
-						Artikel versichern mit
+						{t('Artikel versichern mit')}
 					</label>
 					<input
 						class="numeric"
@@ -296,14 +304,14 @@
 			</div>
 			<div class="sw-footer">
 				<span class="spacer"></span>
-				<button type="button" class="btn" onclick={() => (isOpen = null)}>Abbrechen</button>
+				<button type="button" class="btn" onclick={() => (isOpen = null)}>{t('Abbrechen')}</button>
 				<button
 					type="button"
 					class="btn primary"
 					onclick={async () => {
 						await commit();
 						isOpen = null;
-					}}>Ok</button
+					}}>{t('Ok')}</button
 				>
 			</div>
 		</div>
@@ -314,17 +322,17 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Google Maps"
+			aria-label={t('Google Maps')}
 			style="width: min(34rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
-				<span class="sw-title">Startadresse für Routenplanung</span>
-				<button class="sw-close" type="button" title="Schließen" onclick={() => (isOpen = null)}>×</button>
+				<span class="sw-title">{t('Startadresse für Routenplanung')}</span>
+				<button class="sw-close" type="button" title={t('Schließen')} onclick={() => (isOpen = null)}>×</button>
 			</div>
 			<div class="sw-content">
 				<div class="row">
-					<span class="caption">Benutze Google mit Ländereinstellung</span>
+					<span class="caption">{t('Benutze Google mit Ländereinstellung')}</span>
 					<select
 						value={prefs['address.maps.land'] ?? 'Deutschland'}
 						onchange={(e) => setze('address.maps.land', e.currentTarget.value)}
@@ -333,28 +341,28 @@
 					</select>
 				</div>
 				<div class="row">
-					<span class="caption">Startadresse</span>
+					<span class="caption">{t('Startadresse')}</span>
 					<input
 						class="text"
-						placeholder="z. B. Pariser Platz, 10117 Berlin, Deutschland"
+						placeholder={t('z. B. Pariser Platz, 10117 Berlin, Deutschland')}
 						value={prefs['address.maps.start'] ?? ''}
 						oninput={(e) => setze('address.maps.start', e.currentTarget.value)}
 					/>
 				</div>
 				<p class="small">
-					Die Startadresse ist die Vorgabe der Routenplanung; eine Karte lädt WHERE nicht.
+					{t('Die Startadresse ist die Vorgabe der Routenplanung; eine Karte lädt WHERE nicht.')}
 				</p>
 			</div>
 			<div class="sw-footer">
 				<span class="spacer"></span>
-				<button type="button" class="btn" onclick={() => (isOpen = null)}>Abbrechen</button>
+				<button type="button" class="btn" onclick={() => (isOpen = null)}>{t('Abbrechen')}</button>
 				<button
 					type="button"
 					class="btn primary"
 					onclick={async () => {
 						await commit();
 						isOpen = null;
-					}}>Sichern</button
+					}}>{t('Sichern')}</button
 				>
 			</div>
 		</div>

@@ -4,7 +4,7 @@ Open work on the personnel module. Nothing on this list is implemented yet. Each
 item states what is wanted, what it touches and the questions that have to be
 answered before the work starts.
 
-## 1. Lock the duty plan after print / export
+## 1. Lock the schedule after print / export
 
 A plan that has left the house must not change silently. Printing or exporting a
 period locks it: from then on only the administration and holders of a dedicated
@@ -13,7 +13,7 @@ which is written to a log.
 
 **Work**
 
-- [ ] Print / PDF export of the board (`web/DutyPlanPage.svelte`): the shown week
+- [ ] Print / PDF export of the board (`web/SchedulePage.svelte`): the shown week
       or month with dates, employees, shifts, note rows and staffing demand, in the
       layout of the board itself (print CSS, no second template).
 - [ ] Migration (next free number `1943_…`): table `where_people_duty_locks` with
@@ -22,15 +22,15 @@ which is written to a log.
 - [ ] Right `personal.dienstplan-nach-export-aendern` ("change a plan that was
       printed") in `where-api/src/authz.rs`, granted to `Administratoren`; the
       regular planning right stays `personal.personal-editieren`.
-- [ ] Enforcement on the server, not only in the UI: `DutyRepository::set` and
+- [ ] Enforcement on the server, not only in the UI: `ScheduleRepository::set` and
       `set_series` answer `409` for a cell inside a locked period unless the caller
       holds the right.
-- [ ] Reason: `PUT /api/v1/people/duty` and `POST /api/v1/people/duty/series` get
+- [ ] Reason: `PUT /api/v1/people/schedule` and `POST /api/v1/people/schedule/series` get
       an optional `reason`; inside a locked period the API requires it.
 - [ ] Change log: table `where_people_duty_changes` (`employee_id`, `day`,
       `old_kind`, `old_shift_id`, `new_kind`, `new_shift_id`, `reason`, `user`,
       `changed_at`), written in the same transaction as the change, plus the same
-      line in the log file `data/logs/duty-lock.log`.
+      line in the log file `data/logs/schedule-lock.log`.
 - [ ] Board: banner "Zeitraum gesperrt am … durch …", a `Grund` field in the shift
       menu for locked days, and `Sperre aufheben` in the footer for administrators.
 - [ ] Unlocking is itself a logged change with its own reason.
@@ -49,12 +49,12 @@ which is written to a log.
 - Printing a week locks it: a planner without the right gets `409` for every cell
   of that week, also when calling the API directly.
 - A holder of the right can change a cell with a reason; the change then appears in
-  the change log and in `data/logs/duty-lock.log`.
+  the change log and in `data/logs/schedule-lock.log`.
 - Without a reason nothing is written.
 
 ## 2. Import manager for dates
 
-Bring duty-plan dates in from a file instead of clicking them cell by cell — the
+Bring schedule dates in from a file instead of clicking them cell by cell — the
 way `Datei → Import-Manager` already reads articles and addresses
 (`apps/web/src/lib/import/ImportDialog.svelte`, `POST /api/v1/import/articles`).
 
@@ -63,7 +63,7 @@ way `Datei → Import-Manager` already reads articles and addresses
 - [ ] New target in `apps/web/src/lib/import/importFields.ts` (key `duty`, label
       `Dienstplan`) with the fields employee, day, kind (`Schicht`, `Krank`,
       `Urlaub`) and shift (short name or name).
-- [ ] Endpoint in the module: `POST /api/v1/people/duty/import` with rows already
+- [ ] Endpoint in the module: `POST /api/v1/people/schedule/import` with rows already
       shaped the way the board sends them; answer as `ImportReport`
       (`{ created, failed: [{ row, message }] }`) so the dialog can name the
       rejected lines.
@@ -83,7 +83,7 @@ way `Datei → Import-Manager` already reads articles and addresses
 
 - "Dates" could also mean **holidays / a calendar** for the tenant. That exists
   since `migrations/1916_people_holidays.sql` (public holidays and school holidays
-  are imported from OpenHolidays), so this item is about duty entries — unless the
+  are imported from OpenHolidays), so this item is about schedule entries — unless the
   calendar itself should become importable as well.
 - Do imported cells overwrite existing ones, or only fill empty cells?
 - Which date format does the file use (`TT.MM.JJJJ`, `JJJJ-MM-TT`, Excel serial

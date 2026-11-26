@@ -9,6 +9,7 @@
  * readers further down.
  */
 
+import { t } from '../i18n.svelte';
 import { CP037, CP437, MAC_ARABIC, MAC_CE, MAC_GREEK, MAC_HEBREW, MAC_TURKISH } from './legacy-codepages';
 
 export interface Encoding {
@@ -36,7 +37,7 @@ export const KODIERUNGEN: Encoding[] = [
 		key: 'windows-1215',
 		label: 'windows-1215',
 		decoding: 'windows-1252',
-		note: 'gelesen als windows-1252'
+		note: t('gelesen als windows-1252')
 	},
 	{ key: 'iso-8859-1', label: 'ISO 8859-1', decoding: 'iso-8859-1' },
 	{ key: 'iso-8859-2', label: 'ISO 8859-2', decoding: 'iso-8859-2' },
@@ -59,7 +60,7 @@ export const KODIERUNGEN: Encoding[] = [
 		key: 'x-mac-chineseimp',
 		label: 'x-mac-chineseimp',
 		decoding: 'x-mac-chineseimp',
-		note: 'gelesen als GBK (Mac-Fassung von GB2312)'
+		note: t('gelesen als GBK (Mac-Fassung von GB2312)')
 	},
 	{ key: 'iso-8859-3', label: 'ISO 8859-3', decoding: 'iso-8859-3' },
 	{ key: 'iso-8859-4', label: 'ISO 8859-4', decoding: 'iso-8859-4' },
@@ -208,11 +209,11 @@ function utf7(bytes: Uint8Array): string {
 
 /** The separators the mask offers, together with their label. */
 export const SEPARATORS: { value: string; label: string }[] = [
-	{ value: 'auto', label: 'Automatisch' },
-	{ value: '\t', label: 'Tabulator' },
-	{ value: ';', label: 'Semikolon' },
-	{ value: ',', label: 'Komma' },
-	{ value: '|', label: 'Senkrechter Strich' }
+	{ value: 'auto', label: t('Automatisch') },
+	{ value: '\t', label: t('Tabulator') },
+	{ value: ';', label: t('Semikolon') },
+	{ value: ',', label: t('Komma') },
+	{ value: '|', label: t('Senkrechter Strich') }
 ];
 
 /**

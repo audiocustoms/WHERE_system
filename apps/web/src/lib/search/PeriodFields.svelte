@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	interface Props {
 		/** Year of the choice; `null` = all years. */
 		year?: number | null;
@@ -39,8 +41,8 @@
 
 {#if bases}
 	<div class="sw-row">
-		<span class="sw-label">Grundlage</span>
-		<select bind:value={base} aria-label="Grundlage">
+		<span class="sw-label">{t('Grundlage')}</span>
+		<select bind:value={base} aria-label={t('Grundlage')}>
 			{#each bases as option (option.value)}
 				<option value={option.value}>{option.text}</option>
 			{/each}
@@ -49,8 +51,8 @@
 {/if}
 
 <div class="sw-row">
-	<span class="sw-label">Jahr</span>
-	<select class="narrow" bind:value={year} aria-label="Jahr">
+	<span class="sw-label">{t('Jahr')}</span>
+	<select class="narrow" bind:value={year} aria-label={t('Jahr')}>
 		{#each YEARS as j (j)}
 			<option value={j}>{j}</option>
 		{/each}
@@ -58,7 +60,7 @@
 </div>
 
 <div class="sw-row">
-	<span class="sw-label">Quartal</span>
+	<span class="sw-label">{t('Quartal')}</span>
 	<div class="sw-grid">
 		{#each QUARTERS as q (q)}
 			<button
@@ -71,13 +73,13 @@
 			</button>
 		{/each}
 		<button class="sw-choice wide" class:active={quarter === null} type="button" onclick={() => (quarter = null)}>
-			Alle
+			{t('Alle')}
 		</button>
 	</div>
 </div>
 
 <div class="sw-row">
-	<span class="sw-label">Monat</span>
+	<span class="sw-label">{t('Monat')}</span>
 	<div class="sw-grid">
 		{#each MONTHS as m (m)}
 			<button class="sw-choice" class:active={month === m} type="button" onclick={() => chooseMonth(m)}>

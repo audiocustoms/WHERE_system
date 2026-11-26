@@ -13,6 +13,7 @@ use utoipa::{IntoParams, ToSchema};
 use where_persistence::{WarehouseFlags, WarehouseRepository};
 
 use crate::error::ApiError;
+use crate::routes::addresses::DeletedResponse;
 use crate::state::{AppState, State};
 
 /// One warehouse of a client, with the switches of the mask.
@@ -167,6 +168,123 @@ pub struct SubBinInput {
 
 fn repository(state: &AppState) -> WarehouseRepository {
     WarehouseRepository::new(state.pool.clone())
+}
+
+/// One place of the house where material stands while it is in use — `Foyer`,
+/// `Podium`, `Bühne`. It is not a warehouse: the piece is still ours, but it is no
+/// longer on the shelf.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct PlaceDto {
+    pub id: i32,
+    pub name: String,
+    pub note: Option<String>,
+    pub active: bool,
+}
+
+impl From<where_persistence::PlaceRow> for PlaceDto {
+    fn from(p: where_persistence::PlaceRow) -> Self {
+        Self {
+            id: p.id,
+            name: p.name,
+            note: p.note,
+            active: p.active,
+        }
+    }
+}
+
+/// Input of a place.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PlaceInput {
+    pub name: String,
+    #[serde(default)]
+    pub note: Option<String>,
+    #[serde(default = "place_active")]
+    pub active: bool,
+}
+
+fn place_active() -> bool {
+    true
+}
+
+/// Places of the house — the list of the issue window and of the master data.
+#[utoipa::path(
+    get,
+    path = "/api/v1/places",
+    tag = "einstellungen",
+    responses((status = 200, description = "Places", body = Vec<PlaceDto>))
+)]
+pub async fn places(State(state): State<AppState>) -> Result<Json<Vec<PlaceDto>>, ApiError> {
+    let rows = state.places.list().await?;
+    Ok(Json(rows.into_iter().map(Into::into).collect()))
+}
+
+/// Creates a place.
+#[utoipa::path(
+    post,
+    path = "/api/v1/places",
+    tag = "einstellungen",
+    request_body = PlaceInput,
+    responses(
+        (status = 201, description = "Angelegt", body = PlaceDto),
+        (status = 409, description = "Diesen Ort gibt es bereits"),
+        (status = 422, description = "Validation failed")
+    )
+)]
+pub async fn place_create(
+    State(state): State<AppState>,
+    Json(body): Json<PlaceInput>,
+) -> Result<(StatusCode, Json<PlaceDto>), ApiError> {
+    let row = state
+        .places
+        .create(&body.name, body.note.as_deref(), body.active)
+        .await?;
+    Ok((StatusCode::CREATED, Json(row.into())))
+}
+
+/// Changes name, note and the active switch of a place.
+#[utoipa::path(
+    put,
+    path = "/api/v1/places/{id}",
+    tag = "einstellungen",
+    params(("id" = i32, Path, description = "Place")),
+    request_body = PlaceInput,
+    responses(
+        (status = 200, description = "Gespeichert", body = PlaceDto),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Diesen Ort gibt es bereits"),
+        (status = 422, description = "Validation failed")
+    )
+)]
+pub async fn place_update(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+    Json(body): Json<PlaceInput>,
+) -> Result<Json<PlaceDto>, ApiError> {
+    let row = state
+        .places
+        .update(id, &body.name, body.note.as_deref(), body.active)
+        .await?;
+    Ok(Json(row.into()))
+}
+
+/// Removes a place — refused while material still stands there.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/places/{id}",
+    tag = "einstellungen",
+    params(("id" = i32, Path, description = "Place")),
+    responses(
+        (status = 200, description = "Entfernt", body = DeletedResponse),
+        (status = 409, description = "Material steht noch an diesem Ort"),
+        (status = 404, description = "Not found")
+    )
+)]
+pub async fn place_delete(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+) -> Result<Json<DeletedResponse>, ApiError> {
+    state.places.delete(id).await?;
+    Ok(Json(DeletedResponse { deleted: true }))
 }
 
 /// Warehouses of one client. Without `?mandant=` the answer is `422` — the mask only

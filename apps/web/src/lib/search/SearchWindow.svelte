@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import type { Snippet } from 'svelte';
 	import './search-window.css';
@@ -70,7 +72,7 @@
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
 			<span class="sw-title">{title}</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={cancel}>×</button>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={cancel}>×</button>
 		</div>
 
 		{#if bandLabel}
@@ -81,7 +83,7 @@
 						class="sw-band-select"
 						value={bandValue}
 						onchange={(e) => onbandchange?.(e.currentTarget.value)}
-						aria-label="Vorgang"
+						aria-label={t('Vorgang')}
 					>
 						{#each bandOptions as option (option.value)}
 							<option value={option.value}>{option.text}</option>
@@ -95,7 +97,7 @@
 						class="sw-band-mode"
 						value={modeValue}
 						onchange={(e) => onmodechange?.(e.currentTarget.value)}
-						aria-label="Suchtext"
+						aria-label={t('Suchtext')}
 					>
 						{#each modeOptions as option (option.value)}
 							<option value={option.value}>{option.text}</option>

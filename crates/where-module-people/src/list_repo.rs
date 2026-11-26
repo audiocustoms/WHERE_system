@@ -200,7 +200,7 @@ fn row_to_entry(row: &sqlx::postgres::PgRow) -> ListEntry {
     }
 }
 
-/// A department carries the tint of its employees in the duty board.
+/// A department carries the tint of its employees in the schedule board.
 fn row_to_department(row: &sqlx::postgres::PgRow) -> ListEntry {
     ListEntry {
         id: row.get("id"),

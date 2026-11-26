@@ -1,4 +1,5 @@
 /** Areas of the search window (`img/suche/Suchmaske_main.PNG`). */
+import { t } from '../i18n.svelte';
 import type { ModuleId } from '../api';
 
 export type SearchArea =
@@ -19,11 +20,11 @@ export interface SearchAreaEntry {
 
 /** Order and label as in the original. */
 export const SEARCH_AREAS: SearchAreaEntry[] = [
-	{ id: 'addresses', text: 'Adressen / Kunden' },
-	{ id: 'articles', text: 'Artikel' },
-	{ id: 'orders', text: 'Auftrag', module: 'go' },
-	{ id: 'package-slips', text: 'Packschein', module: 'go' },
-	{ id: 'invoices', text: 'Rechnung', module: 'money' },
-	{ id: 'incoming-invoices', text: 'Eingangsrechnung', module: 'money' },
-	{ id: 'documents', text: 'Dokumente' }
+	{ id: 'addresses', text: t('Adressen / Kunden') },
+	{ id: 'articles', text: t('Artikel') },
+	{ id: 'orders', text: t('Auftrag'), module: 'go' },
+	{ id: 'package-slips', text: t('Packschein'), module: 'go' },
+	{ id: 'invoices', text: t('Rechnung'), module: 'money' },
+	{ id: 'incoming-invoices', text: t('Eingangsrechnung'), module: 'money' },
+	{ id: 'documents', text: t('Dokumente') }
 ];

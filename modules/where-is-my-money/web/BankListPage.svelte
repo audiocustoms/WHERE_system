@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -110,7 +112,7 @@
 
 	function createNew() {
 		dialog = {
-			title: 'Neue Bank',
+			title: t('Neue Bank'),
 			id: null,
 			bic: '',
 			name: '',
@@ -125,7 +127,7 @@
 		const bank = rows.find((row) => row.id === choice);
 		if (!bank) return;
 		dialog = {
-			title: 'Bank ändern',
+			title: t('Bank ändern'),
 			id: bank.id,
 			bic: bank.bic,
 			name: bank.name,
@@ -163,10 +165,13 @@
 		const bank = rows.find((row) => row.id === choice);
 		if (!bank) return;
 		const ok = await askConfirm({
-			title: 'Löschen',
-			message: `Bank „${bank.name}“ (${bank.bic}) löschen? Adressen, die den Code tragen, behalten ihn.`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+			title: t('Löschen'),
+			message: t('Bank „{name}“ ({bic}) löschen? Adressen, die den Code tragen, behalten ihn.', {
+				name: bank.name,
+				bic: bank.bic
+			}),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
@@ -188,7 +193,7 @@
 		if (!sync) return;
 		const target = sync;
 		if (!target.url.trim() && !target.csv.trim()) {
-			sync = { ...target, message: 'Bitte eine URL eintragen oder eine Liste einfügen.' };
+			sync = { ...target, message: t('Bitte eine URL eintragen oder eine Liste einfügen.') };
 			return;
 		}
 		sync = { ...target, running: true, message: null };
@@ -205,7 +210,13 @@
 			sync = {
 				...target,
 				running: false,
-				message: `${result.read} Zeilen gelesen: ${result.inserted} neu, ${result.updated} geändert, ${result.unchanged} unverändert, ${result.skipped} ohne BIC oder Namen.`
+				message: t('{read} Zeilen gelesen: {inserted} neu, {updated} geändert, {unchanged} unverändert, {skipped} ohne BIC oder Namen.', {
+					read: result.read,
+					inserted: result.inserted,
+					updated: result.updated,
+					unchanged: result.unchanged,
+					skipped: result.skipped
+				})
 			};
 			await loadAll();
 		} catch (e) {
@@ -214,39 +225,44 @@
 	}
 </script>
 
-<svelte:head><title>Banken (SWIFT/BIC) — WHERE</title></svelte:head>
+<svelte:head><title>{t('Banken (SWIFT/BIC) — WHERE')}</title></svelte:head>
 
-<h1>Banken (SWIFT/BIC)</h1>
+<h1>{t('Banken (SWIFT/BIC)')}</h1>
 
 <div class="toolbar">
 	<input
 		class="find"
 		type="search"
-		placeholder="Find (Code, Bank, Ort, BLZ)"
+		placeholder={t('Find (Code, Bank, Ort, BLZ)')}
 		value={query}
 		oninput={(e) => (query = e.currentTarget.value)}
 		onkeydown={(e) => {
 			if (e.key === 'Enter') search();
 		}}
 	/>
-	<button type="button" class="button" onclick={search} disabled={load}>Suchen</button>
+	<button type="button" class="button" onclick={search} disabled={load}>{t('Suchen')}</button>
 	<span class="spacer"></span>
 	<button
 		type="button"
 		class="button"
 		onclick={openSource}
-		title="Andere Quelle wählen oder Liste einfügen">Quelle…</button
+		title={t('Andere Quelle wählen oder Liste einfügen')}>{t('Quelle…')}</button
 	>
 	<button type="button" class="button primary" onclick={refresh} disabled={syncRunning}>
-		{syncRunning ? 'Lädt …' : 'Update'}
+		{syncRunning ? t('Lädt …') : t('Update')}
 	</button>
 </div>
 
 {#if report}
 	<p class="report">
-		{report.read} Zeilen gelesen: {report.inserted} neu, {report.updated} geändert,
-		{report.unchanged} unverändert, {report.skipped} ohne BIC oder Namen — Quelle:
-		{report.source}
+		{t('{read} Zeilen gelesen: {inserted} neu, {updated} geändert, {unchanged} unverändert, {skipped} ohne BIC oder Namen — Quelle: {source}', {
+			read: report.read,
+			inserted: report.inserted,
+			updated: report.updated,
+			unchanged: report.unchanged,
+			skipped: report.skipped,
+			source: report.source
+		})}
 	</p>
 {/if}
 
@@ -254,10 +270,10 @@
 	<table>
 		<thead>
 			<tr>
-				<th class="bic">SWIFT/BIC</th>
-				<th class="place">Land / PLZ / Ort</th>
-				<th>Bank</th>
-				<th>Alternativer Name</th>
+				<th class="bic">{t('SWIFT/BIC')}</th>
+				<th class="place">{t('Land / PLZ / Ort')}</th>
+				<th>{t('Bank')}</th>
+				<th>{t('Alternativer Name')}</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -276,7 +292,7 @@
 					<td>{bank.alt_name ?? ''}</td>
 				</tr>
 			{:else}
-				<tr><td colspan="4">{load ? 'Lade …' : 'Keine Bank gefunden.'}</td></tr>
+				<tr><td colspan="4">{load ? t('Lade …') : t('Keine Bank gefunden.')}</td></tr>
 			{/each}
 		</tbody>
 	</table>
@@ -284,20 +300,22 @@
 
 <div class="footer">
 	<span class="counter">
-		{#if rows.length < total}{rows.length} von {total}{:else}{total} Einträge{/if}
+		{rows.length < total
+			? t('{shown} von {total}', { shown: rows.length, total })
+			: t('{n} Einträge', { n: total })}
 	</span>
 	<span class="spacer"></span>
-	<div class="button-group" role="group" aria-label="Zeile">
-		<button type="button" class="square" title="Neue Bank" onclick={createNew}>+</button>
-		<button type="button" class="square" title="Ändern" disabled={choice === null} onclick={edit}
+	<div class="button-group" role="group" aria-label={t('Zeile')}>
+		<button type="button" class="square" title={t('Neue Bank')} onclick={createNew}>+</button>
+		<button type="button" class="square" title={t('Ändern')} disabled={choice === null} onclick={edit}
 			>✎</button
 		>
-		<button type="button" class="square" title="Löschen" disabled={choice === null} onclick={remove}
+		<button type="button" class="square" title={t('Löschen')} disabled={choice === null} onclick={remove}
 			>−</button
 		>
 	</div>
 	<span class="spacer"></span>
-	<a class="button" href="/">Schließen</a>
+	<a class="button" href="/">{t('Schließen')}</a>
 </div>
 
 {#if error}
@@ -319,19 +337,19 @@
 				<button
 					class="sw-close"
 					type="button"
-					title="Schließen"
+					title={t('Schließen')}
 					onclick={() => (dialog = null)}>×</button
 				>
 			</div>
 			<div class="sw-content">
 				<label class="field">
-					SWIFT/BIC
+					{t('SWIFT/BIC')}
 					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						class="text"
 						autofocus
 						maxlength="20"
-						placeholder="z. B. AABAFI22XXX"
+						placeholder={t('z. B. AABAFI22XXX')}
 						value={dialog.bic}
 						oninput={(e) => (dialog!.bic = e.currentTarget.value.toUpperCase())}
 						onkeydown={(e) => {
@@ -340,7 +358,7 @@
 					/>
 				</label>
 				<label class="field">
-					Bank
+					{t('Bank')}
 					<input
 						class="text"
 						maxlength="255"
@@ -350,7 +368,7 @@
 				</label>
 				<div class="pair">
 					<label class="field">
-						Land (ISO-3)
+						{t('Land (ISO-3)')}
 						<input
 							class="text"
 							maxlength="10"
@@ -359,7 +377,7 @@
 						/>
 					</label>
 					<label class="field">
-						Bankleitzahl
+						{t('Bankleitzahl')}
 						<input
 							class="text"
 							maxlength="20"
@@ -369,7 +387,7 @@
 					</label>
 				</div>
 				<label class="field">
-					Ort
+					{t('Ort')}
 					<input
 						class="text"
 						maxlength="255"
@@ -378,7 +396,7 @@
 					/>
 				</label>
 				<label class="field">
-					Alternativer Name
+					{t('Alternativer Name')}
 					<input
 						class="text"
 						maxlength="255"
@@ -389,12 +407,12 @@
 			</div>
 			<div class="sw-footer">
 				<span class="spacer"></span>
-				<button type="button" class="button" onclick={() => (dialog = null)}>Abbrechen</button>
+				<button type="button" class="button" onclick={() => (dialog = null)}>{t('Abbrechen')}</button>
 				<button
 					type="button"
 					class="button primary"
 					disabled={!dialog.bic.trim() || !dialog.name.trim()}
-					onclick={commit}>{dialog.id === null ? 'Anlegen' : 'Sichern'}</button
+					onclick={commit}>{dialog.id === null ? t('Anlegen') : t('Sichern')}</button
 				>
 			</div>
 		</div>
@@ -407,38 +425,35 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Liste aktualisieren"
+			aria-label={t('Liste aktualisieren')}
 			style="width: min(36rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
-				<span class="sw-title">Liste aktualisieren</span>
-				<button class="sw-close" type="button" title="Schließen" onclick={() => (sync = null)}
+				<span class="sw-title">{t('Liste aktualisieren')}</span>
+				<button class="sw-close" type="button" title={t('Schließen')} onclick={() => (sync = null)}
 					>×</button
 				>
 			</div>
 			<div class="sw-content">
 				<label class="field">
-					Quelle (URL)
+					{t('Quelle (URL)')}
 					<input
 						class="text"
-						placeholder="https://… (leer = eingebaute Quelle)"
+						placeholder={t('https://… (leer = eingebaute Quelle)')}
 						value={sync.url}
 						oninput={(e) => (sync!.url = e.currentTarget.value)}
 					/>
 				</label>
 				<p class="small">
-					Leer lassen für die eingebaute Quelle (Deutsche Bundesbank, Bankleitzahlen-Download);
-					der Server liest die Seite und lädt die aktuelle CSV-Datei. Spalten werden nach ihrer
-					Überschrift erkannt (BIC/SWIFT, Bank/Name/Bezeichnung, BLZ/PLZ, Ort, Land,
-					Alternativer Name); ohne Überschrift wird die deutsche BLZ-Datei angenommen.
+					{t('Leer lassen für die eingebaute Quelle (Deutsche Bundesbank, Bankleitzahlen-Download); der Server liest die Seite und lädt die aktuelle CSV-Datei. Spalten werden nach ihrer Überschrift erkannt (BIC/SWIFT, Bank/Name/Bezeichnung, BLZ/PLZ, Ort, Land, Alternativer Name); ohne Überschrift wird die deutsche BLZ-Datei angenommen.')}
 				</p>
 				<label class="field">
-					… oder eine Liste einfügen
+					{t('… oder eine Liste einfügen')}
 					<textarea
 						class="text"
 						rows="6"
-						placeholder="bic;name;blz;city;country;altname"
+						placeholder={t('bic;name;blz;city;country;altname')}
 						value={sync.csv}
 						oninput={(e) => (sync!.csv = e.currentTarget.value)}
 					></textarea>
@@ -449,12 +464,12 @@
 			</div>
 			<div class="sw-footer">
 				<span class="spacer"></span>
-				<button type="button" class="button" onclick={() => (sync = null)}>Schließen</button>
+				<button type="button" class="button" onclick={() => (sync = null)}>{t('Schließen')}</button>
 				<button
 					type="button"
 					class="button primary"
 					disabled={sync.running}
-					onclick={synchronize}>{sync.running ? 'Lädt …' : 'Synchronisieren'}</button
+					onclick={synchronize}>{sync.running ? t('Lädt …') : t('Synchronisieren')}</button
 				>
 			</div>
 		</div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -62,7 +64,7 @@
 
 	/** Closing without saving asks first — as in all masks. */
 	async function cancel() {
-		if (await askCancel(id === null ? 'Das Anlegen des Artikels' : 'Das Bearbeiten des Artikels')) {
+		if (await askCancel(t(id === null ? 'Das Anlegen des Artikels' : 'Das Bearbeiten des Artikels'))) {
 			close();
 		}
 	}
@@ -83,25 +85,25 @@
 		class="sw-window art-window"
 		role="dialog"
 		aria-modal="true"
-		aria-label="Artikel"
+		aria-label={t('Artikel')}
 		style="width: min(76rem, 100%)"
 	>
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
-			<span class="sw-title">Artikel:</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={cancel}>×</button>
+			<span class="sw-title">{t('Artikel:')}</span>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={cancel}>×</button>
 		</div>
 
 		<div class="art-content">
 			{#if !maySee}
 				<p class="art-message bad">
-					Für diese Aktion fehlt das Recht
-					{id === null ? '„Artikel anlegen“' : '„Artikel lesen“'}.
+					{t('Für diese Aktion fehlt das Recht')}
+					{id === null ? t('„Artikel anlegen“') : t('„Artikel lesen“')}.
 				</p>
 			{:else if error && !article}
 				<p class="art-message bad">{error}</p>
 			{:else if !article}
-				<p class="art-message">Lade Artikel …</p>
+				<p class="art-message">{t('Lade Artikel …')}</p>
 			{:else}
 				{#if error}
 					<p class="art-message bad">{error}</p>

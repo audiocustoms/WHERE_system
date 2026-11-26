@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { auth } from '../../lib/auth.svelte';
 	import { RIGHT } from '../../lib/rights';
 	import AccessDenied from '../../lib/AccessDenied.svelte';
@@ -16,8 +18,8 @@
 	{@render children()}
 {:else if !auth.restoring}
 	<AccessDenied
-		pageName="Einstellungen"
+		pageName={t('Einstellungen')}
 		right={RIGHT.admin}
-		rightLabel="administrative Einstellungen"
+		rightLabel={t('administrative Einstellungen')}
 	/>
 {/if}

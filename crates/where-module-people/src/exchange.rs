@@ -1,4 +1,4 @@
-//! The exchange files of the duty plan: one month out of the board and back in.
+//! The exchange files of the schedule plan: one month out of the board and back in.
 //!
 //! Two sheets leave the module and come back unchanged, so a file written on one
 //! machine can be read on the other without editing it:
@@ -66,7 +66,7 @@ pub struct ExchangeQuery {
 impl ExchangeQuery {
     /// The first and the last day of the month.
     pub fn range(&self) -> Result<(NaiveDate, NaiveDate), DomainError> {
-        crate::duty::month_range(self.month, self.year)
+        crate::schedule::month_range(self.month, self.year)
     }
 }
 

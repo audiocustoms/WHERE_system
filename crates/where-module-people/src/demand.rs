@@ -1,4 +1,4 @@
-//! Staffing demand of the duty plan: how many employees of a position a shift
+//! Staffing demand of the schedule plan: how many employees of a position a shift
 //! needs on a day.
 //!
 //! The board opens a date and enters a number per position and shift. A pair
@@ -158,7 +158,7 @@ impl DemandCopyInput {
             }
             days.push(*day);
         }
-        let max = crate::duty::MAX_RANGE_DAYS as usize;
+        let max = crate::schedule::MAX_RANGE_DAYS as usize;
         if days.len() > max {
             return Err(DomainError::Validation(format!(
                 "At most {max} days can be filled at once."
@@ -299,7 +299,7 @@ mod tests {
     fn a_copy_stays_below_the_limit() {
         let start = date("2026-01-01");
         let mut to = Vec::new();
-        for offset in 0..=(crate::duty::MAX_RANGE_DAYS + 1) {
+        for offset in 0..=(crate::schedule::MAX_RANGE_DAYS + 1) {
             to.push(start + chrono::Days::new(offset as u64));
         }
         let copy = DemandCopyInput {

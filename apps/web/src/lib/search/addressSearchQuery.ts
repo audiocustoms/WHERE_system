@@ -1,3 +1,4 @@
+import { t } from '../i18n.svelte';
 import type { AddressSearchInput, SetOperator } from '../api';
 
 /**
@@ -80,15 +81,15 @@ export function addressSearchFromParams(params: {
 }
 
 const TYP_TEXT: Record<string, string> = {
-	customers: 'Kunden',
-	suppliers: 'Lieferanten'
+	customers: t('Kunden'),
+	suppliers: t('Lieferanten')
 };
 
 const OPERATOR_TEXT: Record<string, string> = {
-	contains: 'enthält',
-	contains_any: 'oder enthält',
-	contains_all: 'und enthält',
-	contains_none: 'enthält nicht'
+	contains: t('enthält'),
+	contains_any: t('oder enthält'),
+	contains_all: t('und enthält'),
+	contains_none: t('enthält nicht')
 };
 
 /** Short form of the criteria for the header of the hit list. */
@@ -97,22 +98,23 @@ export function describeAddressSearch(criteria: AddressSearchInput): string[] {
 	if (criteria.address_type && criteria.address_type !== 'all') {
 		parts.push(TYP_TEXT[criteria.address_type] ?? criteria.address_type);
 	}
-	for (const [label, value] of [
-		['Name', criteria.name],
-		['Adressgruppe', criteria.group],
-		['Anschrift', criteria.address_text],
-		['Telefon', criteria.phone],
-		['eMail', criteria.email],
-		['Debitor', criteria.debtor_no]
-	] as const) {
-		if (value) parts.push(`${label} „${value}"`);
+	const labelled: { label: string; value: string | null | undefined }[] = [
+		{ label: t('Name'), value: criteria.name },
+		{ label: t('Adressgruppe'), value: criteria.group },
+		{ label: t('Anschrift'), value: criteria.address_text },
+		{ label: t('Telefon'), value: criteria.phone },
+		{ label: t('eMail'), value: criteria.email },
+		{ label: t('Debitor'), value: criteria.debtor_no }
+	];
+	for (const { label, value } of labelled) {
+		if (value) parts.push(t('{label} „{value}"', { label, value }));
 	}
-	if (criteria.customer_no) parts.push(`Kunden-Nr. ${criteria.customer_no}`);
+	if (criteria.customer_no) parts.push(t('Kunden-Nr. {no}', { no: criteria.customer_no }));
 	if (criteria.search_index?.length) {
 		const op = OPERATOR_TEXT[criteria.search_index_op ?? 'contains_any'];
-		parts.push(`Suchindex ${op} ${criteria.search_index.join(', ')}`);
+		parts.push(t('Suchindex {op} {terms}', { op, terms: criteria.search_index.join(', ') }));
 	}
-	if (criteria.include_contacts) parts.push('inkl. Ansprechpartner');
-	if (criteria.include_contact_index) parts.push('inkl. Ansprechpartner im Suchindex');
+	if (criteria.include_contacts) parts.push(t('inkl. Ansprechpartner'));
+	if (criteria.include_contact_index) parts.push(t('inkl. Ansprechpartner im Suchindex'));
 	return parts;
 }

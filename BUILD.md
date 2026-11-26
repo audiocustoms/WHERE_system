@@ -97,7 +97,7 @@ What an installation is, is decided by the bundle identifier alone:
 | Module registered at the first start | `stuff` (core) | `people` |
 | Data directory | `%LOCALAPPDATA%\where-data` | the same |
 | Embedded PostgreSQL / API | `5433` / `8091` | the same |
-| First view | the dashboard (`/`) | the duty plan (`/people/schedule`) |
+| First view | the dashboard (`/`) | the schedule (`/people/schedule`) |
 
 Both products share one data directory and therefore one database. Whichever starts first
 creates it and is recorded in `where_installation.database_owner`; the other one joins.

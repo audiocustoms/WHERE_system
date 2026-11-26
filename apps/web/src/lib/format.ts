@@ -5,6 +5,7 @@
  * unified through `Number`; whatever cannot be turned into a number stays as
  * text instead of disappearing.
  */
+import { t } from './i18n.svelte';
 
 /** Quantity or stock with up to four decimals. */
 export function quantity(value: string | number | null): string {
@@ -18,6 +19,38 @@ export function quantity(value: string | number | null): string {
 /** Whole number with thousands separators. */
 export function count(value: number): string {
 	return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(value);
+}
+
+/**
+ * A decimal in a field of a mask: `"33.0000"` → `"33"`, `"11.4000"` → `"11,4"`.
+ * No thousands separator, so the text can be read back without guessing; text that
+ * is no number stays as it is.
+ */
+export function decimalText(value: string | null): string {
+	if (value === null) return '';
+	const text = value.trim();
+	if (text === '') return '';
+	const n = Number(text);
+	if (!Number.isFinite(n)) return value;
+	return new Intl.NumberFormat('de-DE', {
+		useGrouping: false,
+		maximumFractionDigits: 4
+	}).format(n);
+}
+
+/**
+ * The way back for the API: `"11,4"` → `"11.4"`, `"1.234,5"` → `"1234.5"`, an empty
+ * field → `null`. Text that is no number is passed on unchanged, so the server
+ * reports it instead of the mask dropping it silently.
+ */
+export function decimalValue(text: string | null): string | null {
+	const s = (text ?? '').replace(/[\s\u00a0]/g, '');
+	if (s === '') return null;
+	let normalized = s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s;
+	// A trailing separator while typing (`12,`) is no number to the database.
+	if (normalized.endsWith('.')) normalized = normalized.slice(0, -1);
+	if (normalized === '' || normalized === '-') return null;
+	return Number.isFinite(Number(normalized)) ? normalized : s;
 }
 
 /** Point in time as "13.11.2026, 09:41". */
@@ -40,8 +73,8 @@ export function seit(value: string | null): string {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return value;
 	const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-	if (days <= 0) return 'heute';
-	if (days === 1) return 'gestern';
-	if (days < 30) return `vor ${days} Tagen`;
+	if (days <= 0) return t('heute');
+	if (days === 1) return t('gestern');
+	if (days < 30) return t('vor {days} Tagen', { days });
 	return moment(value);
 }

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import {
 		api,
@@ -30,20 +32,20 @@
 
 	/** Defaults of the calendar colours; the first is the „ohne Farbe" choice. */
 	const COLORS: { name: string; rgb: [number, number, number] }[] = [
-		{ name: 'Blau', rgb: [32, 102, 178] },
-		{ name: 'Grün', rgb: [45, 128, 78] },
-		{ name: 'Orange', rgb: [204, 128, 24] },
-		{ name: 'Rot', rgb: [186, 60, 54] },
-		{ name: 'Violett', rgb: [112, 78, 158] },
-		{ name: 'Türkis', rgb: [26, 138, 140] },
-		{ name: 'Grau', rgb: [110, 118, 128] }
+		{ name: t('Blau'), rgb: [32, 102, 178] },
+		{ name: t('Grün'), rgb: [45, 128, 78] },
+		{ name: t('Orange'), rgb: [204, 128, 24] },
+		{ name: t('Rot'), rgb: [186, 60, 54] },
+		{ name: t('Violett'), rgb: [112, 78, 158] },
+		{ name: t('Türkis'), rgb: [26, 138, 140] },
+		{ name: t('Grau'), rgb: [110, 118, 128] }
 	];
 
 	const FREQUENCIES: { value: AgendaFrequency; label: string }[] = [
-		{ value: 'daily', label: 'täglich' },
-		{ value: 'weekly', label: 'wöchentlich' },
-		{ value: 'monthly', label: 'monatlich' },
-		{ value: 'yearly', label: 'jährlich' }
+		{ value: 'daily', label: t('täglich') },
+		{ value: 'weekly', label: t('wöchentlich') },
+		{ value: 'monthly', label: t('monatlich') },
+		{ value: 'yearly', label: t('jährlich') }
 	];
 
 	// The mask starts with the passed-in values; another event replaces the
@@ -152,12 +154,14 @@
 	async function remove() {
 		if (!event) return;
 		const ok = await askConfirm({
-			title: 'Termin löschen',
+			title: t('Termin löschen'),
 			message: istSerie
-				? `Die ganze Serie „${event.title}" wird gelöscht. Einzelne Tage lassen sich separat entfernen.`
-				: `Der Termin „${event.title}" wird gelöscht.`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+				? t('Die ganze Serie „{title}" wird gelöscht. Einzelne Tage lassen sich separat entfernen.', {
+						title: event.title
+					})
+				: t('Der Termin „{title}" wird gelöscht.', { title: event.title }),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		saving = true;
@@ -175,10 +179,12 @@
 	async function skip() {
 		if (!event || !seriesDate) return;
 		const ok = await askConfirm({
-			title: 'Nur diesen Tag entfernen',
-			message: `Der ${shortDate(seriesDate)} fällt aus, die Serie bleibt bestehen.`,
-			confirmLabel: 'Tag entfernen',
-			cancelLabel: 'Behalten'
+			title: t('Nur diesen Tag entfernen'),
+			message: t('Der {date} fällt aus, die Serie bleibt bestehen.', {
+				date: shortDate(seriesDate)
+			}),
+			confirmLabel: t('Tag entfernen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		saving = true;
@@ -194,7 +200,7 @@
 
 	/** `Abbrechen` and closing ask first — as in all other masks. */
 	async function cancel() {
-		if (await askCancel(event ? 'Das Bearbeiten des Termins' : 'Die Terminanlage')) oncancel();
+		if (await askCancel(t(event ? 'Das Bearbeiten des Termins' : 'Die Terminanlage'))) oncancel();
 	}
 
 	async function searchAddresses() {
@@ -242,13 +248,13 @@
 		class="sw-window"
 		role="dialog"
 		aria-modal="true"
-		aria-label="Termin"
+		aria-label={t('Termin')}
 		style="width: min(44rem, 100%)"
 	>
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
-			<span class="sw-title">{event ? 'Termin bearbeiten:' : 'Neuer Termin:'}</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={cancel}>×</button>
+			<span class="sw-title">{event ? t('Termin bearbeiten:') : t('Neuer Termin:')}</span>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={cancel}>×</button>
 		</div>
 
 		<div class="sw-content">
@@ -258,45 +264,45 @@
 
 			<div class="sw-form">
 				<label class="sw-row">
-					<span class="sw-label">Titel</span>
-					<input bind:value={title} placeholder="z. B. Aufbau Bühne 1" />
+					<span class="sw-label">{t('Titel')}</span>
+					<input bind:value={title} placeholder={t('z. B. Aufbau Bühne 1')} />
 				</label>
 				<label class="sw-row">
-					<span class="sw-label">Zusatz</span>
-					<input bind:value={headText} placeholder="z. B. Theater Nordstadt" />
+					<span class="sw-label">{t('Zusatz')}</span>
+					<input bind:value={headText} placeholder={t('z. B. Theater Nordstadt')} />
 				</label>
 
 				<div class="sw-row">
-					<span class="sw-label">Zeitraum</span>
+					<span class="sw-label">{t('Zeitraum')}</span>
 					<div class="values">
-						<input type="date" bind:value={startDate} oninput={startChanged} aria-label="Von" />
-						<span class="to">bis</span>
-						<input type="date" bind:value={endDate} min={startDate} aria-label="Bis" />
+						<input type="date" bind:value={startDate} oninput={startChanged} aria-label={t('Von')} />
+						<span class="to">{t('bis')}</span>
+						<input type="date" bind:value={endDate} min={startDate} aria-label={t('Bis')} />
 					</div>
 				</div>
 
 				<div class="sw-row">
-					<span class="sw-label">Uhrzeit</span>
+					<span class="sw-label">{t('Uhrzeit')}</span>
 					<div class="values">
 						<input
 							type="time"
 							bind:value={startTime}
 							disabled={allDay}
-							aria-label="Von"
+							aria-label={t('Von')}
 						/>
-						<span class="to">bis</span>
-						<input type="time" bind:value={endTime} disabled={allDay} aria-label="Bis" />
+						<span class="to">{t('bis')}</span>
+						<input type="time" bind:value={endTime} disabled={allDay} aria-label={t('Bis')} />
 						<label class="check">
 							<input type="checkbox" bind:checked={allDay} />
-							Ganztägig
+							{t('Ganztägig')}
 						</label>
 					</div>
 				</div>
 
 				<label class="sw-row">
-					<span class="sw-label">Kalender</span>
+					<span class="sw-label">{t('Kalender')}</span>
 					<select bind:value={category}>
-						<option value="">— ohne Kalender —</option>
+						<option value="">{t('— ohne Kalender —')}</option>
 						{#each categories as k (k.id)}
 							<option value={String(k.id)}>{k.name}</option>
 						{/each}
@@ -304,18 +310,18 @@
 				</label>
 
 				<label class="sw-row">
-					<span class="sw-label">Veranstaltung</span>
-					<input bind:value={venue} placeholder="z. B. Premiere" />
+					<span class="sw-label">{t('Veranstaltung')}</span>
+					<input bind:value={venue} placeholder={t('z. B. Premiere')} />
 				</label>
 
 				<div class="sw-row">
-					<span class="sw-label">Adresse</span>
+					<span class="sw-label">{t('Adresse')}</span>
 					<div class="values address">
 						{#if addressSearch}
 							<input
 								bind:value={addressTerm}
-								placeholder="Name, Ort oder Nummer"
-								aria-label="Adresse suchen"
+								placeholder={t('Name, Ort oder Nummer')}
+								aria-label={t('Adresse suchen')}
 								oninput={searchAddresses}
 							/>
 							<button
@@ -323,21 +329,21 @@
 								type="button"
 								onclick={() => (addressSearch = false)}
 							>
-								Schließen
+								{t('Schließen')}
 							</button>
 							<ul class="hits">
 								{#if adressLaedt}
-									<li class="empty">suche …</li>
+									<li class="empty">{t('suche …')}</li>
 								{:else if addressHits.length === 0}
-									<li class="empty">kein Treffer</li>
+									<li class="empty">{t('kein Treffer')}</li>
 								{:else}
 									{#each addressHits as a (a.id)}
 										<li>
 											<button type="button" onclick={() => chooseAddress(a)}>
-												<span>{a.name1 ?? `Adresse ${a.id}`}</span>
+												<span>{a.name1 ?? t('Adresse {id}', { id: a.id })}</span>
 												<span class="sub">
 													{#if a.city}{a.city}{/if}
-													{#if a.customer_no}· Kunde {a.customer_no}{/if}
+													{#if a.customer_no}{t('· Kunde')} {a.customer_no}{/if}
 												</span>
 											</button>
 										</li>
@@ -345,33 +351,33 @@
 								{/if}
 							</ul>
 						{:else}
-							<span class="chosen">{addressName ?? '— keine Adresse —'}</span>
+							<span class="chosen">{addressName ?? t('— keine Adresse —')}</span>
 							<button class="sw-button" type="button" onclick={() => { addressSearch = true; searchAddresses(); }}>
-								{addressId ? 'Ändern' : 'Wählen'}
+								{addressId ? t('Ändern') : t('Wählen')}
 							</button>
 							{#if addressId}
 								<button
 									class="sw-button"
 									type="button"
-									title="Adresse in der Adressmaske öffnen"
+									title={t('Adresse in der Adressmaske öffnen')}
 									onclick={openAddress}
 								>
-									Öffnen
+									{t('Öffnen')}
 								</button>
-								<button class="sw-button" type="button" onclick={removeAddress}>Entfernen</button>
+								<button class="sw-button" type="button" onclick={removeAddress}>{t('Entfernen')}</button>
 							{/if}
 						{/if}
 					</div>
 				</div>
 
 				<div class="sw-row">
-					<span class="sw-label">Farbe</span>
+					<span class="sw-label">{t('Farbe')}</span>
 					<div class="colors">
 						<button
 							type="button"
 							class="color none"
 							class:active={color === null}
-							title="Standardfarbe"
+							title={t('Standardfarbe')}
 							onclick={() => (color = null)}></button
 						>
 						{#each COLORS as f (f.name)}
@@ -389,53 +395,53 @@
 				</div>
 
 				<label class="sw-row">
-					<span class="sw-label">Notiz</span>
+					<span class="sw-label">{t('Notiz')}</span>
 					<textarea bind:value={notes} rows="3"></textarea>
 				</label>
 
 				<div class="sw-row">
-					<span class="sw-label">Erinnerung</span>
+					<span class="sw-label">{t('Erinnerung')}</span>
 					<div class="values">
 						<label class="check">
 							<input type="checkbox" bind:checked={remind} />
-							erinnern
+							{t('erinnern')}
 						</label>
 						<select bind:value={remindMinutes} disabled={!remind}>
-							<option value={5}>5 Minuten vorher</option>
-							<option value={15}>15 Minuten vorher</option>
-							<option value={30}>30 Minuten vorher</option>
-							<option value={60}>1 Stunde vorher</option>
-							<option value={1440}>1 Tag vorher</option>
+							<option value={5}>{t('5 Minuten vorher')}</option>
+							<option value={15}>{t('15 Minuten vorher')}</option>
+							<option value={30}>{t('30 Minuten vorher')}</option>
+							<option value={60}>{t('1 Stunde vorher')}</option>
+							<option value={1440}>{t('1 Tag vorher')}</option>
 						</select>
 					</div>
 				</div>
 
 				<div class="sw-row">
-					<span class="sw-label">Wiederholung</span>
+					<span class="sw-label">{t('Wiederholung')}</span>
 					<div class="values">
-						<select bind:value={repeat} aria-label="Wiederholung">
-							<option value="none">keine</option>
+						<select bind:value={repeat} aria-label={t('Wiederholung')}>
+							<option value="none">{t('keine')}</option>
 							{#each FREQUENCIES as f (f.value)}
 								<option value={f.value}>{f.label}</option>
 							{/each}
 						</select>
 						{#if repeat !== 'none'}
-							<span class="to">alle</span>
+							<span class="to">{t('alle')}</span>
 							<input
 								type="number"
 								min="1"
 								max="52"
 								class="number"
 								bind:value={interval}
-								aria-label="Intervall"
+								aria-label={t('Intervall')}
 							/>
-							<select bind:value={endMode} aria-label="Ende der Serie">
-								<option value="never">ohne Ende</option>
-								<option value="until">bis Datum</option>
-								<option value="count">nach Anzahl</option>
+							<select bind:value={endMode} aria-label={t('Ende der Serie')}>
+								<option value="never">{t('ohne Ende')}</option>
+								<option value="until">{t('bis Datum')}</option>
+								<option value="count">{t('nach Anzahl')}</option>
 							</select>
 							{#if endMode === 'until'}
-								<input type="date" bind:value={until} min={startDate} aria-label="Serie bis" />
+								<input type="date" bind:value={until} min={startDate} aria-label={t('Serie bis')} />
 							{:else if endMode === 'count'}
 								<input
 									type="number"
@@ -443,30 +449,30 @@
 									max="200"
 									class="number"
 									bind:value={count}
-									aria-label="Anzahl"
+									aria-label={t('Anzahl')}
 								/>
-								<span class="to">Termine</span>
+								<span class="to">{t('Termine')}</span>
 							{/if}
 						{/if}
 					</div>
 				</div>
 
 				<label class="sw-row">
-					<span class="sw-label">Sichtbarkeit</span>
+					<span class="sw-label">{t('Sichtbarkeit')}</span>
 					<span class="values">
 						<label class="check">
 							<input type="checkbox" bind:checked={privateEntry} />
-							nur für mich
+							{t('nur für mich')}
 						</label>
 					</span>
 				</label>
 
 				{#if event}
 					<p class="sw-small">
-						Zuletzt geändert
-						{#if event.changed_by}von {event.changed_by}{/if}
-						{#if event.changed_at}am {new Date(event.changed_at).toLocaleDateString('de-DE')}{/if}
-						{#if istSerie}· Wiederholung: {FREQUENCIES.find((f) => f.value === event?.recurrence?.frequency)?.label}{/if}
+						{t('Zuletzt geändert')}
+						{#if event.changed_by}{t('von {user}', { user: event.changed_by })}{/if}
+						{#if event.changed_at}{t('am {date}', { date: new Date(event.changed_at).toLocaleDateString('de-DE') })}{/if}
+						{#if istSerie}{t('· Wiederholung: {frequency}', { frequency: FREQUENCIES.find((f) => f.value === event?.recurrence?.frequency)?.label ?? '' })}{/if}
 					</p>
 				{/if}
 			</div>
@@ -475,23 +481,23 @@
 		<div class="sw-footer">
 			{#if event}
 				<button class="sw-button delete" type="button" onclick={remove} disabled={saving}>
-					Termin löschen
+					{t('Termin löschen')}
 				</button>
 				{#if istSerie}
 					<button class="sw-button" type="button" onclick={skip} disabled={saving}>
-						Nur diesen Tag entfernen
+						{t('Nur diesen Tag entfernen')}
 					</button>
 				{/if}
 			{/if}
 			<span class="spacer"></span>
-			<button class="sw-button" type="button" onclick={cancel} disabled={saving}>Abbrechen</button>
+			<button class="sw-button" type="button" onclick={cancel} disabled={saving}>{t('Abbrechen')}</button>
 			<button
 				class="sw-button sw-primary"
 				type="button"
 				onclick={save}
 				disabled={saving || !title.trim()}
 			>
-				{saving ? 'Sichern …' : 'Sichern'}
+				{saving ? t('Sichern …') : t('Sichern')}
 			</button>
 		</div>
 	</div>

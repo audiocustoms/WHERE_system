@@ -1,7 +1,8 @@
 use crate::state::State;
 use axum::Json;
-use axum::extract::{Path, Query};
+use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
+use where_domain::SessionUser;
 use where_persistence::{ArticleGroupEntry, NumberSeriesEntry};
 
 use crate::dto::{
@@ -274,14 +275,28 @@ pub async fn search_index(
 )]
 pub async fn warehouses(
     State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
 ) -> Result<Json<Vec<WarehouseDto>>, ApiError> {
-    let rows = state.stock.warehouses().await?;
+    let mut rows = state.stock.warehouses().await?;
+    // `"User_Lager"`: an account with entries only gets the warehouses it was given.
+    // An administrator assigns those entries, so the list stays complete for them.
+    if !user
+        .rights
+        .iter()
+        .any(|right| right == where_domain::ADMIN_RIGHT)
+    {
+        let allowed = state.users.warehouses(user.id).await?;
+        if !allowed.is_empty() {
+            rows.retain(|w| allowed.contains(&w.id));
+        }
+    }
     Ok(Json(
         rows.into_iter()
             .map(|w| WarehouseDto {
                 id: w.id,
                 name: w.name,
                 is_default: w.is_default,
+                zugriff: w.zugriff,
             })
             .collect(),
     ))
@@ -296,4 +311,29 @@ pub async fn warehouses(
 )]
 pub async fn address_index(State(state): State<AppState>) -> Result<Json<Vec<String>>, ApiError> {
     Ok(Json(state.addresses.index_values().await?))
+}
+
+/// Warehouse of the bin-location list.
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+pub struct BinLocationParams {
+    pub warehouse: i32,
+}
+
+/// Bin locations of one warehouse as the stock forms offer them.
+///
+/// The suggestions come from both maintenance screens — the "symmetric" locations
+/// (`"Lagerortung"`, name and prefix) and the free ones (`"Lagerortung2"`, index and
+/// path). They are suggestions, not a closed list: a free text is still stored.
+#[utoipa::path(
+    get,
+    path = "/api/v1/master-data/bin-locations",
+    tag = "master-data",
+    params(BinLocationParams),
+    responses((status = 200, description = "Bin locations", body = Vec<String>))
+)]
+pub async fn bin_locations(
+    State(state): State<AppState>,
+    Query(params): Query<BinLocationParams>,
+) -> Result<Json<Vec<String>>, ApiError> {
+    Ok(Json(state.stock.place_names(params.warehouse).await?))
 }

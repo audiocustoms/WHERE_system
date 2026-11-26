@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import { api, errorText, type SettingsArea, type SettingsRow, type SettingsValues } from '../api';
 	import { askCancel, askConfirm } from '../confirm.svelte';
@@ -47,10 +49,10 @@
 	async function remove() {
 		if (!row) return;
 		const ok = await askConfirm({
-			title: 'Eintrag löschen',
-			message: `„${name()}“ wird aus der Liste entfernt. Verweise darauf in Artikeln oder Adressen behalten ihre Nummer.`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+			title: t('Eintrag löschen'),
+			message: t('„{name}“ wird aus der Liste entfernt. Verweise darauf in Artikeln oder Adressen behalten ihre Nummer.', { name: name() }),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		saving = true;
@@ -66,7 +68,10 @@
 
 	/** `Abbrechen` asks only when something was really changed. */
 	async function cancel() {
-		if (changed() && !(await askCancel(row ? 'Das Bearbeiten des Eintrags' : 'Das Anlegen des Eintrags')))
+		if (
+			changed() &&
+			!(await askCancel(t(row ? 'Das Bearbeiten des Eintrags' : 'Das Anlegen des Eintrags')))
+		)
 			return;
 		oncancel();
 	}
@@ -92,8 +97,8 @@
 	>
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
-			<span class="sw-title">{row ? `${area.title}:` : `Neuer Eintrag in ${area.title}:`}</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={cancel}>×</button>
+			<span class="sw-title">{row ? t('{area}:', { area: area.title }) : t('Neuer Eintrag in {area}:', { area: area.title })}</span>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={cancel}>×</button>
 		</div>
 
 		<div class="sw-content">
@@ -115,7 +120,7 @@
 										onchange={(e) =>
 											(values[field.column] = e.currentTarget.checked ? 'true' : 'false')}
 									/>
-									{values[field.column] === 'true' ? 'Ja' : 'Nein'}
+									{values[field.column] === 'true' ? t('Ja') : t('Nein')}
 								</label>
 							</span>
 						{:else if field.kind === 'date'}
@@ -145,13 +150,13 @@
 		<div class="sw-footer">
 			{#if row}
 				<button class="sw-button delete" type="button" onclick={remove} disabled={saving}>
-					Eintrag löschen
+					{t('Eintrag löschen')}
 				</button>
 			{/if}
 			<span class="spacer"></span>
-			<button class="sw-button" type="button" onclick={cancel} disabled={saving}>Abbrechen</button>
+			<button class="sw-button" type="button" onclick={cancel} disabled={saving}>{t('Abbrechen')}</button>
 			<button class="sw-button sw-primary" type="button" onclick={save} disabled={saving}>
-				{saving ? 'Sichern …' : 'Sichern'}
+				{saving ? t('Sichern …') : t('Sichern')}
 			</button>
 		</div>
 	</div>

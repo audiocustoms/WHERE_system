@@ -1,15 +1,17 @@
 use crate::state::State;
 use axum::Json;
-use axum::extract::{Path, Query};
+use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
-use where_domain::{Article, DomainError};
+use where_domain::{Article, DomainError, SessionUser};
 use where_modules::ModuleId;
 use where_persistence::rows::SavedSearch;
-use where_persistence::{DeviceRow, StockRow};
+use where_persistence::{DeviceRow, MovementRow, StockRow};
 
 use crate::dto::{
-    ArticleListParams, ArticlePage, ArticleSearchInput, DeviceDto, DeviceInput, GoodsReceiptInput,
-    GoodsReceiptResponse, ListParams, SavedSearchDto, SearchSaveInput, StockLevelDto, StockRowDto,
+    ArticleListParams, ArticlePage, ArticleSearchInput, BulkTransferDto, BulkTransferFailureDto,
+    BulkTransferInput, ConsumeInput, DeviceDto, DeviceInput, GoodsReceiptInput,
+    GoodsReceiptResponse, IssueInput, ListParams, MovementDto, MovementParams, ReorderLevelInput,
+    ReturnInput, SavedSearchDto, SearchSaveInput, StockLevelDto, StockRowDto, TransferInput,
 };
 use crate::error::ApiError;
 use crate::routes::addresses::DeletedResponse;
@@ -40,6 +42,29 @@ fn parse_date(value: &Option<String>) -> Result<Option<chrono::NaiveDate>, ApiEr
     }
 }
 
+/// Guards a booking against the warehouse limit of the account (`"User_Lager"`).
+///
+/// An account without entries may work in every warehouse; one with entries only in
+/// the warehouses it was given. `stock_id` is the warehouse the booking touches —
+/// the target of a receipt or a transfer, the current one of a withdrawal.
+async fn require_warehouse(
+    state: &AppState,
+    user: &SessionUser,
+    stock_id: Option<i32>,
+) -> Result<(), ApiError> {
+    let Some(stock_id) = stock_id else {
+        return Ok(());
+    };
+    let allowed = state.users.warehouses(user.id).await?;
+    if allowed.is_empty() || allowed.contains(&stock_id) {
+        return Ok(());
+    }
+    Err(
+        DomainError::Forbidden("Dieses Lager ist für dieses Konto nicht freigegeben.".into())
+            .into(),
+    )
+}
+
 impl From<StockRow> for StockRowDto {
     fn from(z: StockRow) -> Self {
         let available = z.available().map(|d| d.to_string());
@@ -47,6 +72,8 @@ impl From<StockRow> for StockRowDto {
             stock_id: z.stock_id,
             stock_name: z.stock_name,
             is_default: z.is_default,
+            zugriff: z.zugriff,
+            entnahme: z.entnahme,
             total: z.total.map(|d| d.to_string()),
             rental: z.rental.map(|d| d.to_string()),
             sale: z.sale.map(|d| d.to_string()),
@@ -90,6 +117,10 @@ impl From<DeviceRow> for DeviceDto {
             note: g.note,
             without_serial: g.without_serial,
             recorded_at: date(g.recorded_at),
+            place_id: g.place_id,
+            place_name: g.place_name,
+            issued_from: date(g.issued_from),
+            issued_until: date(g.issued_until),
         }
     }
 }
@@ -350,6 +381,37 @@ pub async fn create_template(State(state): State<AppState>) -> Result<Json<Artic
     Ok(Json(template))
 }
 
+impl From<MovementRow> for MovementDto {
+    fn from(m: MovementRow) -> Self {
+        Self {
+            id: m.id,
+            device_id: m.device_id,
+            serial_no: m.serial_no,
+            kind: m.kind,
+            quantity: m.quantity.map(|d| d.to_string()),
+            warehouse_from: m.warehouse_from,
+            warehouse_from_name: m.warehouse_from_name,
+            warehouse_to: m.warehouse_to,
+            warehouse_to_name: m.warehouse_to_name,
+            bin_from: m.bin_from,
+            bin_to: m.bin_to,
+            place_from_name: m.place_from_name,
+            place_to_name: m.place_to_name,
+            condition_from: m.condition_from,
+            condition_to: m.condition_to,
+            discarded_from: m.discarded_from,
+            discarded_to: m.discarded_to,
+            note: m.note,
+            at: m
+                .created_at
+                .with_timezone(&chrono::Local)
+                .format("%Y-%m-%dT%H:%M:%S")
+                .to_string(),
+            by: m.created_by,
+        }
+    }
+}
+
 /// Stock of an article: totals per warehouse and the devices/batches.
 #[utoipa::path(
     get,
@@ -368,10 +430,65 @@ pub async fn stock(
 ) -> Result<Json<StockLevelDto>, ApiError> {
     let stock = state.stock.stock(id).await?;
     let devices = state.stock.devices(id, params.search()).await?;
+    let reorder_level = state.stock.reorder_level(id).await?;
     Ok(Json(StockLevelDto {
         stock: stock.into_iter().map(Into::into).collect(),
         devices: devices.into_iter().map(Into::into).collect(),
+        reorder_level: reorder_level.map(|d| d.to_string()),
     }))
+}
+
+/// Sets the `Meldebestand` of an article — the level the reorder suggestion compares with.
+///
+/// It rides on `"VerkaufMindBestand"`, so it also feeds the pricing tab when
+/// `WHERE - does my stuff go?` is installed.
+#[utoipa::path(
+    put,
+    path = "/api/v1/articles/{id}/reorder-level",
+    tag = "articles",
+    params(("id" = i32, Path, description = "Article primary key")),
+    request_body = ReorderLevelInput,
+    responses(
+        (status = 204, description = "Gespeichert"),
+        (status = 404, description = "Article not found"),
+        (status = 422, description = "Validierung fehlgeschlagen")
+    )
+)]
+pub async fn set_reorder_level(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+    Json(body): Json<ReorderLevelInput>,
+) -> Result<StatusCode, ApiError> {
+    let level = body.level.filter(|d| *d > rust_decimal::Decimal::ZERO);
+    state.stock.set_reorder_level(id, level).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Stock history of an article — every booking of its devices, newest first.
+/// Written by the goods receipt, the device data, the move to another warehouse, the
+/// discard and the delete, each inside the transaction of the booking itself.
+#[utoipa::path(
+    get,
+    path = "/api/v1/articles/{id}/movements",
+    tag = "articles",
+    params(
+        ("id" = i32, Path, description = "Article primary key"),
+        ("device" = Option<i32>, Query, description = "Only the lines of this device"),
+        ("limit" = Option<i64>, Query, description = "Newest first, default 100, at most 1000")
+    ),
+    responses(
+        (status = 200, description = "Movements", body = Vec<MovementDto>),
+        (status = 404, description = "Article not found")
+    )
+)]
+pub async fn movements(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+    Query(params): Query<MovementParams>,
+) -> Result<Json<Vec<MovementDto>>, ApiError> {
+    let limit = params.limit.unwrap_or(100).clamp(1, 1000);
+    let rows = state.stock.movements(id, params.device, limit).await?;
+    Ok(Json(rows.into_iter().map(Into::into).collect()))
 }
 
 /// Goods receipt: books in the devices of one delivery.
@@ -394,6 +511,7 @@ pub async fn stock(
 )]
 pub async fn goods_receipt(
     State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
     Path(id): Path<i32>,
     Json(body): Json<GoodsReceiptInput>,
 ) -> Result<(StatusCode, Json<GoodsReceiptResponse>), ApiError> {
@@ -408,13 +526,18 @@ pub async fn goods_receipt(
         supplier_no: body.supplier_no,
         inventory_no: body.inventory_no,
         reason: body.reason,
+        order_line: body.order_line,
         inventory: body.inventory,
         rental: body.rental,
         sale: body.sale,
         used_sale: body.used_sale,
         quantity: body.quantity,
     };
-    let geraete = state.stock.goods_receipt(id, &eingang).await?;
+    require_warehouse(&state, &user, Some(eingang.stock_id)).await?;
+    let geraete = state
+        .stock
+        .goods_receipt(id, &eingang, &user.user_name)
+        .await?;
     let menge: rust_decimal::Decimal = geraete
         .iter()
         .map(|g| g.quantity.unwrap_or(rust_decimal::Decimal::ONE))
@@ -469,6 +592,7 @@ pub async fn device(
 )]
 pub async fn device_update(
     State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
     Path((id, device_id)): Path<(i32, i32)>,
     Json(body): Json<DeviceInput>,
 ) -> Result<Json<DeviceDto>, ApiError> {
@@ -493,7 +617,13 @@ pub async fn device_update(
         year_built: body.year_built,
         note: body.note,
     };
-    let device = state.stock.update_device(id, device_id, &update).await?;
+    let geraet = state.stock.device(id, device_id).await?;
+    require_warehouse(&state, &user, geraet.stock_id).await?;
+    require_warehouse(&state, &user, update.stock_id).await?;
+    let device = state
+        .stock
+        .update_device(id, device_id, &update, &user.user_name)
+        .await?;
     Ok(Json(device.into()))
 }
 
@@ -514,10 +644,212 @@ pub async fn device_update(
 )]
 pub async fn device_delete(
     State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
     Path((id, device_id)): Path<(i32, i32)>,
 ) -> Result<Json<DeletedResponse>, ApiError> {
-    state.stock.delete_device(id, device_id).await?;
+    let geraet = state.stock.device(id, device_id).await?;
+    require_warehouse(&state, &user, geraet.stock_id).await?;
+    state
+        .stock
+        .delete_device(id, device_id, &user.user_name)
+        .await?;
     Ok(Json(DeletedResponse { deleted: true }))
+}
+
+/// Hands material out to a place of the house — `Foyer` for a week, `Podium` for a
+/// show. A device with a serial number keeps its row; a batch is split, so the part that
+/// stays behind keeps its own line. What goes out counts as withdrawal: still our stock,
+/// no longer on the shelf.
+#[utoipa::path(
+    post,
+    path = "/api/v1/articles/{id}/devices/{device_id}/issue",
+    tag = "articles",
+    params(
+        ("id" = i32, Path, description = "Article primary key"),
+        ("device_id" = i32, Path, description = "Device id")
+    ),
+    request_body = IssueInput,
+    responses(
+        (status = 204, description = "Ausgegeben"),
+        (status = 404, description = "Device, place or warehouse not found"),
+        (status = 409, description = "Das Material steht bereits an einem Ort"),
+        (status = 422, description = "Validierung fehlgeschlagen")
+    )
+)]
+pub async fn device_issue(
+    State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
+    Path((id, device_id)): Path<(i32, i32)>,
+    Json(body): Json<IssueInput>,
+) -> Result<StatusCode, ApiError> {
+    let ausgabe = where_persistence::Issue {
+        place_id: body.place_id,
+        quantity: body.quantity,
+        until: parse_date(&body.until)?,
+        note: body.note,
+    };
+    let geraet = state.stock.device(id, device_id).await?;
+    require_warehouse(&state, &user, geraet.stock_id).await?;
+    state
+        .stock
+        .issue(id, device_id, &ausgabe, &user.user_name)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Takes issued material back into the warehouse.
+#[utoipa::path(
+    post,
+    path = "/api/v1/articles/{id}/devices/{device_id}/return",
+    tag = "articles",
+    params(
+        ("id" = i32, Path, description = "Article primary key"),
+        ("device_id" = i32, Path, description = "Device id")
+    ),
+    request_body = ReturnInput,
+    responses(
+        (status = 204, description = "Zurückgenommen"),
+        (status = 404, description = "Not found"),
+        (status = 422, description = "Das Material steht nicht an einem Ort")
+    )
+)]
+pub async fn device_return(
+    State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
+    Path((id, device_id)): Path<(i32, i32)>,
+    Json(body): Json<ReturnInput>,
+) -> Result<StatusCode, ApiError> {
+    let geraet = state.stock.device(id, device_id).await?;
+    require_warehouse(&state, &user, geraet.stock_id).await?;
+    state
+        .stock
+        .give_back(
+            id,
+            device_id,
+            body.condition.as_deref(),
+            body.note.as_deref(),
+            &user.user_name,
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Moves material to another warehouse of the house.
+#[utoipa::path(
+    post,
+    path = "/api/v1/articles/{id}/devices/{device_id}/transfer",
+    tag = "articles",
+    params(
+        ("id" = i32, Path, description = "Article primary key"),
+        ("device_id" = i32, Path, description = "Device id")
+    ),
+    request_body = TransferInput,
+    responses(
+        (status = 204, description = "Umgelegt"),
+        (status = 404, description = "Device or warehouse not found"),
+        (status = 409, description = "Ausgegebenes Material zuerst zurücknehmen"),
+        (status = 422, description = "Validierung fehlgeschlagen")
+    )
+)]
+pub async fn device_transfer(
+    State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
+    Path((id, device_id)): Path<(i32, i32)>,
+    Json(body): Json<TransferInput>,
+) -> Result<StatusCode, ApiError> {
+    let geraet = state.stock.device(id, device_id).await?;
+    require_warehouse(&state, &user, geraet.stock_id).await?;
+    require_warehouse(&state, &user, Some(body.stock_id)).await?;
+    state
+        .stock
+        .transfer(
+            id,
+            device_id,
+            body.stock_id,
+            body.quantity,
+            body.note.as_deref(),
+            &user.user_name,
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Moves several rows of one article into another warehouse (`Sammel-Umlagerung`).
+#[utoipa::path(
+    post,
+    path = "/api/v1/articles/{id}/stock-transfer",
+    tag = "articles",
+    params(("id" = i32, Path, description = "Article primary key")),
+    request_body = BulkTransferInput,
+    responses(
+        (status = 200, description = "Umgelegt", body = BulkTransferDto),
+        (status = 404, description = "Article or warehouse not found"),
+        (status = 422, description = "Validierung fehlgeschlagen")
+    )
+)]
+pub async fn device_transfer_many(
+    State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
+    Path(id): Path<i32>,
+    Json(body): Json<BulkTransferInput>,
+) -> Result<Json<BulkTransferDto>, ApiError> {
+    require_warehouse(&state, &user, Some(body.stock_id)).await?;
+    let (moved, failed) = state
+        .stock
+        .transfer_many(
+            id,
+            &body.devices,
+            body.stock_id,
+            body.note.as_deref(),
+            &user.user_name,
+        )
+        .await?;
+    Ok(Json(BulkTransferDto {
+        moved,
+        failed: failed
+            .into_iter()
+            .map(|(device_id, reason)| BulkTransferFailureDto { device_id, reason })
+            .collect(),
+    }))
+}
+
+/// Consumes material out of a batch (`Verbrauchen`) — used up, it goes nowhere and comes
+/// back never. A device with a serial number is retired instead.
+#[utoipa::path(
+    post,
+    path = "/api/v1/articles/{id}/devices/{device_id}/consume",
+    tag = "articles",
+    params(
+        ("id" = i32, Path, description = "Article primary key"),
+        ("device_id" = i32, Path, description = "Device id")
+    ),
+    request_body = ConsumeInput,
+    responses(
+        (status = 204, description = "Verbraucht"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Ausgegebenes Material zuerst zurücknehmen"),
+        (status = 422, description = "Validierung fehlgeschlagen")
+    )
+)]
+pub async fn device_consume(
+    State(state): State<AppState>,
+    Extension(user): Extension<SessionUser>,
+    Path((id, device_id)): Path<(i32, i32)>,
+    Json(body): Json<ConsumeInput>,
+) -> Result<StatusCode, ApiError> {
+    let geraet = state.stock.device(id, device_id).await?;
+    require_warehouse(&state, &user, geraet.stock_id).await?;
+    state
+        .stock
+        .consume(
+            id,
+            device_id,
+            body.quantity,
+            body.note.as_deref(),
+            &user.user_name,
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[cfg(test)]

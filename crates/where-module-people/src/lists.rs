@@ -69,7 +69,7 @@ pub struct ListEntry {
     /// employee mask and the master-data list.
     #[serde(default)]
     pub is_text: bool,
-    /// Only a department carries this: the tint of its employees in the duty
+    /// Only a department carries this: the tint of its employees in the schedule
     /// board, as `#RRGGBB`. Empty means no tint.
     #[serde(default)]
     pub color: Option<String>,

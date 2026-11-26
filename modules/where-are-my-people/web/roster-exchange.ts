@@ -6,7 +6,8 @@
  * (`crates/where-module-people/src/exchange.rs`), so a file written on one machine
  * imports on the next without a hand on it.
  */
-import type { DispoEntry, DutyEntry, Employee, PeopleListEntry, Shift } from '$core/api';
+import type { DispoEntry, ScheduleEntry, Employee, PeopleListEntry, Shift } from '$core/api';
+import { t } from '$core/i18n.svelte';
 import { toIso, toText, monthRange } from './roster-report';
 
 /** Head of the disposition sheet, as the module reads it. */
@@ -99,7 +100,7 @@ export function dispoRows(
 export function planRows(
 	year: number,
 	month: number,
-	cells: Record<string, DutyEntry>,
+	cells: Record<string, ScheduleEntry>,
 	employees: Employee[],
 	shifts: Shift[]
 ): ExchangeSheet {
@@ -150,7 +151,7 @@ export function planRows(
 		}
 		if (own.length === 0) continue;
 		if (number === '') {
-			notes.push(`${name(employee)} hat keine Personalnummer und fehlt im Export.`);
+			notes.push(t('{name} hat keine Personalnummer und fehlt im Export.', { name: name(employee) }));
 			continue;
 		}
 		rows.push(...own);

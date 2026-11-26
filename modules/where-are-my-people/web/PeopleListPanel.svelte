@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type PeopleListEntry, type PeopleListKind } from '$core/api';
 	import { auth } from '$core/auth.svelte';
@@ -79,7 +81,7 @@
 		}
 	}
 
-	/** The tint a department or a location gives its rows in the duty board. */
+	/** The tint a department or a location gives its rows in the schedule board. */
 	async function setTint(entry: PeopleListEntry, tint: string) {
 		saving = true;
 		error = null;
@@ -139,8 +141,8 @@
 	async function removeEntry(entry: PeopleListEntry) {
 		if (
 			!(await askConfirm({
-				message: `${singular} „${entry.name}“ entfernen?`,
-				confirmLabel: 'Entfernen'
+				message: t('{what} „{name}“ entfernen?', { what: singular, name: entry.name }),
+				confirmLabel: t('Entfernen')
 			}))
 		)
 			return;
@@ -182,7 +184,7 @@
 	{#if mayCreate}
 		<div class="toolbar">
 			<input
-				placeholder={`Neue ${singular} …`}
+				placeholder={t('Neue {what} …', { what: singular })}
 				maxlength="100"
 				bind:value={newName}
 				onkeydown={(e) => {
@@ -191,7 +193,7 @@
 					create();
 				}}
 			/>
-			<button type="button" onclick={create} disabled={saving || loading}>Anlegen</button>
+			<button type="button" onclick={create} disabled={saving || loading}>{t('Anlegen')}</button>
 		</div>
 	{/if}
 
@@ -217,9 +219,9 @@
 						<button
 							type="button"
 							onclick={() => saveRename(entry.id)}
-							disabled={saving}>Sichern</button
+							disabled={saving}>{t('Sichern')}</button
 						>
-						<button type="button" onclick={cancelRename}>Abbrechen</button>
+						<button type="button" onclick={cancelRename}>{t('Abbrechen')}</button>
 					</div>
 				{:else}
 					<div class="row">
@@ -229,16 +231,16 @@
 								<button
 									type="button"
 									class="arrow"
-									title="nach oben"
-									aria-label={`${entry.name}: nach oben`}
+									title={t('nach oben')}
+									aria-label={t('{name}: nach oben', { name: entry.name })}
 									disabled={i === 0}
 									onclick={() => move(i, -1)}>↑</button
 								>
 								<button
 									type="button"
 									class="arrow"
-									title="nach unten"
-									aria-label={`${entry.name}: nach unten`}
+									title={t('nach unten')}
+									aria-label={t('{name}: nach unten', { name: entry.name })}
 									disabled={i === entries.length - 1}
 									onclick={() => move(i, 1)}>↓</button
 								>
@@ -249,7 +251,7 @@
 						<div class="actions">
 							<ColorPicker
 								value={entry.color ?? ''}
-								label={`${entry.name}: Farbe`}
+								label={t('{name}: Farbe', { name: entry.name })}
 								disabled={saving}
 								onchange={(tint) => void setTint(entry, tint)}
 							/>
@@ -257,22 +259,25 @@
 								<button
 									type="button"
 									disabled={saving}
-									onclick={() => void setTint(entry, '')}>ohne Farbe</button
+									onclick={() => void setTint(entry, '')}>{t('ohne Farbe')}</button
 								>
 							{/if}
 							{#if kind === 'locations' || kind === 'subdepartments'}
 								<select
 									class="parent"
 									title={kind === 'locations'
-										? 'Unterabteilung, die hier arbeitet'
-										: 'Abteilung, zu der sie gehört'}
-									aria-label={`${entry.name}: ${kind === 'locations' ? 'Unterabteilung' : 'Abteilung'}`}
+										? t('Unterabteilung, die hier arbeitet')
+										: t('Abteilung, zu der sie gehört')}
+									aria-label={t('{name}: {what}', {
+										name: entry.name,
+										what: kind === 'locations' ? t('Unterabteilung') : t('Abteilung')
+									})}
 									value={entry.department ?? ''}
 									disabled={saving}
 									onchange={(e) => setParent(entry.id, e.currentTarget.value)}
 								>
 									<option value="">
-										{kind === 'locations' ? '— alle Unterabteilungen —' : '— keine —'}
+										{kind === 'locations' ? t('— alle Unterabteilungen —') : t('— keine —')}
 									</option>
 									{#each parents as entry_ (entry_.id)}
 										<option value={entry_.name}>{entry_.name}</option>
@@ -282,16 +287,16 @@
 									{/if}
 								</select>
 							{/if}
-							<button type="button" onclick={() => startRename(entry)}>umbenennen</button>
+							<button type="button" onclick={() => startRename(entry)}>{t('umbenennen')}</button>
 							<button type="button" class="danger" onclick={() => removeEntry(entry)}>
-								entfernen
+								{t('entfernen')}
 							</button>
 						</div>
 					{/if}
 				{/if}
 			</li>
 		{:else}
-			<li class="empty">{loading ? 'Lade …' : `Noch keine ${title} erfasst.`}</li>
+			<li class="empty">{loading ? t('Lade …') : t('Noch keine {what} erfasst.', { what: title })}</li>
 		{/each}
 	</ul>
 </section>
@@ -362,7 +367,7 @@
 		font-size: 0.9rem;
 		overflow-wrap: anywhere;
 	}
-	/* The tint a department gives its employees in the duty board. */
+	/* The tint a department gives its employees in the schedule board. */
 	.sorting {
 		display: flex;
 		flex: 0 0 auto;

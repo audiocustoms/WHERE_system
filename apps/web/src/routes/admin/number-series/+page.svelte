@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type NumberSeries, type NumberSeriesInput } from '../../../lib/api';
 
@@ -46,9 +48,10 @@
 		error = null;
 		try {
 			const updated = await api.masterData.numberSeriesUpdate(editKey, form);
-			hint = `„${updated.name}“ gespeichert — nächste Nummer: ${
-				updated.next_number ?? '—'
-			}`;
+			hint = t('„{name}“ gespeichert — nächste Nummer: {number}', {
+				name: updated.name,
+				number: updated.next_number ?? '—'
+			});
 			editKey = null;
 			form = null;
 			await load();
@@ -62,9 +65,10 @@
 	async function reset(k: NumberSeries) {
 		if (
 			!confirm(
-				`Zähler von „${k.name}“ auf den Startwert zurücksetzen?\n\n` +
-					`Die nächste vergebene Nummer ist danach ${k.start_value}. ` +
-					'Bereits vergebene Nummern werden nicht geprüft.'
+				t(
+					'Zähler von „{name}“ auf den Startwert zurücksetzen?\n\nDie nächste vergebene Nummer ist danach {start}. Bereits vergebene Nummern werden nicht geprüft.',
+					{ name: k.name, start: k.start_value }
+				)
 			)
 		)
 			return;
@@ -72,9 +76,10 @@
 		hint = null;
 		try {
 			const k2 = await api.masterData.numberSeriesReset(k.key);
-			hint = `„${k2.name}“ zurückgesetzt — nächste Nummer: ${
-				k2.next_number ?? '—'
-			}`;
+			hint = t('„{name}“ zurückgesetzt — nächste Nummer: {number}', {
+				name: k2.name,
+				number: k2.next_number ?? '—'
+			});
 			await load();
 		} catch (e) {
 			error = errorText(e, true);
@@ -84,28 +89,33 @@
 	onMount(load);
 </script>
 
-<svelte:head><title>Nummernkreise — WHERE</title></svelte:head>
+<svelte:head><title>{t('Nummernkreise — WHERE')}</title></svelte:head>
 
-<h1>Nummernkreise</h1>
+<h1>{t('Nummernkreise')}</h1>
 
 <div class="notice">
-	<strong>Format:</strong> Platzhalter <code>{'{number}'}</code> (auf <em>Stellen</em> mit
-	führenden Nullen aufgefüllt), <code>{'{year}'}</code>, <code>{'{month}'}</code>,
-	<code>{'{day}'}</code>. Beispiel: Präfix <code>RE-</code>, Format
-	<code>{'{year}-{number}'}</code>, Stellen 4 → <code>RE-2026-0042</code>. Das Präfix steht
-	immer vorn. Bei <em>Jahres-Neustart</em> beginnt der Kreis im neuen Jahr wieder beim
-	Startwert.
+	<strong>{t('Format:')}</strong>
+	{t(
+		'Der Platzhalter {number} wird auf die angegebene Stellenzahl mit führenden Nullen aufgefüllt; {year}, {month} und {day} setzen das Datum ein.',
+		{ number: '{number}', year: '{year}', month: '{month}', day: '{day}' }
+	)}
+	{t('Beispiel: Präfix {prefix}, Format {format}, Stellen 4 → {sample}.', {
+		prefix: 'RE-',
+		format: '{year}-{number}',
+		sample: 'RE-2026-0042'
+	})}
+	{t('Das Präfix steht immer vorn. Bei Jahres-Neustart beginnt der Kreis im neuen Jahr wieder beim Startwert.')}
 </div>
 
 <table>
 	<thead>
 		<tr>
-			<th>Nummernkreis</th>
-			<th>Nächste Nummer</th>
-			<th class="numeric">Aktuell</th>
-			<th class="numeric">Start</th>
-			<th class="numeric">Schritt</th>
-			<th>Aktiv</th>
+			<th>{t('Nummernkreis')}</th>
+			<th>{t('Nächste Nummer')}</th>
+			<th class="numeric">{t('Aktuell')}</th>
+			<th class="numeric">{t('Start')}</th>
+			<th class="numeric">{t('Schritt')}</th>
+			<th>{t('Aktiv')}</th>
 			<th></th>
 		</tr>
 	</thead>
@@ -119,15 +129,15 @@
 					</td>
 					<td>
 						<div class="fields">
-							<label>Präfix<input class="short" bind:value={form.prefix} maxlength="16" /></label>
-							<label>Format<input class="medium" bind:value={form.format} maxlength="64" /></label>
-							<label>Stellen<input class="mini" type="number" min="0" max="12" bind:value={form.digits} /></label>
+							<label>{t('Präfix')}<input class="short" bind:value={form.prefix} maxlength="16" /></label>
+							<label>{t('Format')}<input class="medium" bind:value={form.format} maxlength="64" /></label>
+							<label>{t('Stellen')}<input class="mini" type="number" min="0" max="12" bind:value={form.digits} /></label>
 						</div>
 						<div class="fields">
-							<label>Startwert<input class="mini" type="number" min="0" bind:value={form.start_value} /></label>
-							<label>Schrittweite<input class="mini" type="number" min="1" bind:value={form.step} /></label>
+							<label>{t('Startwert')}<input class="mini" type="number" min="0" bind:value={form.start_value} /></label>
+							<label>{t('Schrittweite')}<input class="mini" type="number" min="1" bind:value={form.step} /></label>
 							<label class="check">
-								<input type="checkbox" bind:checked={form.yearly_reset} /> Jahres-Neustart
+								<input type="checkbox" bind:checked={form.yearly_reset} /> {t('Jahres-Neustart')}
 							</label>
 						</div>
 					</td>
@@ -138,8 +148,8 @@
 					<td class="numeric">—</td>
 					<td><input type="checkbox" bind:checked={form.active} /></td>
 					<td class="actions">
-						<button onclick={save} disabled={saving}>speichern</button>
-						<button class="link" onclick={() => ((editKey = null), (form = null))}>abbrechen</button>
+						<button onclick={save} disabled={saving}>{t('speichern')}</button>
+						<button class="link" onclick={() => ((editKey = null), (form = null))}>{t('abbrechen')}</button>
 					</td>
 				</tr>
 			{:else}
@@ -147,7 +157,7 @@
 					<td>
 						{k.name}
 						{#if k.legacy_source}
-							<span class="source" title="Herkunft in der 4D-Struktur">{k.legacy_source}</span>
+							<span class="source" title={t('Herkunft in der 4D-Struktur')}>{k.legacy_source}</span>
 						{/if}
 					</td>
 					<td><code>{k.next_number ?? '—'}</code></td>
@@ -156,26 +166,30 @@
 					<td class="numeric">{k.step}</td>
 					<td>
 						{#if k.active}
-							ja{#if k.yearly_reset}<span class="small">, je Jahr</span>{/if}
+							{t('ja')}{#if k.yearly_reset}<span class="small">{t(', je Jahr')}</span>{/if}
 						{:else}
-							nein
+							{t('nein')}
 						{/if}
 					</td>
 					<td class="actions">
-						<button class="link" onclick={() => edit(k)}>bearbeiten</button>
-						<button class="link" onclick={() => reset(k)}>zurücksetzen</button>
+						<button class="link" onclick={() => edit(k)}>{t('bearbeiten')}</button>
+						<button class="link" onclick={() => reset(k)}>{t('zurücksetzen')}</button>
 					</td>
 				</tr>
 			{/if}
 		{:else}
-			<tr><td colspan="7">Keine Nummernkreise angelegt.</td></tr>
+			<tr><td colspan="7">{t('Keine Nummernkreise angelegt.')}</td></tr>
 		{/each}
 	</tbody>
 </table>
 
 <p class="footnote">
-	{loading ? 'Lade …' : `${circles.length} Nummernkreise`} · Herkunft in der 4D-Struktur steht
-	als kleine Zeile unter der Bezeichnung.
+	{loading
+		? t('Lade …')
+		: t(
+				'{n} Nummernkreise · Herkunft in der 4D-Struktur steht als kleine Zeile unter der Bezeichnung.',
+				{ n: circles.length }
+			)}
 </p>
 
 {#if error}
@@ -194,12 +208,6 @@
 		font-size: 0.85rem;
 		max-width: 56rem;
 		margin-bottom: 1.25rem;
-	}
-	.notice code {
-		background: var(--surface);
-		border: 1px solid var(--surface-3);
-		border-radius: 3px;
-		padding: 0 0.25rem;
 	}
 	.bad {
 		color: var(--bad);

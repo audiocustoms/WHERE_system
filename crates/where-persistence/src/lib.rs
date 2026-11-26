@@ -15,9 +15,14 @@ pub mod error;
 pub mod file_repo;
 pub mod inspection_repo;
 pub mod number_series_repo;
+pub mod order_repo;
+pub mod place_repo;
+pub mod procurement_repo;
 pub mod rows;
 pub mod settings_repo;
 pub mod stock_repo;
+pub mod stock_value_repo;
+pub mod stocktake_repo;
 pub mod tenant_repo;
 pub mod user_repo;
 pub mod warehouse_repo;
@@ -38,12 +43,21 @@ pub use error::db_error;
 pub use file_repo::FileRepository;
 pub use inspection_repo::{DeviceBinding, InspectionRepository, NewReport};
 pub use number_series_repo::{NumberSeriesEntry, NumberSeriesRepository};
+pub use order_repo::{
+    NewOrder, NewOrderLine, OpenOrderLineRow, OrderHeaderUpdate, PurchaseOrderLineRow,
+    PurchaseOrderRepository, PurchaseOrderRow,
+};
+pub use place_repo::{PlaceRepository, PlaceRow};
+pub use procurement_repo::{ProcurementRepository, SuggestionRow};
 pub use settings_repo::SettingsRepository;
 pub use sqlx::PgPool;
 pub use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 pub use stock_repo::{
-    DeviceRow, DeviceUpdate, GoodsReceipt, StockRepository, StockRow, WarehouseRow,
+    DeviceRow, DeviceUpdate, GoodsReceipt, Issue, MovementRow, StockRepository, StockRow,
+    WarehouseRow,
 };
+pub use stock_value_repo::{StockValueRepository, StockValueRow};
+pub use stocktake_repo::{StocktakeLineRow, StocktakeRepository, StocktakeRow};
 pub use tenant_repo::{INITIAL_TENANT_NAME, TenantRepository, ensure_initial_tenant};
 pub use user_repo::{
     INITIAL_ADMIN_GROUP, INITIAL_ADMIN_NAME, INITIAL_ADMIN_PASSWORD, MailAccount, UserRepository,

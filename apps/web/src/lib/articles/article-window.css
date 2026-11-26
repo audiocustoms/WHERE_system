@@ -31,7 +31,7 @@
 }
 
 /* The mask brings no frame of its own inside the window. */
-.art-content :global(.maske.im-fenster) {
+.art-content :global(.mask.in-window) {
 	border: 0;
 	border-radius: 0;
 	background: var(--surface);

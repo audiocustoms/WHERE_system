@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { api, errorText } from '$core/api';
 	import ResetMonthDialog from './ResetMonthDialog.svelte';
 
@@ -31,10 +33,12 @@
 	let notice = $state<string | null>(null);
 	let error = $state<string | null>(null);
 
-	const title = $derived(pending === 'dispo' ? 'Dispo zurücksetzen' : 'Schichten zurücksetzen');
+	const title = $derived(
+		pending === 'dispo' ? t('Dispo zurücksetzen') : t('Schichten zurücksetzen')
+	);
 
 	function monthText(date: Date): string {
-		return `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+		return `${t(MONTHS[date.getMonth()])} ${date.getFullYear()}`;
 	}
 
 	function ask(action: Action) {
@@ -51,17 +55,21 @@
 		try {
 			const report =
 				action === 'shifts'
-					? await api.people.duty.resetShifts(target.getMonth() + 1, target.getFullYear())
-					: await api.people.duty.dispo.reset(target.getMonth() + 1, target.getFullYear());
-			const single = action === 'shifts' ? 'Schicht' : 'Termin';
-			const many = action === 'shifts' ? 'Schichten' : 'Termine';
+					? await api.people.schedule.resetShifts(target.getMonth() + 1, target.getFullYear())
+					: await api.people.schedule.dispo.reset(target.getMonth() + 1, target.getFullYear());
+			const single = action === 'shifts' ? t('Schicht') : t('Termin');
+			const many = action === 'shifts' ? t('Schichten') : t('Termine');
 			const monthName = monthText(target);
 			notice =
 				report.cleared === 0
-					? `Keine ${many} im ${monthName}.`
+					? t('Keine {what} im {month}.', { what: many, month: monthName })
 					: report.cleared === 1
-						? `1 ${single} im ${monthName} entfernt.`
-						: `${report.cleared} ${many} im ${monthName} entfernt.`;
+						? t('1 {what} im {month} entfernt.', { what: single, month: monthName })
+						: t('{n} {what} im {month} entfernt.', {
+								n: report.cleared,
+								what: many,
+								month: monthName
+							});
 			month = target;
 		} catch (e) {
 			error = errorText(e);
@@ -71,16 +79,16 @@
 	}
 </script>
 
-<svelte:head><title>WHERE - are my people? — WHERE</title></svelte:head>
+<svelte:head><title>{t('WHERE - are my people? — WHERE')}</title></svelte:head>
 
-<h1>WHERE - are my people?</h1>
+<h1>{t('WHERE - are my people?')}</h1>
 
 <div class="options">
 	<button type="button" class="option" disabled={busy} onclick={() => ask('shifts')}>
-		Schichten zurücksetzen
+		{t('Schichten zurücksetzen')}
 	</button>
 	<button type="button" class="option" disabled={busy} onclick={() => ask('dispo')}>
-		Dispo zurücksetzen
+		{t('Dispo zurücksetzen')}
 	</button>
 </div>
 

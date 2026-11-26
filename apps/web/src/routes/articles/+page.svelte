@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import {
@@ -38,21 +40,24 @@
 	let groups = $state<ArticleGroup[]>([]);
 	/** Chosen article group; `null` = „Alle Artikel zeigen". */
 	let groupFilter = $state<number | null>(null);
-	/** „Nur aktive / nur inaktive Artikel zeigen"; `all` = both. */
-	let activeFilter = $state<'all' | 'active' | 'inactive'>('all');
+	/**
+	 * „Nur aktive / nur inaktive Artikel zeigen"; `all` = both. Active is the default: an
+	 * article that was set inactive leaves the list until somebody asks for it.
+	 */
+	let activeFilter = $state<'all' | 'active' | 'inactive'>('active');
 	/** Collapsed article groups (their children stay hidden). */
 	let zugeklappt = $state<number[]>([]);
 
 	const ARTICLE_TYPE_TEXT: Record<string, string> = {
-		active: 'Alle Artikel (Aktiv)',
-		inactive: 'Alle inaktiven Artikel',
-		all: 'Alle aktiven und inaktiven Artikel'
+		active: t('Alle Artikel (Aktiv)'),
+		inactive: t('Alle inaktiven Artikel'),
+		all: t('Alle aktiven und inaktiven Artikel')
 	};
 	const OPERATOR_TEXT: Record<string, string> = {
-		contains: 'enthält',
-		contains_any: 'oder enthält',
-		contains_all: 'und enthält',
-		contains_none: 'enthält nicht'
+		contains: t('enthält'),
+		contains_any: t('oder enthält'),
+		contains_all: t('und enthält'),
+		contains_none: t('enthält nicht')
 	};
 
 	async function load() {
@@ -188,27 +193,34 @@
 		if (criteria.name) {
 			parts.push(
 				criteria.include_descriptions
-					? `Name (inkl. Beschreibungen) „${criteria.name}"`
-					: `Name „${criteria.name}"`
+					? t('Name (inkl. Beschreibungen) „{name}"', { name: criteria.name })
+					: t('Name „{name}"', { name: criteria.name })
 			);
 		}
-		if (criteria.article_no) parts.push(`Artikel Nr. ${criteria.article_no}`);
-		if (criteria.inventory_no) parts.push(`Inventar Nr. „${criteria.inventory_no}"`);
-		if (criteria.serial_no) parts.push(`Serien-Nr. „${criteria.serial_no}"`);
-		if (criteria.with_bundle) parts.push('Bundlematerial mit Zugehörigem');
+		if (criteria.article_no)
+			parts.push(t('Artikel Nr. {number}', { number: criteria.article_no }));
+		if (criteria.inventory_no)
+			parts.push(t('Inventar Nr. „{number}"', { number: criteria.inventory_no }));
+		if (criteria.serial_no)
+			parts.push(t('Serien-Nr. „{number}"', { number: criteria.serial_no }));
+		if (criteria.with_bundle) parts.push(t('Bundlematerial mit Zugehörigem'));
 		if (criteria.article_groups?.length) {
 			const op = OPERATOR_TEXT[criteria.article_groups_op ?? 'contains'];
-			parts.push(`Warengruppe ${op} (${criteria.article_groups.length})`);
+			parts.push(t('Warengruppe {operator} ({n})', { operator: op, n: criteria.article_groups.length }));
 		}
 		if (criteria.search_index?.length) {
 			const op = OPERATOR_TEXT[criteria.search_index_op ?? 'contains'];
-			parts.push(`Suchindex ${op} ${criteria.search_index.join(', ')}`);
+			parts.push(
+				t('Suchindex {operator} {terms}', { operator: op, terms: criteria.search_index.join(', ') })
+			);
 		}
-		if (criteria.suppliers?.length) parts.push(`Lieferant ${criteria.suppliers.join(', ')}`);
-		if (criteria.manufacturer) parts.push(`Hersteller „${criteria.manufacturer}"`);
-		if (criteria.owner) parts.push(`Eigentümer „${criteria.owner}"`);
-		if (criteria.exclude_virtual) parts.push('exkl. virtueller Artikel');
-		if (criteria.pyro) parts.push('Pyro-Kriterien');
+		if (criteria.suppliers?.length)
+			parts.push(t('Lieferant {names}', { names: criteria.suppliers.join(', ') }));
+		if (criteria.manufacturer)
+			parts.push(t('Hersteller „{name}"', { name: criteria.manufacturer }));
+		if (criteria.owner) parts.push(t('Eigentümer „{name}"', { name: criteria.owner }));
+		if (criteria.exclude_virtual) parts.push(t('exkl. virtueller Artikel'));
+		if (criteria.pyro) parts.push(t('Pyro-Kriterien'));
 		return parts;
 	}
 
@@ -251,7 +263,7 @@
 		const group = groupParam === null ? Number.NaN : Number(groupParam);
 		groupFilter = Number.isInteger(group) && group >= 0 ? group : null;
 		const active = page.url.searchParams.get('active');
-		activeFilter = active === 'active' || active === 'inactive' ? active : 'all';
+		activeFilter = active === 'inactive' || active === 'all' ? active : 'active';
 		if (page.url.searchParams.get('search') === '1') searchOpen = true;
 		void load();
 	});
@@ -262,12 +274,16 @@
 </script>
 
 {#if !auth.hasRight(RIGHT.mayReadArticles)}
-	<AccessDenied pageName="Artikelliste" right={RIGHT.mayReadArticles} rightLabel="Artikel lesen" />
+	<AccessDenied
+		pageName={t('Artikelliste')}
+		right={RIGHT.mayReadArticles}
+		rightLabel={t('Artikel lesen')}
+	/>
 {:else}
-<h1>Artikel</h1>
+<h1>{t('Artikel')}</h1>
 
 <div class="page">
-	<aside class="groups" aria-label="Warengruppen">
+	<aside class="groups" aria-label={t('Warengruppen')}>
 		<button
 			type="button"
 			class="entry"
@@ -276,21 +292,21 @@
 			onclick={() => {
 				groupFilter = null;
 				selectActive('all');
-			}}>Alle Artikel zeigen</button
+			}}>{t('Alle Artikel zeigen')}</button
 		>
 		<button
 			type="button"
 			class="entry"
 			class:active={activeFilter === 'active'}
 			aria-pressed={activeFilter === 'active'}
-			onclick={() => selectActive('active')}>Nur aktive Artikel zeigen</button
+			onclick={() => selectActive('active')}>{t('Nur aktive Artikel zeigen')}</button
 		>
 		<button
 			type="button"
 			class="entry"
 			class:active={activeFilter === 'inactive'}
 			aria-pressed={activeFilter === 'inactive'}
-			onclick={() => selectActive('inactive')}>Nur inaktive Artikel zeigen</button
+			onclick={() => selectActive('inactive')}>{t('Nur inaktive Artikel zeigen')}</button
 		>
 
 		<hr />
@@ -300,14 +316,14 @@
 			class="entry"
 			class:active={groupFilter === 0}
 			aria-pressed={groupFilter === 0}
-			title="Artikel, die in keiner Warengruppe stehen"
-			onclick={() => selectGroup(0)}>Ohne Warengruppe</button
+			title={t('Artikel, die in keiner Warengruppe stehen')}
+			onclick={() => selectGroup(0)}>{t('Ohne Warengruppe')}</button
 		>
 
 		<hr />
 
-		<button type="button" class="entry" onclick={expandAll}>Alles aufklappen</button>
-		<button type="button" class="entry" onclick={collapseAll}>Alles zuklappen</button>
+		<button type="button" class="entry" onclick={expandAll}>{t('Alles aufklappen')}</button>
+		<button type="button" class="entry" onclick={collapseAll}>{t('Alles zuklappen')}</button>
 
 		<hr />
 
@@ -323,18 +339,18 @@
 								class:active={groupFilter === node.id}
 								class:path={groupFilter !== null && istVorfahr(node.id, groupFilter)}
 								aria-pressed={groupFilter === node.id}
-								title={node.name ?? `Gruppe ${node.id}`}
+								title={node.name ?? t('Gruppe {id}', { id: node.id })}
 								onclick={() => selectGroup(node.id)}
 							>
-								{node.name ?? `Gruppe ${node.id}`}
+								{node.name ?? t('Gruppe {id}', { id: node.id })}
 							</button>
 							{#if hatKinder}
 								<button
 									type="button"
 									class="arrow"
 									aria-expanded={!istZugeklappt(node.id)}
-									aria-label={istZugeklappt(node.id) ? 'aufklappen' : 'zuklappen'}
-									title={istZugeklappt(node.id) ? 'aufklappen' : 'zuklappen'}
+									aria-label={istZugeklappt(node.id) ? t('aufklappen') : t('zuklappen')}
+									title={istZugeklappt(node.id) ? t('aufklappen') : t('zuklappen')}
 									onclick={() => toggle(node.id)}
 								>
 									{istZugeklappt(node.id) ? '▸' : '▾'}
@@ -352,48 +368,50 @@
 		{#if groups.length}
 			{@render branch(children(null), 0)}
 		{:else}
-			<p class="empty">Keine Warengruppen angelegt.</p>
+			<p class="empty">{t('Keine Warengruppen angelegt.')}</p>
 		{/if}
 	</aside>
 
 	<section>
-		<h2>Bestand ({total})</h2>
+		<h2>{t('Bestand ({n})', { n: total })}</h2>
 		<div class="toolbar">
 			<input
-				placeholder="Schnellsuche (Name, Matchcode, Hersteller, Inventar, EAN, Art.-Nr.)"
+				placeholder={t('Schnellsuche (Name, Matchcode, Hersteller, Inventar, EAN, Art.-Nr.)')}
 				bind:value={quickSearch}
 				onkeydown={(e) => {
 					if (e.key !== 'Enter') return;
 					quick();
 				}}
 			/>
-			<button onclick={quick} disabled={loading}>{loading ? 'Lade …' : 'Schnellsuche'}</button>
-			<button class="search" onclick={() => (searchOpen = true)}>Suche …</button>
+			<button onclick={quick} disabled={loading}
+				>{loading ? t('Lade …') : t('Schnellsuche')}</button
+			>
+			<button class="search" onclick={() => (searchOpen = true)}>{t('Suche …')}</button>
 		</div>
 
 		{#if criteria}
 			<div class="criteria">
-				<span class="badge">Suchmaske:</span>
+				<span class="badge">{t('Suchmaske:')}</span>
 				{#each criteriaList() as part, i (i)}
 					<span class="chip">{part}</span>
 				{/each}
-				<button type="button" class="reset" onclick={reset}>Suche zurücksetzen</button>
+				<button type="button" class="reset" onclick={reset}>{t('Suche zurücksetzen')}</button>
 			</div>
 		{/if}
 
 		<table>
 			<thead>
 				<tr>
-					<th>Art.-Nr.</th>
-					<th>Inv.-Nr.</th>
+					<th>{t('Art.-Nr.')}</th>
+					<th>{t('Inv.-Nr.')}</th>
 					{#if pricingEnabled}
-						<th class="amount">Bestand Miete</th>
-						<th class="amount">Bestand Verkauf</th>
+						<th class="amount">{t('Bestand Miete')}</th>
+						<th class="amount">{t('Bestand Verkauf')}</th>
 					{/if}
-					<th>Name</th>
+					<th>{t('Name')}</th>
 					{#if pricingEnabled}
-						<th class="amount">Preis Miete</th>
-						<th class="amount">Preis Verkauf</th>
+						<th class="amount">{t('Preis Miete')}</th>
+						<th class="amount">{t('Preis Verkauf')}</th>
 					{/if}
 				</tr>
 			</thead>
@@ -402,7 +420,7 @@
 					<tr
 						class:inactive={!a.active}
 						tabindex="0"
-						title="Artikel öffnen"
+						title={t('Artikel öffnen')}
 						onclick={() => openArticle(a)}
 						onkeydown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
@@ -427,12 +445,12 @@
 					<tr>
 						<td colspan={columns}>
 							{criteria
-								? 'Kein Artikel passt zu den Kriterien.'
+								? t('Kein Artikel passt zu den Kriterien.')
 								: groupFilter === 0
-									? 'Alle Artikel stehen in einer Warengruppe.'
+									? t('Alle Artikel stehen in einer Warengruppe.')
 									: groupFilter !== null
-										? 'Diese Warengruppe enthält keine Artikel.'
-										: 'Keine Artikel vorhanden.'}
+										? t('Diese Warengruppe enthält keine Artikel.')
+										: t('Keine Artikel vorhanden.')}
 						</td>
 					</tr>
 				{/each}

@@ -15,8 +15,9 @@ use where_modules::ModuleState;
 use where_persistence::{
     AddressRepository, AgendaRepository, ArticleGroupRepository, ArticleRepository,
     ArticleSearchRepository, AuthRepository, DashboardRepository, FileRepository,
-    InspectionRepository, NumberSeriesRepository, PgPool, SettingsRepository, StockRepository,
-    TenantRepository, UserRepository,
+    InspectionRepository, NumberSeriesRepository, PgPool, PlaceRepository, ProcurementRepository,
+    PurchaseOrderRepository, SettingsRepository, StockRepository, StockValueRepository,
+    StocktakeRepository, TenantRepository, UserRepository,
 };
 
 /// Pools of the tenants with a database of their own, keyed by
@@ -64,6 +65,11 @@ pub struct AppState {
     pub article_groups: ArticleGroupRepository,
     pub number_series: NumberSeriesRepository,
     pub stock: StockRepository,
+    pub places: PlaceRepository,
+    pub stocktakes: StocktakeRepository,
+    pub stock_value: StockValueRepository,
+    pub procurement: ProcurementRepository,
+    pub orders: PurchaseOrderRepository,
     pub dashboard: DashboardRepository,
     pub agenda: AgendaRepository,
     pub settings: SettingsRepository,
@@ -105,6 +111,11 @@ impl AppState {
             article_groups: ArticleGroupRepository::new(pool.clone()),
             number_series: NumberSeriesRepository::new(pool.clone()),
             stock: StockRepository::new(pool.clone()),
+            places: PlaceRepository::new(pool.clone()),
+            stocktakes: StocktakeRepository::new(pool.clone()),
+            stock_value: StockValueRepository::new(pool.clone()),
+            procurement: ProcurementRepository::new(pool.clone()),
+            orders: PurchaseOrderRepository::new(pool.clone()),
             dashboard: DashboardRepository::new(pool.clone()),
             agenda: AgendaRepository::new(pool.clone()),
             settings: SettingsRepository::new(pool.clone()),

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { openArticleCreate, openArticleEdit } from '../../../lib/articles/articleDialogStore.svelte';
@@ -26,15 +28,19 @@
 </script>
 
 <svelte:head>
-	<title>Artikel — WHERE</title>
+	<title>{t('Artikel — WHERE')}</title>
 </svelte:head>
 
 {#if !auth.hasRight(RIGHT.mayReadArticles)}
-	<AccessDenied pageName="Artikel" right={RIGHT.mayReadArticles} rightLabel="Artikel lesen" />
+	<AccessDenied
+		pageName={t('Artikel')}
+		right={RIGHT.mayReadArticles}
+		rightLabel={t('Artikel lesen')}
+	/>
 {:else if istNeu && !auth.hasRight(RIGHT.mayCreateArticle)}
 	<AccessDenied
-		pageName="Neuer Artikel"
+		pageName={t('Neuer Artikel')}
 		right={RIGHT.mayCreateArticle}
-		rightLabel="Artikel anlegen"
+		rightLabel={t('Artikel anlegen')}
 	/>
 {/if}

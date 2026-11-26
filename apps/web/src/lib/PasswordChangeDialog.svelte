@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	/**
 	 * Password change at the first sign-in (`ChangeNextLogin`).
 	 *
@@ -25,16 +27,16 @@
 		event.preventDefault();
 		error = null;
 		if (newValue.length < 8) {
-			error = 'Das neue Kennwort muss mindestens 8 Zeichen haben.';
+			error = t('Das neue Kennwort muss mindestens 8 Zeichen haben.');
 			return;
 		}
 		if (newValue !== repetition) {
-			error = 'Die Kennwörter stimmen nicht überein.';
+			error = t('Die Kennwörter stimmen nicht überein.');
 			return;
 		}
 		sent = true;
 		const ok = await auth.changePassword(newValue, repetition);
-		if (!ok) error = auth.error ?? 'Das Kennwort konnte nicht geändert werden.';
+		if (!ok) error = auth.error ?? t('Das Kennwort konnte nicht geändert werden.');
 		sent = false;
 	}
 
@@ -46,17 +48,15 @@
 <div class="mask" role="dialog" aria-modal="true" aria-labelledby="kennwort-titel">
 	<form class="card" onsubmit={save}>
 		<header>
-			<h1 id="kennwort-titel">Kennwort ändern</h1>
+			<h1 id="kennwort-titel">{t('Kennwort ändern')}</h1>
 			<p class="subtitle">
-				Das Konto <strong>{auth.label}</strong> arbeitet noch mit dem Kennwort der
-				Erstinstallation. Bitte jetzt ein eigenes Kennwort setzen — ohne diese Änderung geht
-				es nicht weiter.
+				{t('Das Konto')} <strong>{auth.label}</strong> {t('arbeitet noch mit dem Kennwort der Erstinstallation. Bitte jetzt ein eigenes Kennwort setzen — ohne diese Änderung geht es nicht weiter.')}
 			</p>
 		</header>
 
 		<div class="content">
 			<label class="field">
-				Neues Kennwort
+				{t('Neues Kennwort')}
 				<input
 					class="text"
 					type="password"
@@ -67,11 +67,11 @@
 				/>
 			</label>
 			{#if tooShort}
-				<p class="hint">Mindestens 8 Zeichen.</p>
+				<p class="hint">{t('Mindestens 8 Zeichen.')}</p>
 			{/if}
 
 			<label class="field">
-				Kennwort wiederholen
+				{t('Kennwort wiederholen')}
 				<input
 					class="text"
 					type="password"
@@ -82,7 +82,7 @@
 				/>
 			</label>
 			{#if doesNotMatch}
-				<p class="hint">Die Kennwörter stimmen nicht überein.</p>
+				<p class="hint">{t('Die Kennwörter stimmen nicht überein.')}</p>
 			{/if}
 
 			{#if error}
@@ -91,10 +91,10 @@
 
 			<div class="buttons">
 				<button type="submit" class="save" disabled={!ready}>
-					{sent ? 'Speichere …' : 'Kennwort ändern'}
+					{sent ? t('Speichere …') : t('Kennwort ändern')}
 				</button>
 				<button type="button" class="sign-out" onclick={signOut} disabled={auth.load}>
-					Abmelden
+					{t('Abmelden')}
 				</button>
 			</div>
 		</div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -34,11 +36,11 @@
 
 	/** The buttons of the „Artikel“ group — each opens a list (`area: ''` = no list). */
 	const KNOEPFE: { label: string; area: string }[] = [
-		{ label: 'Hersteller ändern…', area: 'hersteller' },
-		{ label: 'Eigentümer ändern…', area: 'eigentuemer' },
-		{ label: 'Artikelzustände ändern…', area: 'artikelzustand' },
-		{ label: 'TeamAgenda-Gruppen ändern…', area: '' },
-		{ label: 'Artikelseitige Provisionsklassen', area: 'provisionsklassen' }
+		{ label: t('Hersteller ändern…'), area: 'hersteller' },
+		{ label: t('Eigentümer ändern…'), area: 'eigentuemer' },
+		{ label: t('Artikelzustände ändern…'), area: 'artikelzustand' },
+		{ label: t('TeamAgenda-Gruppen ändern…'), area: '' },
+		{ label: t('Artikelseitige Provisionsklassen'), area: 'provisionsklassen' }
 	];
 
 	const SUCHINDEX = 'artikel-suchindex';
@@ -76,7 +78,7 @@
 
 	function oeffne(key: string) {
 		if (!area(key)) {
-			error = `Die Liste „${key}“ fehlt in dieser Installation.`;
+			error = t('Die Liste „{area}“ fehlt in dieser Installation.', { area: key });
 			return;
 		}
 		isOpen = key;
@@ -130,7 +132,7 @@
 	/** `+` creates, `✎` edits — both through a small input window. */
 	function startCreate() {
 		dialog = {
-			title: tab === 'warengruppen' ? 'Neue Warengruppe' : 'Neuer Suchbegriff',
+			title: tab === 'warengruppen' ? t('Neue Warengruppe') : t('Neuer Suchbegriff'),
 			value: '',
 			create: true,
 			// A selected group becomes the parent group of the new entry.
@@ -141,7 +143,7 @@
 	function edit() {
 		if (!marker) return;
 		dialog = {
-			title: tab === 'warengruppen' ? 'Warengruppe ändern' : 'Suchbegriff ändern',
+			title: tab === 'warengruppen' ? t('Warengruppe ändern') : t('Suchbegriff ändern'),
 			value: marker.label,
 			create: false,
 			parent: groups.find((group) => group.id === marker?.id)?.parent_id ?? null
@@ -182,13 +184,16 @@
 		if (!marker) return;
 		const target = marker;
 		const ok = await askConfirm({
-			title: 'Löschen',
+			title: t('Löschen'),
 			message:
 				target.kind === 'warengruppen'
-					? `Warengruppe „${target.label}“ löschen? Das geht nur, solange keine Artikel und keine Untergruppen daran hängen.`
-					: `Suchbegriff „${target.label}“ löschen?`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+					? t(
+							'Warengruppe „{name}“ löschen? Das geht nur, solange keine Artikel und keine Untergruppen daran hängen.',
+							{ name: target.label }
+						)
+					: t('Suchbegriff „{name}“ löschen?', { name: target.label }),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
@@ -202,12 +207,12 @@
 	}
 </script>
 
-<svelte:head><title>Artikeleinstellungen — WHERE</title></svelte:head>
+<svelte:head><title>{t('Artikeleinstellungen — WHERE')}</title></svelte:head>
 
-<h1>Artikeleinstellungen</h1>
+<h1>{t('Artikeleinstellungen')}</h1>
 
-<section class="selection" aria-label="Artikeleinstellungen">
-	<div class="tabs" role="tablist" aria-label="Artikel">
+<section class="selection" aria-label={t('Artikeleinstellungen')}>
+	<div class="tabs" role="tablist" aria-label={t('Artikel')}>
 		<button
 			type="button"
 			role="tab"
@@ -216,7 +221,7 @@
 			onclick={() => {
 				tab = 'warengruppen';
 				marker = null;
-			}}>Warengruppen</button
+			}}>{t('Warengruppen')}</button
 		>
 		<button
 			type="button"
@@ -226,17 +231,17 @@
 			onclick={() => {
 				tab = 'suchindex';
 				marker = null;
-			}}>Suchindex</button
+			}}>{t('Suchindex')}</button
 		>
 	</div>
 
 	<div
 		class="tree"
 		role="tabpanel"
-		aria-label={tab === 'warengruppen' ? 'Warengruppen' : 'Suchindex'}
+		aria-label={tab === 'warengruppen' ? t('Warengruppen') : t('Suchindex')}
 	>
 		{#if load}
-			<p class="small">Lade…</p>
+			<p class="small">{t('Lade…')}</p>
 		{:else if tab === 'warengruppen'}
 			{#each groupTree as row (row.group.id)}
 				<button
@@ -250,7 +255,7 @@
 					<span class="count">{row.group.article_count}</span>
 				</button>
 			{:else}
-				<p class="small">Noch keine Warengruppen.</p>
+				<p class="small">{t('Noch keine Warengruppen.')}</p>
 			{/each}
 		{:else}
 			{#each indexRows as row (row.id)}
@@ -267,25 +272,25 @@
 					{/if}
 				</button>
 			{:else}
-				<p class="small">Noch keine Suchbegriffe.</p>
+				<p class="small">{t('Noch keine Suchbegriffe.')}</p>
 			{/each}
 		{/if}
 	</div>
 
 	<div class="list-foot">
-		<div class="button-group" role="group" aria-label="Eintrag">
-			<button type="button" class="square" title="Neuer Eintrag" onclick={startCreate}>+</button>
-			<button type="button" class="square" title="Ändern" disabled={!marker} onclick={edit}
+		<div class="button-group" role="group" aria-label={t('Eintrag')}>
+			<button type="button" class="square" title={t('Neuer Eintrag')} onclick={startCreate}>+</button>
+			<button type="button" class="square" title={t('Ändern')} disabled={!marker} onclick={edit}
 				>✎</button
 			>
-			<button type="button" class="square" title="Löschen" disabled={!marker} onclick={loeschen}
+			<button type="button" class="square" title={t('Löschen')} disabled={!marker} onclick={loeschen}
 				>−</button
 			>
 		</div>
-		<span class="small">Markierte Zeile bearbeiten · Listen sichern sofort</span>
+		<span class="small">{t('Markierte Zeile bearbeiten · Listen sichern sofort')}</span>
 	</div>
 
-	<h2>Artikel</h2>
+	<h2>{t('Artikel')}</h2>
 	{#each KNOEPFE as knopf (knopf.label)}
 		{#if knopf.area}
 			<button type="button" class="entry" onclick={() => oeffne(knopf.area)}>
@@ -295,10 +300,11 @@
 			<button
 				type="button"
 				class="entry"
-				title="TeamAgenda-Gruppen sind freier Text am Artikel"
+				title={t('TeamAgenda-Gruppen sind freier Text am Artikel')}
 				onclick={() =>
-					(error =
-						'TeamAgenda-Gruppen stehen als freier Text am Artikel („Artikel“.„TeamAgenda_Gruppe“); eine eigene Liste führt die Altanwendung nicht.')}
+					(error = t(
+						'TeamAgenda-Gruppen stehen als freier Text am Artikel („Artikel“.„TeamAgenda_Gruppe“); eine eigene Liste führt die Altanwendung nicht.'
+					))}
 			>
 				{knopf.label}
 			</button>
@@ -308,8 +314,8 @@
 
 <footer class="foot">
 	<span class="spacer"></span>
-	<a class="btn" href="/">Abbrechen</a>
-	<button type="button" class="btn" disabled title="Die Listen sichern sofort">Sichern</button>
+	<a class="btn" href="/">{t('Abbrechen')}</a>
+	<button type="button" class="btn" disabled title={t('Die Listen sichern sofort')}>{t('Sichern')}</button>
 </footer>
 
 {#if error}
@@ -331,13 +337,13 @@
 				<button
 					class="sw-close"
 					type="button"
-					title="Schließen"
+					title={t('Schließen')}
 					onclick={() => (dialog = null)}>×</button
 				>
 			</div>
 			<div class="sw-content">
 				<label class="field">
-					{tab === 'warengruppen' ? 'Bezeichnung' : 'Suchbegriff'}
+					{tab === 'warengruppen' ? t('Bezeichnung') : t('Suchbegriff')}
 					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						class="text"
@@ -352,14 +358,14 @@
 				</label>
 				{#if tab === 'warengruppen'}
 					<label class="field">
-						Obergruppe
+						{t('Obergruppe')}
 						<select
 							class="text"
 							value={dialog.parent ?? ''}
 							onchange={(e) =>
 								(dialog!.parent = e.currentTarget.value === '' ? null : Number(e.currentTarget.value))}
 						>
-							<option value="">— keine (oberste Ebene) —</option>
+							<option value="">{t('— keine (oberste Ebene) —')}</option>
 							{#each topGroups as group (group.id)}
 								<option value={group.id}>{group.name ?? `#${group.id}`}</option>
 							{/each}
@@ -369,12 +375,12 @@
 			</div>
 			<div class="sw-footer">
 				<span class="spacer"></span>
-				<button type="button" class="btn" onclick={() => (dialog = null)}>Abbrechen</button>
+				<button type="button" class="btn" onclick={() => (dialog = null)}>{t('Abbrechen')}</button>
 				<button
 					type="button"
 					class="btn primary"
 					disabled={!dialog.value.trim()}
-					onclick={save}>{dialog.create ? 'Anlegen' : 'Sichern'}</button
+					onclick={save}>{dialog.create ? t('Anlegen') : t('Sichern')}</button
 				>
 			</div>
 		</div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	/**
 	 * Colour picker with two tabs: 32 predefined colours, and a colour wheel
 	 * with HEX, RGB and HSL. The value is a `#RRGGBB` in upper case, the form
@@ -52,7 +54,7 @@
 
 	let {
 		value = $bindable('#000000'),
-		label = 'Farbe',
+		label = t('Farbe'),
 		disabled = false,
 		onchange
 	}: Props = $props();
@@ -201,7 +203,7 @@
 					aria-selected={tab === 'palette'}
 					onclick={() => (tab = 'palette')}
 				>
-					Palette
+					{t('Palette')}
 				</button>
 				<button
 					type="button"
@@ -210,7 +212,7 @@
 					aria-selected={tab === 'rad'}
 					onclick={() => (tab = 'rad')}
 				>
-					Farbrad
+					{t('Farbrad')}
 				</button>
 			</div>
 
@@ -242,21 +244,21 @@
 				</div>
 
 				<label class="lightness">
-					<span>Helligkeit</span>
+					<span>{t('Helligkeit')}</span>
 					<input
 						type="range"
 						min="0"
 						max="100"
 						step="1"
 						value={display.l}
-						aria-label="Helligkeit"
+						aria-label={t('Helligkeit')}
 						oninput={(event) => setzeTeilHsl('l', count(event))}
 					/>
 					<span class="number">{display.l} %</span>
 				</label>
 
 				<label class="row">
-					<span>HEX</span>
+					<span>{t('HEX')}</span>
 					<input
 						class="text"
 						maxlength="7"
@@ -270,13 +272,13 @@
 				</label>
 
 				<div class="row">
-					<span>RGB</span>
+					<span>{t('RGB')}</span>
 					<input
 						type="number"
 						min="0"
 						max="255"
 						value={rgb.r}
-						aria-label="Rot"
+						aria-label={t('Rot')}
 						oninput={(event) => setzeTeilRgb('r', count(event))}
 					/>
 					<input
@@ -284,7 +286,7 @@
 						min="0"
 						max="255"
 						value={rgb.g}
-						aria-label="Grün"
+						aria-label={t('Grün')}
 						oninput={(event) => setzeTeilRgb('g', count(event))}
 					/>
 					<input
@@ -292,19 +294,19 @@
 						min="0"
 						max="255"
 						value={rgb.b}
-						aria-label="Blau"
+						aria-label={t('Blau')}
 						oninput={(event) => setzeTeilRgb('b', count(event))}
 					/>
 				</div>
 
 				<div class="row">
-					<span>HSL</span>
+					<span>{t('HSL')}</span>
 					<input
 						type="number"
 						min="0"
 						max="360"
 						value={display.h}
-						aria-label="Farbton"
+						aria-label={t('Farbton')}
 						oninput={(event) => setzeTeilHsl('h', count(event))}
 					/>
 					<input
@@ -312,7 +314,7 @@
 						min="0"
 						max="100"
 						value={display.s}
-						aria-label="Sättigung"
+						aria-label={t('Sättigung')}
 						oninput={(event) => setzeTeilHsl('s', count(event))}
 					/>
 					<input
@@ -320,7 +322,7 @@
 						min="0"
 						max="100"
 						value={display.l}
-						aria-label="Helligkeit in Prozent"
+						aria-label={t('Helligkeit in Prozent')}
 						oninput={(event) => setzeTeilHsl('l', count(event))}
 					/>
 				</div>

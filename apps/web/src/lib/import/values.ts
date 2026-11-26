@@ -7,6 +7,7 @@
  * `15.09.2024 20:46:52` as a date, `True`/`Ja`/`1` as a check mark.
  */
 
+import { t } from '../i18n.svelte';
 import type { FieldType } from './importFields';
 
 /** Result of a conversion: the value or the reason why it does not fit. */
@@ -23,24 +24,29 @@ export function convert(kind: FieldType, text: string): Conversion {
 			return { ok: true, value: text.trim() };
 		case 'N': {
 			const value = count(text);
-			if (value === null) return { ok: false, reason: `„${text.trim()}“ ist keine ganze Zahl` };
-			if (!Number.isInteger(value)) return { ok: false, reason: `„${text.trim()}“ ist keine ganze Zahl` };
+			if (value === null)
+				return { ok: false, reason: t('„{value}“ ist keine ganze Zahl', { value: text.trim() }) };
+			if (!Number.isInteger(value))
+				return { ok: false, reason: t('„{value}“ ist keine ganze Zahl', { value: text.trim() }) };
 			return { ok: true, value };
 		}
 		case 'Z': {
 			const value = count(text);
-			if (value === null) return { ok: false, reason: `„${text.trim()}“ ist keine Zahl` };
+			if (value === null)
+				return { ok: false, reason: t('„{value}“ ist keine Zahl', { value: text.trim() }) };
 			// The API takes decimals as text with a dot — that keeps the precision.
 			return { ok: true, value: String(value) };
 		}
 		case 'B': {
 			const value = checked(text);
-			if (value === null) return { ok: false, reason: `„${text.trim()}“ ist kein Ja/Nein` };
+			if (value === null)
+				return { ok: false, reason: t('„{value}“ ist kein Ja/Nein', { value: text.trim() }) };
 			return { ok: true, value };
 		}
 		case 'D': {
 			const value = date(text);
-			if (value === null) return { ok: false, reason: `„${text.trim()}“ ist kein Datum` };
+			if (value === null)
+				return { ok: false, reason: t('„{value}“ ist kein Datum', { value: text.trim() }) };
 			return { ok: true, value };
 		}
 	}

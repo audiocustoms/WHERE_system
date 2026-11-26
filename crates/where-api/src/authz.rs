@@ -92,6 +92,7 @@ pub fn guard_for(method: &Method, path: &str) -> Guard {
         ("GET", "/articles") | ("GET", "/articles/{id}") | ("GET", "/articles/{id}/stock") => {
             article_read()
         }
+        ("GET", "/articles/{id}/movements") => article_read(),
         ("GET", "/articles/search") | ("POST", "/articles/search") => article_read(),
         ("GET", "/articles/searches")
         | ("POST", "/articles/searches")
@@ -109,8 +110,8 @@ pub fn guard_for(method: &Method, path: &str) -> Guard {
         ("POST", "/articles") => Guard::Right("artikel.artikel-anlegen"),
         ("POST", "/articles/{id}/devices")
         | ("PUT", "/articles/{id}/devices/{device_id}")
-        | ("DELETE", "/articles/{id}/devices/{device_id}")
         | ("PUT", "/articles/{id}")
+        | ("PUT", "/articles/{id}/reorder-level")
         | ("POST", "/articles/{id}/files")
         | ("POST", "/articles/{id}/files/links")
         | ("DELETE", "/articles/{id}/files/{file_id}")
@@ -119,7 +120,18 @@ pub fn guard_for(method: &Method, path: &str) -> Guard {
         | ("POST", "/articles/{id}/image")
         | ("DELETE", "/articles/{id}/image")
         | ("PUT", "/articles/{id}/image/placeholder") => Guard::Right("artikel.artikel-editieren"),
-        ("DELETE", "/articles/{id}") => Guard::Right("artikel.artikel-loeschen"),
+        // In-house movements of stock: issuing, taking back and moving material.
+        ("POST", "/articles/{id}/devices/{device_id}/issue")
+        | ("POST", "/articles/{id}/devices/{device_id}/return")
+        | ("POST", "/articles/{id}/devices/{device_id}/transfer")
+        | ("POST", "/articles/{id}/devices/{device_id}/consume")
+        | ("POST", "/articles/{id}/stock-transfer") => Guard::Right("artikel.artikel-editieren"),
+        // Removing a device or an article **for good** is administration. Everybody else
+        // takes the piece out of stock and out of every list by setting it inactive
+        // (`ausgesondert` on the device, `Aktiv` on the article) — that keeps the history
+        // and the documents and is the only way back.
+        ("DELETE", "/articles/{id}/devices/{device_id}") => admin(),
+        ("DELETE", "/articles/{id}") => admin(),
         // Import manager: it creates addresses or articles, so the same right.
         ("POST", "/import/articles") => Guard::Right("artikel.artikel-anlegen"),
         ("POST", "/import/addresses") => Guard::Right("adressen.adresse-anlegen"),
@@ -148,7 +160,7 @@ pub fn guard_for(method: &Method, path: &str) -> Guard {
         ]),
         ("POST", p) if p.starts_with("/people/lists") => Guard::Any(&[DISPO_CREATE, ADMIN_RIGHT]),
         (_, p) if p.starts_with("/people/lists") => Guard::Any(&[DISPO_EDIT, ADMIN_RIGHT]),
-        // The order of the rows on the duty board is planning work: everyone who may
+        // The order of the rows on the schedule board is planning work: everyone who may
         // write the plan may arrange its rows.
         ("PUT", "/people/board-order") => Guard::Right("personal.personal-editieren"),
         // The account behind an employee: the user administration sets it, so the
@@ -165,7 +177,7 @@ pub fn guard_for(method: &Method, path: &str) -> Guard {
         // they belong to.
         ("GET", p) if p.starts_with("/people/flags") => Guard::Right("personal.personal-lesen"),
         (_, p) if p.starts_with("/people/flags") => admin(),
-        // Duty plan master data (shifts, rules): read with the disposition right — the
+        // Schedule plan master data (shifts, rules): read with the disposition right — the
         // board lives on it. A shift of an own department is created with
         // `Personaldispo anlegen` and changed with `Personaldispo editieren` (the
         // department scope is checked by the handlers); the order of the shifts and the
@@ -177,48 +189,52 @@ pub fn guard_for(method: &Method, path: &str) -> Guard {
         ("POST", p) if p.starts_with("/people/shifts") => Guard::Any(&[DISPO_CREATE, ADMIN_RIGHT]),
         (_, p) if p.starts_with("/people/shifts") => Guard::Any(&[DISPO_EDIT, ADMIN_RIGHT]),
         ("PUT", "/people/planning") => admin(),
-        // The duty plan itself belongs to `Personal-Disposition`: read with its right,
+        // The schedule plan itself belongs to `Personal-Disposition`: read with its right,
         // written with the right to edit it.
-        ("GET", "/people/duty") => Guard::Right("personaldispo.personaldispo-lesen"),
+        ("GET", "/people/schedule") => Guard::Right("personaldispo.personaldispo-lesen"),
         // The rows of the disposition: the locations of the departments of the session.
-        ("GET", "/people/duty/locations") => {
+        ("GET", "/people/schedule/locations") => {
             Guard::Any(&["personaldispo.personaldispo-lesen", ADMIN_RIGHT])
         }
-        ("PUT", "/people/duty") => Guard::Right("personaldispo.personaldispo-editieren"),
-        ("POST", "/people/duty/series") => Guard::Right("personaldispo.personaldispo-editieren"),
-        ("POST", "/people/duty/generate") => Guard::Right("personaldispo.personaldispo-editieren"),
+        ("PUT", "/people/schedule") => Guard::Right("personaldispo.personaldispo-editieren"),
+        ("POST", "/people/schedule/series") => {
+            Guard::Right("personaldispo.personaldispo-editieren")
+        }
+        ("POST", "/people/schedule/generate") => {
+            Guard::Right("personaldispo.personaldispo-editieren")
+        }
         // Checking the written plan against the rules is reading.
-        ("GET", "/people/duty/audit") => Guard::Right("personaldispo.personaldispo-lesen"),
+        ("GET", "/people/schedule/audit") => Guard::Right("personaldispo.personaldispo-lesen"),
         // Rows the board types itself are disposition rows: writing them is planning.
-        (_, p) if p.starts_with("/people/duty/rows") => {
+        (_, p) if p.starts_with("/people/schedule/rows") => {
             Guard::Right("personaldispo.personaldispo-editieren")
         }
         // Staffing demand per day: read with the dispo right, written with the right
         // to edit the plan.
-        ("GET", p) if p.starts_with("/people/duty/demand") => {
+        ("GET", p) if p.starts_with("/people/schedule/demand") => {
             Guard::Right("personaldispo.personaldispo-lesen")
         }
-        (_, p) if p.starts_with("/people/duty/demand") => {
+        (_, p) if p.starts_with("/people/schedule/demand") => {
             Guard::Right("personaldispo.personaldispo-editieren")
         }
         // A reset empties a whole month of the plan or of the disposition; it is
         // asked for in the settings of the module, so only administration may do it.
-        ("POST", "/people/duty/reset") => admin(),
-        ("POST", "/people/duty/dispo/reset") => admin(),
+        ("POST", "/people/schedule/reset") => admin(),
+        ("POST", "/people/schedule/dispo/reset") => admin(),
         // The exchange files write a whole month at once; that is planning work.
-        ("POST", p) if p.starts_with("/people/duty/exchange") => {
+        ("POST", p) if p.starts_with("/people/schedule/exchange") => {
             Guard::Right("personaldispo.personaldispo-editieren")
         }
         // Sending the month of an employee as a calendar is disposition work as well.
-        ("POST", "/people/duty/ical/send") => {
+        ("POST", "/people/schedule/ical/send") => {
             Guard::Any(&["personaldispo.personaldispo-editieren", ADMIN_RIGHT])
         }
         // The PeM disposition: reading the entries needs the dispo right, reading a
         // file and writing needs the right to edit plan data.
-        ("GET", p) if p.starts_with("/people/duty/dispo") => {
+        ("GET", p) if p.starts_with("/people/schedule/dispo") => {
             Guard::Right("personaldispo.personaldispo-lesen")
         }
-        (_, p) if p.starts_with("/people/duty/dispo") => {
+        (_, p) if p.starts_with("/people/schedule/dispo") => {
             Guard::Right("personaldispo.personaldispo-editieren")
         }
         // Holidays come from an online source, so they are maintained by the
@@ -240,6 +256,22 @@ pub fn guard_for(method: &Method, path: &str) -> Guard {
         (_, p) if p.starts_with("/bank-accounts") => admin(),
         // Warehouses and bin locations (`img/Admin Menü/Lager und Lagerplätze`): admin mask.
         (_, p) if p.starts_with("/warehouses") => admin(),
+        // Places of the house (`Foyer`, `Podium`): the list belongs to the issue window of
+        // the stock tab, the maintenance to the admin mask.
+        ("GET", "/places") => article_read(),
+        (_, p) if p.starts_with("/places") => admin(),
+        // Stocktaking: reading needs the article read right, counting is writing stock.
+        ("GET", p) if p.starts_with("/stocktaking") => article_read(),
+        (_, p) if p.starts_with("/stocktaking") => Guard::Right("artikel.artikel-editieren"),
+        // Reorder suggestions are a read of the stock.
+        ("GET", p) if p.starts_with("/procurement") => article_read(),
+        // The stock value is a read of the stock as well.
+        ("GET", "/stock-value") => article_read(),
+        // Purchase orders (`Bestellungen`): reading needs the article read right, creating
+        // and closing is writing stock. Receiving happens at the goods receipt of the
+        // article, which has its own right.
+        ("GET", p) if p.starts_with("/purchase-orders") => article_read(),
+        (_, p) if p.starts_with("/purchase-orders") => Guard::Right("artikel.artikel-editieren"),
         (_, p) if p.starts_with("/tenants") => admin(),
         (_, p) if p.starts_with("/users") || p.starts_with("/user-groups") => admin(),
         (_, "/permissions") => admin(),
@@ -441,10 +473,6 @@ mod tests {
             guard("PUT", "/api/v1/articles/{id}"),
             Guard::Right("artikel.artikel-editieren")
         );
-        assert_eq!(
-            guard("DELETE", "/api/v1/articles/{id}"),
-            Guard::Right("artikel.artikel-loeschen")
-        );
         // Import manager: creating through the CSV file is creating.
         assert_eq!(
             guard("POST", "/api/v1/import/articles"),
@@ -473,6 +501,32 @@ mod tests {
         assert_eq!(
             guard("GET", "/api/v1/articles/{id}/stock"),
             Guard::Right("artikel.artikel-lesen")
+        );
+        // The warehouse working pages: reading the stock reads the suggestions and the
+        // orders, writing a booking needs the edit right.
+        assert_eq!(
+            guard("GET", "/api/v1/procurement/suggestions"),
+            Guard::Right("artikel.artikel-lesen")
+        );
+        assert_eq!(
+            guard("GET", "/api/v1/purchase-orders"),
+            Guard::Right("artikel.artikel-lesen")
+        );
+        assert_eq!(
+            guard("GET", "/api/v1/purchase-orders/open-lines"),
+            Guard::Right("artikel.artikel-lesen")
+        );
+        assert_eq!(
+            guard("POST", "/api/v1/purchase-orders"),
+            Guard::Right("artikel.artikel-editieren")
+        );
+        assert_eq!(
+            guard("POST", "/api/v1/purchase-orders/{id}/close"),
+            Guard::Right("artikel.artikel-editieren")
+        );
+        assert_eq!(
+            guard("DELETE", "/api/v1/purchase-orders/{id}/lines/{line_id}"),
+            Guard::Right("artikel.artikel-editieren")
         );
         assert_eq!(
             guard("GET", "/api/v1/agenda"),
@@ -513,8 +567,8 @@ mod tests {
             ("POST", "/api/v1/master-data/article-groups"),
             ("PUT", "/api/v1/master-data/number-series/customer"),
             ("GET", "/api/v1/settings"),
-            ("POST", "/api/v1/people/duty/reset"),
-            ("POST", "/api/v1/people/duty/dispo/reset"),
+            ("POST", "/api/v1/people/schedule/reset"),
+            ("POST", "/api/v1/people/schedule/dispo/reset"),
         ] {
             assert_eq!(
                 guard(method, path),
@@ -522,6 +576,25 @@ mod tests {
                 "{method} {path}"
             );
         }
+    }
+
+    /// A device or an article leaves the house by being set inactive; deleting it for
+    /// good belongs to administration, whatever the group rights say.
+    #[test]
+    fn only_administration_removes_a_device_or_an_article() {
+        assert_eq!(
+            guard("DELETE", "/api/v1/articles/{id}"),
+            Guard::Right(ADMIN_RIGHT)
+        );
+        assert_eq!(
+            guard("DELETE", "/api/v1/articles/{id}/devices/{device_id}"),
+            Guard::Right(ADMIN_RIGHT)
+        );
+        // Setting the device aside stays with the editing right: it is reversible.
+        assert_eq!(
+            guard("PUT", "/api/v1/articles/{id}/devices/{device_id}"),
+            Guard::Right("artikel.artikel-editieren")
+        );
     }
 
     #[test]
@@ -680,67 +753,67 @@ mod tests {
             Guard::Right(ADMIN_RIGHT)
         );
         assert_eq!(
-            guard("GET", "/api/v1/people/duty"),
+            guard("GET", "/api/v1/people/schedule"),
             Guard::Right("personaldispo.personaldispo-lesen")
         );
         assert_eq!(
-            guard("GET", "/api/v1/people/duty/locations"),
+            guard("GET", "/api/v1/people/schedule/locations"),
             Guard::Any(&["personaldispo.personaldispo-lesen", ADMIN_RIGHT])
         );
         assert_eq!(
-            guard("PUT", "/api/v1/people/duty"),
+            guard("PUT", "/api/v1/people/schedule"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("POST", "/api/v1/people/duty/series"),
+            guard("POST", "/api/v1/people/schedule/series"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("POST", "/api/v1/people/duty/rows"),
+            guard("POST", "/api/v1/people/schedule/rows"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("PUT", "/api/v1/people/duty/rows/7"),
+            guard("PUT", "/api/v1/people/schedule/rows/7"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("DELETE", "/api/v1/people/duty/rows/7"),
+            guard("DELETE", "/api/v1/people/schedule/rows/7"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("GET", "/api/v1/people/duty/demand"),
+            guard("GET", "/api/v1/people/schedule/demand"),
             Guard::Right("personaldispo.personaldispo-lesen")
         );
         assert_eq!(
-            guard("PUT", "/api/v1/people/duty/demand/2026-11-20"),
+            guard("PUT", "/api/v1/people/schedule/demand/2026-11-20"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("POST", "/api/v1/people/duty/demand/copy"),
+            guard("POST", "/api/v1/people/schedule/demand/copy"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("POST", "/api/v1/people/duty/dispo/scan"),
+            guard("POST", "/api/v1/people/schedule/dispo/scan"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("POST", "/api/v1/people/duty/dispo/import"),
+            guard("POST", "/api/v1/people/schedule/dispo/import"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("GET", "/api/v1/people/duty/dispo"),
+            guard("GET", "/api/v1/people/schedule/dispo"),
             Guard::Right("personaldispo.personaldispo-lesen")
         );
         assert_eq!(
-            guard("PUT", "/api/v1/people/duty/dispo/4/2026-12-01"),
+            guard("PUT", "/api/v1/people/schedule/dispo/4/2026-12-01"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
         assert_eq!(
-            guard("GET", "/api/v1/people/duty/dispo-demand"),
+            guard("GET", "/api/v1/people/schedule/dispo-demand"),
             Guard::Right("personaldispo.personaldispo-lesen")
         );
         assert_eq!(
-            guard("POST", "/api/v1/people/duty/generate"),
+            guard("POST", "/api/v1/people/schedule/generate"),
             Guard::Right("personaldispo.personaldispo-editieren")
         );
     }

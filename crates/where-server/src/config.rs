@@ -46,7 +46,7 @@ pub enum Product {
     /// `WHERE - is my stuff?` — warehouse logistics, the core application.
     #[default]
     Stuff,
-    /// `WHERE - are my people?` — personnel and duty planning, standing alone.
+    /// `WHERE - are my people?` — personnel and schedule planning, standing alone.
     People,
 }
 

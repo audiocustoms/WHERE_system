@@ -592,6 +592,10 @@ export interface StockRow {
 	stock_id: number;
 	stock_name: string;
 	is_default: boolean;
+	/** The warehouse takes part in the working masks (`where_zugriff`). */
+	zugriff: boolean;
+	/** Material may be taken out of it (`where_entnahme`). */
+	entnahme: boolean;
 	/** `null` = no booking exists for this warehouse yet. */
 	total: string | null;
 	rental: string | null;
@@ -619,27 +623,191 @@ export interface Device {
 	usage_text: string;
 	stock_id: number | null;
 	stock_name: string | null;
-	binLocation: string | null;
+	bin_location: string | null;
 	condition: string | null;
 	discarded: boolean;
-	/** "im Lager" (in stock) or "ausgesondert" (discarded). */
+	/** "im Lager", "ausgegeben: <Ort>" or "ausgesondert". */
 	status: string;
-	purchasePrice: string | null;
-	purchaseDate: string | null;
+	purchase_price: string | null;
+	purchase_date: string | null;
 	supplier_no: number | null;
 	owner: string | null;
 	warranty_months: number | null;
 	ext_barcode: string | null;
-	yearBuilt: number | null;
+	year_built: number | null;
 	note: string | null;
 	without_serial: boolean;
 	recorded_at: string | null;
+	/** Place of the house the device stands at while it is issued. */
+	place_id: number | null;
+	place_name: string | null;
+	issued_from: string | null;
+	issued_until: string | null;
+}
+
+/** A place of the house where material stands while it is in use (`Foyer`, `Podium`). */
+export interface Place {
+	id: number;
+	name: string;
+	note: string | null;
+	active: boolean;
+}
+
+/** Input for issuing material to a place of the house. */
+export interface IssueInput {
+	place_id: number;
+	/** Amount; the whole row when omitted. */
+	quantity: string | null;
+	/** Day the material is expected back, `YYYY-MM-DD`. */
+	until: string | null;
+	note: string | null;
+}
+
+/** Input for moving material to another warehouse. */
+export interface TransferInput {
+	stock_id: number;
+	quantity: string | null;
+	note: string | null;
+}
+
+/** One stocktake (`Inventur`) of a warehouse. */
+export interface Stocktake {
+	id: number;
+	warehouse_id: number;
+	warehouse_name: string | null;
+	name: string;
+	note: string | null;
+	/** `open`, `closed` or `cancelled`. */
+	state: string;
+	started_at: string;
+	started_by: string;
+	finished_at: string | null;
+	finished_by: string | null;
+	lines: number;
+	counted: number;
+	differences: number;
+}
+
+/** One line of a stocktake: a device/batch as the book had it, plus what was counted. */
+export interface StocktakeLine {
+	id: number;
+	device_id: number;
+	article_id: number;
+	article_no: number | null;
+	article_name: string | null;
+	serial_no: string | null;
+	bin_location: string | null;
+	book_quantity: string;
+	counted_quantity: string | null;
+	/** `counted − book`; `null` while the line is open. */
+	difference: string | null;
+	counted_at: string | null;
+	counted_by: string | null;
+	note: string | null;
+	device_gone: boolean;
+}
+
+export interface StocktakeDetail {
+	stocktake: Stocktake;
+	lines: StocktakeLine[];
+}
+
+/** One line of the reorder list (`Beschaffung`). */
+export interface PurchasingSuggestion {
+	article_id: number;
+	article_no: number | null;
+	article_name: string | null;
+	warehouse_id: number;
+	warehouse_name: string | null;
+	/** `Gesamt − Festblockade − Entnahme` of that warehouse. */
+	available: string;
+	/** `Meldebestand` of the article. */
+	reorder_level: string;
+	/** What has to be ordered. */
+	missing: string;
+	/** Consumed within the window. */
+	used: string;
+	lead_time_days: number | null;
+	supplier_no: number | null;
+	supplier_name: string | null;
+	supplier_article_no: string | null;
+}
+
+/** One purchase order (`Bestellung`) of the warehouse. */
+export interface PurchaseOrder {
+	id: number;
+	/** Number from the series `Bestellnummer`. */
+	number: string;
+	supplier_no: number | null;
+	supplier_name: string | null;
+	ordered_at: string;
+	expected_at: string | null;
+	note: string | null;
+	/** `open`, `done` or `cancelled`. */
+	state: string;
+	created_at: string;
+	created_by: string;
+	lines: number;
+	open_lines: number;
+	ordered: string;
+	received: string;
+	missing: string;
+}
+
+/** One line of an order: what was ordered and what arrived. */
+export interface PurchaseOrderLine {
+	id: number;
+	order_id: number;
+	line_no: number;
+	article_id: number;
+	article_no: number | null;
+	article_name: string | null;
+	quantity: string;
+	/** Sum of the devices that arrived on this line. */
+	received: string;
+	/** `quantity − received`, never negative. */
+	open: string;
+	unit_price: string | null;
+	note: string | null;
+}
+
+export interface PurchaseOrderDetail {
+	order: PurchaseOrder;
+	lines: PurchaseOrderLine[];
+}
+
+/** A line that still expects material — what the goods receipt offers. */
+export interface OpenOrderLine {
+	line_id: number;
+	order_id: number;
+	number: string;
+	supplier_name: string | null;
+	expected_at: string | null;
+	line_no: number;
+	article_id: number;
+	quantity: string;
+	received: string;
+	open: string;
+}
+
+/** One line of the stock value report (`Bestandswert`). */
+export interface StockValueLine {
+	warehouse_id: number;
+	warehouse_name: string | null;
+	/** Empty when the article belongs to no group. */
+	group_name: string;
+	articles: number;
+	amount: string;
+	/** `Menge × Kaufpreis`. */
+	value: string;
 }
 
 /** Contents of the "Lagerbestand" tab. */
 export interface StockLevel {
 	stock: StockRow[];
 	devices: Device[];
+	/** `Meldebestand` of the article; `null` = none set. */
+	reorder_level: string | null;
 }
 
 /** Input for the goods receipt. */
@@ -647,13 +815,15 @@ export interface GoodsReceiptInput {
 	serial_no: string | null;
 	without_serial: boolean;
 	stock_id: number;
-	binLocation: string | null;
+	bin_location: string | null;
 	condition: string | null;
-	purchasePrice: string | null;
-	purchaseDate: string | null;
+	purchase_price: string | null;
+	purchase_date: string | null;
 	supplier_no: number | null;
 	inventory_no: string | null;
 	reason: string | null;
+	/** Line of a purchase order this delivery belongs to. */
+	order_line: number | null;
 	/** At least one; several at the same time are possible. */
 	inventory: boolean;
 	rental: boolean;
@@ -680,21 +850,48 @@ export interface DeviceInput {
 	inventory_no: string | null;
 	inventory_no2: string | null;
 	stock_id: number | null;
-	binLocation: string | null;
+	bin_location: string | null;
 	condition: string | null;
 	inventory: boolean;
 	rental: boolean;
 	sale: boolean;
 	used_sale: boolean;
 	discarded: boolean;
-	purchasePrice: string | null;
-	purchaseDate: string | null;
+	purchase_price: string | null;
+	purchase_date: string | null;
 	supplier_no: number | null;
 	owner: string | null;
 	warranty_months: number | null;
 	ext_barcode: string | null;
-	yearBuilt: number | null;
+	year_built: number | null;
 	note: string | null;
+}
+
+/** One line of the stock history of an article or a device. */
+export interface StockMovement {
+	id: number;
+	device_id: number;
+	serial_no: string | null;
+	/** `receipt`, `change`, `move`, `issue`, `return`, `retire`, `reinstate`, `delete`. */
+	kind: string;
+	quantity: string | null;
+	warehouse_from: number | null;
+	warehouse_from_name: string | null;
+	warehouse_to: number | null;
+	warehouse_to_name: string | null;
+	bin_from: string | null;
+	bin_to: string | null;
+	place_from_name: string | null;
+	place_to_name: string | null;
+	condition_from: string | null;
+	condition_to: string | null;
+	discarded_from: boolean | null;
+	discarded_to: boolean | null;
+	note: string | null;
+	/** ISO date and time of the booking. */
+	at: string;
+	/** Account that booked. */
+	by: string;
 }
 
 export interface ArticleGroup {
@@ -1573,7 +1770,7 @@ export interface Employee {
 	is_apprentice: boolean;
 	/** The plan generator may place this employee; `false` = planned by hand only. */
 	auto_plan: boolean;
-	/** Place on the duty board once its rows were arranged by hand. */
+	/** Place on the schedule board once its rows were arranged by hand. */
 	board_order?: number | null;
 	/** Account of the user administration behind this employee, if one names it. */
 	user_id?: number | null;
@@ -1649,7 +1846,7 @@ export interface PeopleListEntry {
 /** The master-data lists of the personnel form. */
 export type PeopleListKind = 'departments' | 'subdepartments' | 'positions' | 'locations';
 
-/** One shift of duty planning. */
+/** One shift of schedulening. */
 /** Half of the day a shift belongs to; `frei` is a whole free day. */
 export type ShiftBand = 'early' | 'late' | 'intermediate' | 'free';
 
@@ -1691,12 +1888,12 @@ export interface ShiftInput {
 	active: boolean;
 }
 
-/** One duty-plan entry: shift, free time, sick leave or vacation. */
-export interface DutyEntry {
+/** One schedule-plan entry: shift, free time, sick leave or vacation. */
+export interface ScheduleEntry {
 	id: number;
 	employee_id: number;
 	/** `shift`, `sick`, `vacation` or `free`. */
-	kind: DutyKind;
+	kind: ScheduleKind;
 	/** Only set when `kind = 'shift'`. */
 	shift_id: number | null;
 	/** Only set when `kind = 'free'`; `HH:MM`. */
@@ -1711,21 +1908,21 @@ export interface DutyEntry {
 	day: string;
 }
 
-/** What one cell of the duty plan holds. */
-export type DutyKind = 'shift' | 'sick' | 'vacation' | 'free';
+/** What one cell of the schedule holds. */
+export type ScheduleKind = 'shift' | 'sick' | 'vacation' | 'free';
 
 /** What a written series did and where the planning rules stopped it. */
-export interface DutySeriesResult {
+export interface ScheduleSeriesResult {
 	/** The days that were written, in the order of their days. */
-	entries: DutyEntry[];
+	entries: ScheduleEntry[];
 	/** Days the board asked for. */
 	requested: number;
 	/** First day that stayed free; `null` when every day was written. */
-	blocked: DutyBlocked | null;
+	blocked: ScheduleBlocked | null;
 }
 
 /** The day a series stopped at and the rule that stopped it. */
-export interface DutyBlocked {
+export interface ScheduleBlocked {
 	/** `YYYY-MM-DD`. */
 	day: string;
 	/** `sunday`, `absence`, `max_consecutive_days`, `min_rest_hours`,
@@ -1859,7 +2056,7 @@ export interface PeopleFlag {
 }
 
 /** How many employees of a position a shift needs on a day. */
-export interface DutyDemandEntry {
+export interface ScheduleDemandEntry {
 	shift_id: number;
 	position: string;
 	/** Location of the disposition; empty when the row is not bound to one. */
@@ -1868,11 +2065,11 @@ export interface DutyDemandEntry {
 }
 
 /** The staffing demand of one day. */
-export interface DutyDemandDay {
+export interface ScheduleDemandDay {
 	/** `YYYY-MM-DD`. */
 	day: string;
 	/** Only pairs of shift and position that need somebody. */
-	entries: DutyDemandEntry[];
+	entries: ScheduleDemandEntry[];
 }
 
 /** An event of the disposition that adds nothing to the demand. */
@@ -1895,7 +2092,7 @@ export interface DispoDayProposal {
 	/** `YYYY-MM-DD`. */
 	day: string;
 	/** Demand per shift and position, derived from the events of the day. */
-	entries: DutyDemandEntry[];
+	entries: ScheduleDemandEntry[];
 	/** Events that could not be read into a shift. */
 	unclear: DispoUnclearEvent[];
 	/** `true` when the day carries an unclear event — the board shows a `?`. */
@@ -1903,7 +2100,7 @@ export interface DispoDayProposal {
 }
 
 /** A demand row the generator could not fill. */
-export interface DutyGap {
+export interface ScheduleGap {
 	/** `YYYY-MM-DD`. */
 	day: string;
 	shift_id: number;
@@ -1916,7 +2113,7 @@ export interface DutyGap {
 
 /** What the generator did. */
 /** One cell of the plan that breaks a rule of the planning. */
-export interface DutyViolation {
+export interface ScheduleViolation {
 	employee_id: number;
 	day: string;
 	/** `min_rest_hours`, `max_consecutive_days`, `weekend`, `apprentice_only`, … */
@@ -1924,14 +2121,14 @@ export interface DutyViolation {
 }
 
 /** The result of checking a written plan. */
-export interface DutyAudit {
+export interface ScheduleAudit {
 	/** Worked cells that were checked. */
 	checked: number;
 	/** The cells that break a rule, in the order of the days. */
-	violations: DutyViolation[];
+	violations: ScheduleViolation[];
 }
 
-export interface DutyGenerateReport {
+export interface ScheduleGenerateReport {
 	days: number;
 	/** Cells written. */
 	assigned: number;
@@ -1944,7 +2141,7 @@ export interface DutyGenerateReport {
 	/** Free days written (`FT`, and the `SoFT` after a worked Sunday). */
 	free_days: number;
 	/** Rows that stayed open. */
-	gaps: DutyGap[];
+	gaps: ScheduleGap[];
 	/** Days whose disposition could not be read into shifts (`?` on the board). */
 	unclear_days: string[];
 }
@@ -1952,7 +2149,7 @@ export interface DutyGenerateReport {
 /** Unit of the planning horizon: weeks or months. */
 export type HorizonUnit = 'weeks' | 'months';
 
-/** The rules that duty planning follows. */
+/** The rules that schedulening follows. */
 export interface PlanningRules {
 	min_rest_hours: number;
 	max_daily_hours: number;
@@ -1996,13 +2193,13 @@ export interface PlanningRules {
 	import_school_holidays: boolean;
 	/** Federal state (`BW`, `BY`, …) for the regional and school holidays. */
 	holiday_state: string | null;
-	/** Color of the holiday columns in the duty plan (`#RRGGBB`). */
+	/** Color of the holiday columns in the schedule (`#RRGGBB`). */
 	holiday_color: string;
 	/** Show the public holidays on the board. */
 	show_holidays: boolean;
 	/** Show the school holidays on the board. */
 	show_school_holidays: boolean;
-	/** Color of the school holidays in the duty plan (`#RRGGBB`). */
+	/** Color of the school holidays in the schedule (`#RRGGBB`). */
 	school_holiday_color: string;
 	holiday_work_allowed: boolean;
 	respect_absence: boolean;
@@ -2014,9 +2211,9 @@ export interface PlanningRules {
 	vacation_day_hours: string;
 	/** Hours one sick day counts as. */
 	sick_day_hours: string;
-	/** Color of the vacation cells in the duty plan (`#RRGGBB`). */
+	/** Color of the vacation cells in the schedule (`#RRGGBB`). */
 	vacation_color: string;
-	/** Color of the sick cells in the duty plan (`#RRGGBB`). */
+	/** Color of the sick cells in the schedule (`#RRGGBB`). */
 	sick_color: string;
 	/** From this date the plan counts over- and under-hours (`null` = 1 January). */
 	balance_from: string | null;
@@ -2068,7 +2265,7 @@ export const api = {
 		remove: (id: number) =>
 			request<{ deleted: boolean }>(`/api/v1/people/${id}`, { method: 'DELETE' }),
 
-		/** The order of the rows on the duty board; ids from top to bottom. */
+		/** The order of the rows on the schedule board; ids from top to bottom. */
 		boardOrder: (ids: number[]) =>
 			request<{ written: number }>('/api/v1/people/board-order', {
 				method: 'PUT',
@@ -2167,7 +2364,7 @@ export const api = {
 				})
 		},
 
-		/** Shifts of duty planning. */
+		/** Shifts of schedulening. */
 		shifts: {
 			list: () => request<Shift[]>('/api/v1/people/shifts'),
 			create: (body: ShiftInput) =>
@@ -2214,7 +2411,7 @@ export const api = {
 				)
 		},
 
-		/** Rules of duty planning (one row). */
+		/** Rules of schedulening (one row). */
 		planning: {
 			get: () => request<PlanningRules>('/api/v1/people/planning'),
 			save: (body: PlanningRules) =>
@@ -2236,27 +2433,27 @@ export const api = {
 				})
 		},
 
-		/** Duty plan: who works when in which shift. */
-		duty: {
+		/** Schedule: who works when in which shift. */
+		schedule: {
 			range: (from: string, to: string) =>
-				request<DutyEntry[]>(`/api/v1/people/duty${query({ from, to })}`),
+				request<ScheduleEntry[]>(`/api/v1/people/schedule${query({ from, to })}`),
 			/** Checks the written plan of a period against the rules of the planning. */
 			audit: (from: string, to: string) =>
-				request<DutyAudit>(`/api/v1/people/duty/audit${query({ from, to })}`),
+				request<ScheduleAudit>(`/api/v1/people/schedule/audit${query({ from, to })}`),
 			/** Sets the cell; without `kind` it is cleared. `starts_at`, `ends_at`
 			 *  and `break_minutes` belong to `kind = 'free'`, `note` is the free text
 			 *  of the cell. */
 			set: (body: {
 				employee_id: number;
 				day: string;
-				kind: DutyKind | null;
+				kind: ScheduleKind | null;
 				shift_id?: number | null;
 				starts_at?: string | null;
 				ends_at?: string | null;
 				break_minutes?: number | null;
 				note?: string | null;
 			}) =>
-				request<DutyEntry | null>('/api/v1/people/duty', {
+				request<ScheduleEntry | null>('/api/v1/people/schedule', {
 					method: 'PUT',
 					body: JSON.stringify(body)
 				}),
@@ -2266,19 +2463,19 @@ export const api = {
 				employee_id: number;
 				day: string;
 				days: number;
-				kind: DutyKind;
+				kind: ScheduleKind;
 				shift_id?: number | null;
 				starts_at?: string | null;
 				ends_at?: string | null;
 				break_minutes?: number | null;
 			}) =>
-				request<DutySeriesResult>('/api/v1/people/duty/series', {
+				request<ScheduleSeriesResult>('/api/v1/people/schedule/series', {
 					method: 'POST',
 					body: JSON.stringify(body)
 				}),
 			/** Removes the shift cells of a month; sick, vacation and free days stay. */
 			resetShifts: (month: number, year: number) =>
-				request<ResetReport>(`/api/v1/people/duty/reset${query({ month, year })}`, {
+				request<ResetReport>(`/api/v1/people/schedule/reset${query({ month, year })}`, {
 					method: 'POST'
 				}),
 			/** The exchange of the plan: the sheet of a month out and back in. */
@@ -2292,7 +2489,7 @@ export const api = {
 					onlyWithTime = false
 				) =>
 					sendBytes<ExchangeScan>(
-						`/api/v1/people/duty/exchange/${kind}/scan${query({
+						`/api/v1/people/schedule/exchange/${kind}/scan${query({
 							month,
 							year,
 							only_with_time: onlyWithTime ? 'true' : undefined
@@ -2309,7 +2506,7 @@ export const api = {
 					onlyWithTime = false
 				) =>
 					sendBytes<ExchangeReport>(
-						`/api/v1/people/duty/exchange/dispo${query({
+						`/api/v1/people/schedule/exchange/dispo${query({
 							month,
 							year,
 							replace: replace ? 'true' : 'false',
@@ -2321,7 +2518,7 @@ export const api = {
 				/** Writes the cells of a month. */
 				plan: (file: ArrayBuffer, month: number, year: number, replace: boolean) =>
 					sendBytes<ExchangeReport>(
-						`/api/v1/people/duty/exchange/plan${query({
+						`/api/v1/people/schedule/exchange/plan${query({
 							month,
 							year,
 							replace: replace ? 'true' : 'false'
@@ -2334,45 +2531,45 @@ export const api = {
 			rows: {
 				/** Adds a row with a default name at the end of the disposition. */
 				create: () =>
-					request<PeopleListEntry>('/api/v1/people/duty/rows', { method: 'POST' }),
+					request<PeopleListEntry>('/api/v1/people/schedule/rows', { method: 'POST' }),
 				/** Renames a typed row; an empty name answers `422`. */
 				rename: (rowId: number, name: string) =>
-					request<PeopleListEntry>(`/api/v1/people/duty/rows/${rowId}`, {
+					request<PeopleListEntry>(`/api/v1/people/schedule/rows/${rowId}`, {
 						method: 'PUT',
 						body: JSON.stringify({ name })
 					}),
 				/** Removes a typed row with its events; a house stays untouched. */
 				remove: (rowId: number) =>
-					request<{ deleted: boolean }>(`/api/v1/people/duty/rows/${rowId}`, {
+					request<{ deleted: boolean }>(`/api/v1/people/schedule/rows/${rowId}`, {
 						method: 'DELETE'
 					})
 			},
 			/** Staffing demand per day and position. */
 			demand: {
 				range: (from: string, to: string) =>
-					request<DutyDemandDay[]>(`/api/v1/people/duty/demand${query({ from, to })}`),
+					request<ScheduleDemandDay[]>(`/api/v1/people/schedule/demand${query({ from, to })}`),
 				/** Replaces the day; positions without a number are dropped. */
-				set: (day: string, entries: DutyDemandEntry[]) =>
-					request<DutyDemandDay>(`/api/v1/people/duty/demand/${day}`, {
+				set: (day: string, entries: ScheduleDemandEntry[]) =>
+					request<ScheduleDemandDay>(`/api/v1/people/schedule/demand/${day}`, {
 						method: 'PUT',
 						body: JSON.stringify({ entries })
 					}),
 				/** Writes the demand of `from` onto the given days. */
 				copy: (from: string, to: string[]) =>
-					request<{ days: number }>('/api/v1/people/duty/demand/copy', {
+					request<{ days: number }>('/api/v1/people/schedule/demand/copy', {
 						method: 'POST',
 						body: JSON.stringify({ from, to })
 					}),
 				/** The demand the disposition of the days asks for. */
 				dispoDemand: (from: string, to: string, department?: string) =>
 					request<DispoDayProposal[]>(
-						`/api/v1/people/duty/dispo-demand${query({ from, to, department })}`
+						`/api/v1/people/schedule/dispo-demand${query({ from, to, department })}`
 					)
 			},
 			/** Builds the plan of a period from the stored demand, the disposition,
 			 *  the employees and the planning rules. */
 			generate: (body: { from: string; to: string; overwrite: boolean }) =>
-				request<DutyGenerateReport>('/api/v1/people/duty/generate', {
+				request<ScheduleGenerateReport>('/api/v1/people/schedule/generate', {
 					method: 'POST',
 					body: JSON.stringify(body)
 				}),
@@ -2382,7 +2579,7 @@ export const api = {
 				 *  signed-in user; the answer names who got none and why. */
 				send: (from: string, to: string, employeeIds: number[]) =>
 					request<{ sent: number; skipped: { name: string; reason: string }[] }>(
-						'/api/v1/people/duty/ical/send',
+						'/api/v1/people/schedule/ical/send',
 						{ method: 'POST', body: JSON.stringify({ from, to, employee_ids: employeeIds }) }
 					)
 			},
@@ -2392,30 +2589,30 @@ export const api = {
 				 *  of the disposition on the board; `department` narrows the view. */
 				locations: (department?: string) =>
 					request<PeopleListEntry[]>(
-						`/api/v1/people/duty/locations${query({ department })}`
+						`/api/v1/people/schedule/locations${query({ department })}`
 					),
 				/** The entries of a period, in location and day order. */
 				range: (from: string, to: string, department?: string) =>
 					request<DispoEntry[]>(
-						`/api/v1/people/duty/dispo${query({ from, to, department })}`
+						`/api/v1/people/schedule/dispo${query({ from, to, department })}`
 					),
 				/** Replaces the entries of one location on one day. */
 				setDay: (locationId: number, day: string, entries: DispoEntryInput[]) =>
 					request<DispoEntry[]>(
-						`/api/v1/people/duty/dispo/${locationId}/${day}`,
+						`/api/v1/people/schedule/dispo/${locationId}/${day}`,
 						{ method: 'PUT', body: JSON.stringify({ entries }) }
 					),
 				/** Keeps an event but stops it from asking for anybody — or puts it
 				 *  back into the plan. */
 				setIgnored: (id: number, ignored: boolean) =>
-					request<DispoEntry>(`/api/v1/people/duty/dispo/entry/${id}/ignored`, {
+					request<DispoEntry>(`/api/v1/people/schedule/dispo/entry/${id}/ignored`, {
 						method: 'PUT',
 						body: JSON.stringify({ ignored })
 					}),
 				/** Reads the file and reports the locations it contains. */
 				scan: (file: ArrayBuffer, month: number, year: number, onlyWithTime: boolean) =>
 					sendBytes<DispoScan>(
-						`/api/v1/people/duty/dispo/scan${query({
+						`/api/v1/people/schedule/dispo/scan${query({
 							month,
 							year,
 							only_with_time: onlyWithTime ? 'true' : undefined
@@ -2432,7 +2629,7 @@ export const api = {
 					onlyWithTime: boolean
 				) =>
 					sendBytes<DispoImportReport>(
-						`/api/v1/people/duty/dispo/import${query({
+						`/api/v1/people/schedule/dispo/import${query({
 							month,
 							year,
 							replace: replace ? 'true' : 'false',
@@ -2443,7 +2640,7 @@ export const api = {
 					),
 				/** Removes every entry of the disposition of a month. */
 				reset: (month: number, year: number) =>
-					request<ResetReport>(`/api/v1/people/duty/dispo/reset${query({ month, year })}`, {
+					request<ResetReport>(`/api/v1/people/schedule/dispo/reset${query({ month, year })}`, {
 						method: 'POST'
 					})
 			}
@@ -2719,6 +2916,103 @@ export const api = {
 			})
 	},
 
+	/** Places of the house (`Foyer`, `Podium`) — where material stands while it is issued. */
+	places: {
+		list: () => request<Place[]>('/api/v1/places'),
+		create: (body: { name: string; note: string | null; active: boolean }) =>
+			request<Place>('/api/v1/places', { method: 'POST', body: JSON.stringify(body) }),
+		update: (id: number, body: { name: string; note: string | null; active: boolean }) =>
+			request<Place>(`/api/v1/places/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+		remove: (id: number) =>
+			request<{ deleted: boolean }>(`/api/v1/places/${id}`, { method: 'DELETE' })
+	},
+
+	/** Stocktaking (`Inventur`): counting a warehouse against the book. */
+	stocktaking: {		list: () => request<Stocktake[]>('/api/v1/stocktaking'),
+		get: (id: number) => request<StocktakeDetail>(`/api/v1/stocktaking/${id}`),
+		start: (body: { warehouse_id: number; name: string; note: string | null }) =>
+			request<Stocktake>('/api/v1/stocktaking', { method: 'POST', body: JSON.stringify(body) }),
+		count: (id: number, lineId: number, body: { counted: string | null; note: string | null }) =>
+			request<void>(`/api/v1/stocktaking/${id}/lines/${lineId}`, {
+				method: 'PUT',
+				body: JSON.stringify(body)
+			}),
+		finish: (id: number) =>
+			request<Stocktake>(`/api/v1/stocktaking/${id}/finish`, { method: 'POST' }),
+		cancel: (id: number) =>
+			request<Stocktake>(`/api/v1/stocktaking/${id}/cancel`, { method: 'POST' })
+	},
+
+	/** Reorder suggestions (`Beschaffung`). */
+	procurement: {
+		suggestions: (days = 90) =>
+			request<PurchasingSuggestion[]>(`/api/v1/procurement/suggestions${query({ days })}`)
+	},
+
+	/** Stock value (`Bestandswert`): per warehouse and article group. */
+	stockValue: {
+		report: (warehouse: number | null = null) =>
+			request<StockValueLine[]>(
+				`/api/v1/stock-value${query({ warehouse: warehouse ?? undefined })}`
+			)
+	},
+
+	/** Purchase orders of the warehouse (`Bestellungen`). */
+	purchaseOrders: {
+		list: (state: string | null = null) =>
+			request<PurchaseOrder[]>(`/api/v1/purchase-orders${query({ state: state ?? undefined })}`),
+		/** Open lines of one article — what a delivery could still belong to. */
+		openLines: (articleId: number) =>
+			request<OpenOrderLine[]>(
+				`/api/v1/purchase-orders/open-lines${query({ article_id: articleId })}`
+			),
+		get: (id: number) => request<PurchaseOrderDetail>(`/api/v1/purchase-orders/${id}`),
+		create: (body: {
+			supplier_no: number | null;
+			ordered_at: string | null;
+			expected_at: string | null;
+			note: string | null;
+			lines: { article_id: number; quantity: string; unit_price: string | null; note: string | null }[];
+		}) => request<PurchaseOrder>('/api/v1/purchase-orders', {
+			method: 'POST',
+			body: JSON.stringify(body)
+		}),
+		/** Supplier, delivery date and note of an open order. */
+		updateHeader: (
+			id: number,
+			body: { supplier_no: number | null; expected_at: string | null; note: string | null }
+		) =>
+			request<PurchaseOrder>(`/api/v1/purchase-orders/${id}`, {
+				method: 'PUT',
+				body: JSON.stringify(body)
+			}),
+		addLine: (
+			id: number,
+			body: { article_id: number; quantity: string; unit_price: string | null; note: string | null }
+		) =>
+			request<PurchaseOrder>(`/api/v1/purchase-orders/${id}/lines`, {
+				method: 'POST',
+				body: JSON.stringify(body)
+			}),
+		updateLine: (
+			id: number,
+			lineId: number,
+			body: { quantity: string; unit_price: string | null; note: string | null }
+		) =>
+			request<PurchaseOrder>(`/api/v1/purchase-orders/${id}/lines/${lineId}`, {
+				method: 'PUT',
+				body: JSON.stringify(body)
+			}),
+		removeLine: (id: number, lineId: number) =>
+			request<PurchaseOrder>(`/api/v1/purchase-orders/${id}/lines/${lineId}`, {
+				method: 'DELETE'
+			}),
+		close: (id: number) =>
+			request<PurchaseOrder>(`/api/v1/purchase-orders/${id}/close`, { method: 'POST' }),
+		cancel: (id: number) =>
+			request<PurchaseOrder>(`/api/v1/purchase-orders/${id}/cancel`, { method: 'POST' })
+	},
+
 	/** User management (`img/Admin Menü/Benutzerverwaltung`). */
 	users: {
 		list: (view: UserView) => request<UserSummary[]>(`/api/v1/users${query({ view })}`),
@@ -2820,6 +3114,11 @@ export const api = {
 
 		stock: (articleId: number, q?: string) =>
 			request<StockLevel>(`/api/v1/articles/${articleId}/stock${query({ q })}`),
+		/** History of the article, or of one device (`device`). Newest first. */
+		movements: (articleId: number, device?: number, limit = 100) =>
+			request<StockMovement[]>(
+				`/api/v1/articles/${articleId}/movements${query({ device, limit })}`
+			),
 		goodsReceipt: (articleId: number, body: GoodsReceiptInput) =>
 			request<GoodsReceiptResult>(`/api/v1/articles/${articleId}/devices`, {
 				method: 'POST',
@@ -2833,6 +3132,49 @@ export const api = {
 		deleteDevice: (articleId: number, deviceId: number) =>
 			request<{ deleted: boolean }>(`/api/v1/articles/${articleId}/devices/${deviceId}`, {
 				method: 'DELETE'
+			}),
+		/** Hands material out to a place of the house (`Ausgeben`). */
+		issueDevice: (articleId: number, deviceId: number, body: IssueInput) =>
+			request<void>(`/api/v1/articles/${articleId}/devices/${deviceId}/issue`, {
+				method: 'POST',
+				body: JSON.stringify(body)
+			}),
+		/** Takes issued material back into the warehouse. */
+		returnDevice: (
+			articleId: number,
+			deviceId: number,
+			body: { condition: string | null; note: string | null }
+		) =>
+			request<void>(`/api/v1/articles/${articleId}/devices/${deviceId}/return`, {
+				method: 'POST',
+				body: JSON.stringify(body)
+			}),
+		/** Moves material to another warehouse of the house (`Umlegen`). */
+		transferDevice: (articleId: number, deviceId: number, body: TransferInput) =>
+			request<void>(`/api/v1/articles/${articleId}/devices/${deviceId}/transfer`, {
+				method: 'POST',
+				body: JSON.stringify(body)
+			}),
+		/** Consumes material out of a batch (`Verbrauchen`). */
+		consumeDevice: (articleId: number, deviceId: number, body: { quantity: string; note: string | null }) =>
+			request<void>(`/api/v1/articles/${articleId}/devices/${deviceId}/consume`, {
+				method: 'POST',
+				body: JSON.stringify(body)
+			}),
+		/** Moves several rows of one article into another warehouse (`Sammel-Umlagerung`). */
+		transferDevices: (
+			articleId: number,
+			body: { devices: number[]; stock_id: number; note: string | null }
+		) =>
+			request<{ moved: number; failed: { device_id: number; reason: string }[] }>(
+				`/api/v1/articles/${articleId}/stock-transfer`,
+				{ method: 'POST', body: JSON.stringify(body) }
+			),
+		/** `Meldebestand` of the article — the level the reorder suggestion compares with. */
+		setReorderLevel: (articleId: number, level: string | null) =>
+			request<void>(`/api/v1/articles/${articleId}/reorder-level`, {
+				method: 'PUT',
+				body: JSON.stringify({ level })
 			}),
 
 		files: {
@@ -2948,9 +3290,12 @@ export const api = {
 		addressIndex: () => request<string[]>('/api/v1/master-data/address-index'),
 		/** Warehouses for the "Lager" selection (package slip, stock). */
 		warehouses: () =>
-			request<{ id: number; name: string | null; is_default: boolean }[]>(
+			request<{ id: number; name: string | null; is_default: boolean; zugriff: boolean }[]>(
 				'/api/v1/master-data/warehouses'
 			),
+		/** Bin locations of one warehouse — suggestions of the stock forms. */
+		binLocations: (warehouse: number) =>
+			request<string[]>(`/api/v1/master-data/bin-locations${query({ warehouse })}`),
 
 		articleGroupCreate: (body: ArticleGroupInput) =>
 			request<ArticleGroup>('/api/v1/master-data/article-groups', {

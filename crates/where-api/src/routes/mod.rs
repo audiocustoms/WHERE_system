@@ -9,7 +9,11 @@ pub mod import;
 pub mod inspection;
 pub mod master_data;
 pub mod modules;
+pub mod procurement;
+pub mod purchase_orders;
 pub mod settings;
+pub mod stock_value;
+pub mod stocktaking;
 pub mod tenants;
 pub mod users;
 pub mod warehouses;
@@ -68,12 +72,71 @@ pub fn api_v1() -> Router<AppState> {
         .route("/articles/searches/{id}", delete(articles::search_delete))
         // Stock tab of the form: stock rows on top, devices/batches below.
         .route("/articles/{id}/stock", get(articles::stock))
+        .route("/articles/{id}/movements", get(articles::movements))
+        .route(
+            "/articles/{id}/reorder-level",
+            put(articles::set_reorder_level),
+        )
         .route("/articles/{id}/devices", post(articles::goods_receipt))
         .route(
             "/articles/{id}/devices/{device_id}",
             get(articles::device)
                 .put(articles::device_update)
                 .delete(articles::device_delete),
+        )
+        // In-house movements: issue to a place of the house, take it back, move it to
+        // another warehouse, consume it.
+        .route(
+            "/articles/{id}/devices/{device_id}/issue",
+            post(articles::device_issue),
+        )
+        .route(
+            "/articles/{id}/devices/{device_id}/return",
+            post(articles::device_return),
+        )
+        .route(
+            "/articles/{id}/devices/{device_id}/transfer",
+            post(articles::device_transfer),
+        )
+        .route(
+            "/articles/{id}/devices/{device_id}/consume",
+            post(articles::device_consume),
+        )
+        // Bulk transfer (`Sammel-Umlagerung`): several rows of one article at once.
+        .route(
+            "/articles/{id}/stock-transfer",
+            post(articles::device_transfer_many),
+        )
+        // Stock value (`Bestandswert`): what the shelf is worth, per warehouse and group.
+        .route("/stock-value", get(stock_value::report))
+        // Reorder suggestions (`Beschaffung`): what stands below its reorder level.
+        .route("/procurement/suggestions", get(procurement::suggestions))
+        // Purchase orders (`Bestellungen`): what was ordered for the shelf and what
+        // arrived. The received amount is derived from the stock, not stored.
+        .route(
+            "/purchase-orders",
+            get(purchase_orders::list).post(purchase_orders::create),
+        )
+        .route(
+            "/purchase-orders/open-lines",
+            get(purchase_orders::open_lines),
+        )
+        .route(
+            "/purchase-orders/{id}",
+            get(purchase_orders::get_one).put(purchase_orders::update_header),
+        )
+        .route(
+            "/purchase-orders/{id}/lines",
+            post(purchase_orders::add_line),
+        )
+        .route(
+            "/purchase-orders/{id}/lines/{line_id}",
+            put(purchase_orders::update_line).delete(purchase_orders::remove_line),
+        )
+        .route("/purchase-orders/{id}/close", post(purchase_orders::close))
+        .route(
+            "/purchase-orders/{id}/cancel",
+            post(purchase_orders::cancel),
         )
         .route(
             "/articles/{id}",
@@ -129,6 +192,25 @@ pub fn api_v1() -> Router<AppState> {
             put(warehouses::update).delete(warehouses::remove),
         )
         .route("/warehouses/{id}/assign", post(warehouses::assign))
+        // Places of the house (`Foyer`, `Podium`) — where material stands while it is
+        // issued; maintained next to the warehouses.
+        .route(
+            "/places",
+            get(warehouses::places).post(warehouses::place_create),
+        )
+        .route(
+            "/places/{id}",
+            put(warehouses::place_update).delete(warehouses::place_delete),
+        )
+        // Stocktaking (`Inventur`): counting a warehouse against the book.
+        .route(
+            "/stocktaking",
+            get(stocktaking::list).post(stocktaking::start),
+        )
+        .route("/stocktaking/{id}", get(stocktaking::get_one))
+        .route("/stocktaking/{id}/lines/{line_id}", put(stocktaking::count))
+        .route("/stocktaking/{id}/finish", post(stocktaking::finish))
+        .route("/stocktaking/{id}/cancel", post(stocktaking::cancel))
         .route(
             "/warehouses/{id}/locations",
             get(warehouses::locations).post(warehouses::location_create),
@@ -172,6 +254,10 @@ pub fn api_v1() -> Router<AppState> {
             get(master_data::address_index),
         )
         .route("/master-data/warehouses", get(master_data::warehouses))
+        .route(
+            "/master-data/bin-locations",
+            get(master_data::bin_locations),
+        )
         .route("/master-data/search-index", get(master_data::search_index))
         // Settings lists of the admin menu (img/Admin Menü): one catalogue, one
         // family of routes.

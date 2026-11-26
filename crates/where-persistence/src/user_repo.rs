@@ -712,6 +712,23 @@ impl UserRepository {
         Ok(())
     }
 
+    /// Warehouses a user is limited to (`"User_Lager"`). Empty = no limit.
+    ///
+    /// The account mask writes these rows through its `Mandanten & Lager` grid; the
+    /// stock masks read them to keep bookings inside the assigned warehouses.
+    pub async fn warehouses(&self, user: i64) -> Result<Vec<i32>, DomainError> {
+        let rows: Vec<(i32,)> = sqlx::query_as(
+            r#"SELECT COALESCE("Lager_pk", 0) FROM "User_Lager"
+                WHERE "UserPrimKey" = $1 AND COALESCE("Lager_pk", 0) > 0
+                ORDER BY "Lager_pk""#,
+        )
+        .bind(user)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_error)?;
+        Ok(rows.into_iter().map(|(id,)| id).collect())
+    }
+
     /// One group with its rights and its scope.
     pub async fn group(&self, id: i64) -> Result<UserGroup, DomainError> {
         let row = sqlx::query(

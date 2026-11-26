@@ -318,7 +318,7 @@ impl EmployeeRepository {
         Ok(())
     }
 
-    /// Writes the order of the duty board: the ids come top to bottom. Only the
+    /// Writes the order of the schedule board: the ids come top to bottom. Only the
     /// rows of the board (the active employees) get a place, so a person who is
     /// reactivated later keeps out of an order that was arranged without them.
     pub async fn set_board_order(&self, ids: &[i64]) -> Result<usize, DomainError> {

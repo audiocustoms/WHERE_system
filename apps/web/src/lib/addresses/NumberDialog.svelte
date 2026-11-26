@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import { onMount } from 'svelte';
 	import { api, errorText } from '../api';
@@ -21,9 +23,9 @@
 	// The role is fixed on opening; the dialog is not switched.
 	// svelte-ignore state_referenced_locally
 	const isCustomer = role === 'customer';
-	const title = isCustomer ? 'Kundennummer vergeben' : 'Lieferantennummer vergeben';
-	const numberLabel = isCustomer ? 'Kunden-Nr' : 'Lief-Nr';
-	const secondaryLabel = isCustomer ? 'Debitor-Nr' : 'Kreditor-Nr';
+	const title = isCustomer ? t('Kundennummer vergeben') : t('Lieferantennummer vergeben');
+	const numberLabel = isCustomer ? t('Kunden-Nr') : t('Lief-Nr');
+	const secondaryLabel = isCustomer ? t('Debitor-Nr') : t('Kreditor-Nr');
 
 	// On opening deliberately only the initial value — afterwards the field leads.
 	// svelte-ignore state_referenced_locally
@@ -60,7 +62,7 @@
 	function apply() {
 		const value = Number(entered.trim());
 		if (!Number.isInteger(value) || value <= 0) {
-			error = `Bitte eine gültige ${numberLabel} eingeben.`;
+			error = t('Bitte eine gültige {label} eingeben.', { label: numberLabel });
 			return;
 		}
 		onconfirm(value, secondaryText.trim() === '' ? null : secondaryText.trim());
@@ -68,7 +70,7 @@
 
 	/** The number assignment asks on cancel as well. */
 	async function cancel() {
-		if (await askCancel('Die Nummernvergabe')) oncancel();
+		if (await askCancel(t('Die Nummernvergabe'))) oncancel();
 	}
 
 	// `Esc` closes the window like `Abbrechen`.
@@ -80,13 +82,12 @@
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
 			<span class="sw-title">{title}</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={cancel}>×</button>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={cancel}>×</button>
 		</div>
 
 		<div class="sw-content">
 			<p class="sw-small">
-				Erst mit der Nummer wird die Adresse eindeutig — alle weiteren Felder sind danach
-				freigegeben.
+				{t('Erst mit der Nummer wird die Adresse eindeutig — alle weiteren Felder sind danach freigegeben.')}
 			</p>
 			<div class="adr-row">
 				<span class="adr-label">{numberLabel}</span>
@@ -98,7 +99,7 @@
 				<button
 					class="adr-extra"
 					type="button"
-					title="{secondaryLabel} aus dem Nummernkreis"
+					title={t('{label} aus dem Nummernkreis', { label: secondaryLabel })}
 					onclick={secondProposal}
 					disabled={busy}>+</button
 				>
@@ -110,8 +111,8 @@
 		</div>
 
 		<div class="sw-footer">
-			<button class="sw-button" type="button" onclick={cancel}>Abbrechen</button>
-			<button class="sw-button sw-primary" type="button" onclick={apply}>Übernehmen</button>
+			<button class="sw-button" type="button" onclick={cancel}>{t('Abbrechen')}</button>
+			<button class="sw-button sw-primary" type="button" onclick={apply}>{t('Übernehmen')}</button>
 		</div>
 	</div>
 </div>

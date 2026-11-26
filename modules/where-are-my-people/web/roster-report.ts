@@ -5,7 +5,7 @@
  * The dialog of the printer and the window of the exchange share this, so both
  * show the same month with the same rows, hours and columns.
  */
-import { api, type DispoEntry, type DutyEntry, type Employee, type PeopleListEntry, type Shift } from '$core/api';
+import { api, type DispoEntry, type ScheduleEntry, type Employee, type PeopleListEntry, type Shift } from '$core/api';
 import type { Report, SheetDay, DispoEvent, DispoRow, StaffRow } from './roster-export';
 
 /** Colour of a cell with a time window of its own — the same on the board and on paper. */
@@ -67,7 +67,7 @@ export function monthRange(year: number, month: number): Month {
 
 /** Everything the sheet needs about one month, straight from the API. */
 export interface MonthData {
-	cells: Record<string, DutyEntry>;
+	cells: Record<string, ScheduleEntry>;
 	dispo: DispoEntry[];
 	locations: PeopleListEntry[];
 	holidays: Record<string, string>;
@@ -75,12 +75,12 @@ export interface MonthData {
 
 export async function loadMonth(period: Month): Promise<MonthData> {
 	const [entries, calendar, disposition, list] = await Promise.all([
-		api.people.duty.range(period.from, period.to),
+		api.people.schedule.range(period.from, period.to),
 		api.people.holidays.range(period.from, period.to),
-		api.people.duty.dispo.range(period.from, period.to),
+		api.people.schedule.dispo.range(period.from, period.to),
 		api.people.lists.list('locations')
 	]);
-	const cells: Record<string, DutyEntry> = {};
+	const cells: Record<string, ScheduleEntry> = {};
 	for (const entry of entries) cells[`${entry.employee_id}|${entry.day}`] = entry;
 	return {
 		cells,
@@ -170,7 +170,7 @@ export function buildReport(sources: ReportSources): Report {
 			: shifts.find((entry) => entry.id === id);
 	}
 
-	function entryHours(entry: DutyEntry | undefined): number {
+	function entryHours(entry: ScheduleEntry | undefined): number {
 		if (entry === undefined) return 0;
 		if (entry.kind === 'sick') return absence.sick;
 		if (entry.kind === 'vacation') return absence.vacation;
@@ -182,7 +182,7 @@ export function buildReport(sources: ReportSources): Report {
 		return windowHours(found.starts_at, found.ends_at, found.break_minutes);
 	}
 
-	function cellText(entry: DutyEntry | undefined): string {
+	function cellText(entry: ScheduleEntry | undefined): string {
 		if (entry === undefined) return '';
 		if (entry.kind === 'sick') return 'Krank';
 		if (entry.kind === 'vacation') return 'Urlaub';
@@ -196,7 +196,7 @@ export function buildReport(sources: ReportSources): Report {
 		return found.short_name ?? found.name;
 	}
 
-	function cellColor(entry: DutyEntry | undefined): string {
+	function cellColor(entry: ScheduleEntry | undefined): string {
 		if (entry === undefined) return '';
 		if (entry.kind === 'sick') return colors.sick;
 		if (entry.kind === 'vacation') return colors.vacation;
@@ -206,7 +206,7 @@ export function buildReport(sources: ReportSources): Report {
 		return found.color ?? '#64748b';
 	}
 
-	function cellTime(entry: DutyEntry | undefined): string {
+	function cellTime(entry: ScheduleEntry | undefined): string {
 		const found = shift(entry?.shift_id);
 		if (found === undefined || found.band === 'free') return '';
 		return `${found.starts_at}–${found.ends_at}`;

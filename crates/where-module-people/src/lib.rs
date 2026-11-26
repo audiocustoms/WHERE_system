@@ -10,10 +10,6 @@ pub mod demand_repo;
 pub mod dispo;
 pub mod dispo_demand;
 pub mod dispo_repo;
-pub mod duty;
-pub mod duty_audit;
-pub mod duty_repo;
-pub mod duty_rules;
 pub mod employee;
 pub mod employee_repo;
 pub mod exchange;
@@ -31,6 +27,10 @@ pub mod masterdata;
 pub mod planning;
 pub mod planning_repo;
 pub mod routes;
+pub mod schedule;
+pub mod schedule_audit;
+pub mod schedule_repo;
+pub mod schedule_rules;
 pub mod scope;
 pub mod shift_repo;
 pub mod shifts;
@@ -91,12 +91,12 @@ impl ModulePlugin for PeopleModule {
                 "/people/lists/locations/{id}/foreman",
                 axum::routing::put(routes::set_location_foreman),
             )
-            // The tint of a department or a location in the duty board.
+            // The tint of a department or a location in the schedule board.
             .route(
                 "/people/lists/{kind}/{id}/color",
                 axum::routing::put(routes::set_list_color),
             )
-            // The order of the employees on the duty board.
+            // The order of the employees on the schedule board.
             .route(
                 "/people/board-order",
                 axum::routing::put(routes::board_order),
@@ -109,7 +109,7 @@ impl ModulePlugin for PeopleModule {
                 "/people/masterdata/{area}",
                 axum::routing::post(routes::masterdata_import),
             )
-            // Shifts and rules of the duty planning.
+            // Shifts and rules of the schedule planning.
             .route(
                 "/people/shifts",
                 get(routes::list_shifts).post(routes::create_shift),
@@ -130,20 +130,20 @@ impl ModulePlugin for PeopleModule {
                 "/people/planning",
                 get(routes::get_planning).put(routes::save_planning),
             )
-            // Duty plan: who works when in which shift.
+            // Schedule plan: who works when in which shift.
             .route(
-                "/people/duty",
-                get(routes::duty_range).put(routes::duty_set),
+                "/people/schedule",
+                get(routes::schedule_range).put(routes::schedule_set),
             )
             // The same cell on several days in a row.
             .route(
-                "/people/duty/series",
-                axum::routing::post(routes::duty_series),
+                "/people/schedule/series",
+                axum::routing::post(routes::schedule_series),
             )
             // A reset of a whole month, asked for in the settings of the module.
             .route(
-                "/people/duty/reset",
-                axum::routing::post(routes::duty_reset),
+                "/people/schedule/reset",
+                axum::routing::post(routes::schedule_reset),
             )
             // Public and school holidays of the tenant.
             .route("/people/holidays", get(routes::holiday_range))
@@ -154,54 +154,57 @@ impl ModulePlugin for PeopleModule {
             )
             // Rows the board types itself: locations with a free-text name.
             .route(
-                "/people/duty/rows",
-                axum::routing::post(routes::create_duty_row),
+                "/people/schedule/rows",
+                axum::routing::post(routes::create_schedule_row),
             )
             .route(
-                "/people/duty/rows/{id}",
-                axum::routing::put(routes::rename_duty_row).delete(routes::delete_duty_row),
+                "/people/schedule/rows/{id}",
+                axum::routing::put(routes::rename_schedule_row).delete(routes::delete_schedule_row),
             )
             // The disposition of the personnel manager (KOKOS.event PeM).
-            .route("/people/duty/dispo", get(routes::dispo_range))
+            .route("/people/schedule/dispo", get(routes::dispo_range))
             // The rows of the disposition on the board: only the locations of the
             // departments the session may dispose.
-            .route("/people/duty/locations", get(routes::duty_locations))
+            .route(
+                "/people/schedule/locations",
+                get(routes::schedule_locations),
+            )
             // The month of an employee as a calendar, sent by mail.
             .route(
-                "/people/duty/ical/send",
-                axum::routing::post(routes::duty_ical_send),
+                "/people/schedule/ical/send",
+                axum::routing::post(routes::schedule_ical_send),
             )
             .route(
-                "/people/duty/dispo/scan",
+                "/people/schedule/dispo/scan",
                 axum::routing::post(routes::dispo_scan),
             )
             .route(
-                "/people/duty/dispo/import",
+                "/people/schedule/dispo/import",
                 axum::routing::post(routes::dispo_import),
             )
             .route(
-                "/people/duty/dispo/reset",
+                "/people/schedule/dispo/reset",
                 axum::routing::post(routes::dispo_reset),
             )
             // The exchange files of the board: one month out and back in.
             .route(
-                "/people/duty/exchange/{kind}/scan",
+                "/people/schedule/exchange/{kind}/scan",
                 axum::routing::post(routes::exchange_scan),
             )
             .route(
-                "/people/duty/exchange/dispo",
+                "/people/schedule/exchange/dispo",
                 axum::routing::post(routes::exchange_dispo),
             )
             .route(
-                "/people/duty/exchange/plan",
+                "/people/schedule/exchange/plan",
                 axum::routing::post(routes::exchange_plan),
             )
             .route(
-                "/people/duty/dispo/{location}/{day}",
+                "/people/schedule/dispo/{location}/{day}",
                 axum::routing::put(routes::dispo_day_set),
             )
             .route(
-                "/people/duty/dispo/entry/{id}/ignored",
+                "/people/schedule/dispo/entry/{id}/ignored",
                 axum::routing::put(routes::dispo_entry_ignored),
             )
             // The flags of the disposition: the codes PeM writes into the event
@@ -227,24 +230,24 @@ impl ModulePlugin for PeopleModule {
                 axum::routing::put(routes::rename_flag).delete(routes::delete_flag),
             )
             // Staffing demand per day and position.
-            .route("/people/duty/demand", get(routes::duty_demand))
+            .route("/people/schedule/demand", get(routes::schedule_demand))
             .route(
-                "/people/duty/demand/copy",
-                axum::routing::post(routes::duty_demand_copy),
+                "/people/schedule/demand/copy",
+                axum::routing::post(routes::schedule_demand_copy),
             )
             .route(
-                "/people/duty/demand/{day}",
-                axum::routing::put(routes::duty_demand_set),
+                "/people/schedule/demand/{day}",
+                axum::routing::put(routes::schedule_demand_set),
             )
             // The demand the disposition of the days asks for.
-            .route("/people/duty/dispo-demand", get(routes::dispo_demand))
+            .route("/people/schedule/dispo-demand", get(routes::dispo_demand))
             // Builds a plan from the demand and the rules.
             .route(
-                "/people/duty/generate",
-                axum::routing::post(routes::duty_generate),
+                "/people/schedule/generate",
+                axum::routing::post(routes::schedule_generate),
             )
             // Checks the written plan against the rules of the planning.
-            .route("/people/duty/audit", get(routes::duty_audit))
+            .route("/people/schedule/audit", get(routes::schedule_audit))
     }
 
     fn openapi(&self) -> utoipa::openapi::OpenApi {
@@ -282,16 +285,16 @@ impl ModulePlugin for PeopleModule {
         routes::shift_exclusions,
         routes::get_planning,
         routes::save_planning,
-        routes::duty_range,
-        routes::duty_set,
-        routes::duty_series,
-        routes::duty_reset,
+        routes::schedule_range,
+        routes::schedule_set,
+        routes::schedule_series,
+        routes::schedule_reset,
         routes::holiday_range,
         routes::holiday_counts,
         routes::holiday_import,
-        routes::create_duty_row,
-        routes::rename_duty_row,
-        routes::delete_duty_row,
+        routes::create_schedule_row,
+        routes::rename_schedule_row,
+        routes::delete_schedule_row,
         routes::dispo_scan,
         routes::dispo_import,
         routes::dispo_reset,
@@ -299,8 +302,8 @@ impl ModulePlugin for PeopleModule {
         routes::exchange_dispo,
         routes::exchange_plan,
         routes::dispo_range,
-        routes::duty_locations,
-        routes::duty_ical_send,
+        routes::schedule_locations,
+        routes::schedule_ical_send,
         routes::dispo_day_set,
         routes::dispo_entry_ignored,
         routes::list_flags,
@@ -310,12 +313,12 @@ impl ModulePlugin for PeopleModule {
         routes::flag_staffing_set,
         routes::flag_exclusions_set,
         routes::flag_presets,
-        routes::duty_demand,
-        routes::duty_demand_set,
-        routes::duty_demand_copy,
+        routes::schedule_demand,
+        routes::schedule_demand_set,
+        routes::schedule_demand_copy,
         routes::dispo_demand,
-        routes::duty_generate,
-        routes::duty_audit,
+        routes::schedule_generate,
+        routes::schedule_audit,
     )
 )]
 struct ApiDoc;

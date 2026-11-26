@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import animatedLogo from '../../../../logo/WHERE-animated.svg';
 	import { errorText, type LoginTenant, type LoginUser } from './api';
@@ -104,20 +106,20 @@
 		event.preventDefault();
 		error = null;
 		if (!mandant) {
-			error = 'Bitte zuerst einen Mandanten wählen.';
+			error = t('Bitte zuerst einen Mandanten wählen.');
 			return;
 		}
 		if (!username.trim()) {
-			error = 'Bitte den Benutzernamen eingeben.';
+			error = t('Bitte den Benutzernamen eingeben.');
 			return;
 		}
 		if (!password) {
-			error = 'Bitte das Kennwort eingeben.';
+			error = t('Bitte das Kennwort eingeben.');
 			return;
 		}
 		const ok = await auth.login(username, password, mandant.id);
 		if (ok) remember(mandant.id, username.trim());
-		else error = auth.error ?? 'Die Anmeldung ist fehlgeschlagen.';
+		else error = auth.error ?? t('Die Anmeldung ist fehlgeschlagen.');
 	}
 </script>
 
@@ -128,7 +130,7 @@
 				<img src={animatedLogo} alt="" class="logo" />
 			</span>
 			<div>
-				<h1>Anmeldung</h1>
+				<h1>{t('Anmeldung')}</h1>
 				<p class="subtitle">{modules.productName}</p>
 			</div>
 			<button
@@ -136,19 +138,19 @@
 				class="theme-switch"
 				role="switch"
 				aria-checked={isDark()}
-				title={isDark() ? 'Helles Design einschalten' : 'Dunkles Design einschalten'}
+				title={isDark() ? t('Helles Design einschalten') : t('Dunkles Design einschalten')}
 				onclick={toggleTheme}
 			>
 				<span class="track" class:on={isDark()}><span class="knob"></span></span>
-				<span class="design-text">Design</span>
+				<span class="design-text">{t('Design')}</span>
 			</button>
 		</header>
 
 		<div class="content">
 			<section class="tenant-list">
-				<h2>Mandant</h2>
+				<h2>{t('Mandant')}</h2>
 				{#if loading}
-					<p class="small">Lade …</p>
+					<p class="small">{t('Lade …')}</p>
 				{:else}
 					<ul>
 						{#each tenants as entry (entry.id)}
@@ -156,7 +158,7 @@
 								<button
 									type="button"
 									class:active={mandant?.id === entry.id}
-									title={`Benutzer von ${entry.name} anzeigen`}
+									title={t('Benutzer von {tenant} anzeigen', { tenant: entry.name })}
 									onclick={() => mandantWaehlen(entry)}
 								>
 									<span class="name">{entry.name}</span>
@@ -164,16 +166,16 @@
 								</button>
 							</li>
 						{:else}
-							<li><p class="small">Kein Mandant angelegt.</p></li>
+							<li><p class="small">{t('Kein Mandant angelegt.')}</p></li>
 						{/each}
 					</ul>
 				{/if}
 			</section>
 
 			<section class="list">
-				<h2>Benutzer</h2>
+				<h2>{t('Benutzer')}</h2>
 				{#if loading}
-					<p class="small">Lade …</p>
+					<p class="small">{t('Lade …')}</p>
 				{:else}
 					<ul>
 						{#each accounts as account (account.id)}
@@ -183,8 +185,8 @@
 									class:active={choice?.id === account.id}
 									disabled={!account.has_password}
 									title={account.has_password
-										? `Als ${account.user_name} anmelden`
-										: 'Für dieses Konto ist kein Kennwort gesetzt'}
+										? t('Als {user} anmelden', { user: account.user_name })
+										: t('Für dieses Konto ist kein Kennwort gesetzt')}
 									onclick={() => choose(account)}
 								>
 									<span class="name">{account.display_name ?? account.user_name}</span>
@@ -195,8 +197,8 @@
 							<li>
 								<p class="small">
 									{mandant
-										? `Kein Benutzer mit lokalem Login bei ${mandant.name}.`
-										: 'Kein Benutzer mit lokalem Login angelegt.'}
+										? t('Kein Benutzer mit lokalem Login bei {tenant}.', { tenant: mandant.name })
+										: t('Kein Benutzer mit lokalem Login angelegt.')}
 								</p>
 							</li>
 						{/each}
@@ -205,9 +207,9 @@
 			</section>
 
 			<section class="form">
-				<h2>Anmeldung</h2>
+				<h2>{t('Anmeldung')}</h2>
 				<label class="field">
-					Benutzername
+					{t('Benutzername')}
 					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						class="text"
@@ -218,7 +220,7 @@
 					/>
 				</label>
 				<label class="field">
-					Kennwort
+					{t('Kennwort')}
 					<input
 						class="text"
 						type="password"
@@ -231,12 +233,11 @@
 					<p class="error">{error}</p>
 				{/if}
 				<button type="submit" class="sign-in" disabled={auth.load}>
-					{auth.load ? 'Melde an …' : 'Anmelden'}
+					{auth.load ? t('Melde an …') : t('Anmelden')}
 				</button>
 				{#if choice && !choice.has_password}
 					<p class="small">
-						Für „{choice.display_name ?? choice.user_name}“ ist noch kein Kennwort gesetzt —
-						es wird in der Benutzerverwaltung vergeben.
+						{t('Für „{name}“ ist noch kein Kennwort gesetzt — es wird in der Benutzerverwaltung vergeben.', { name: choice.display_name ?? choice.user_name })}
 					</p>
 				{/if}
 			</section>
@@ -244,7 +245,7 @@
 
 		<footer>
 			<span class="small">
-				Beim Schließen der Anwendung wird die Sitzung beendet; ein neuer Start beginnt hier.
+				{t('Beim Schließen der Anwendung wird die Sitzung beendet; ein neuer Start beginnt hier.')}
 			</span>
 		</footer>
 	</form>

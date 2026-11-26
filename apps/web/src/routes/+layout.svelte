@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import favicon from '#lib/assets/favicon.svg';
 	import TopMenu from '#lib/TopMenu.svelte';
@@ -15,14 +17,19 @@
 	import { addressDialogOpen } from '../lib/addresses/addressDialogStore.svelte';
 	import { articleDialogOpen } from '../lib/articles/articleDialogStore.svelte';
 	import { importOpen } from '../lib/import/importStore.svelte';
+	import ClipboardWindow from '#lib/edit/ClipboardWindow.svelte';
+	import Toast from '#lib/Toast.svelte';
 	import { installWindowChrome } from '../lib/windowChrome';
 	import { startEscape } from '../lib/escape.svelte';
+	import { startEditorTracking } from '../lib/edit/editorCommands';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
 
 	// `Esc` closes the topmost open window — one listener for all of them.
 	startEscape();
+	// The menu `Bearbeiten` acts on the field used last.
+	startEditorTracking();
 
 	onMount(() => {
 		auth.restore();
@@ -54,7 +61,7 @@
 				<!-- While the first-installation password applies, no page loads:
 				     the API blocks all work anyway. -->
 				{#if auth.mustChangePassword}
-					<p class="first-login">Bitte zuerst das Kennwort ändern.</p>
+					<p class="first-login">{t('Bitte zuerst das Kennwort ändern.')}</p>
 				{:else}
 					{@render children()}
 				{/if}
@@ -78,12 +85,17 @@
 		<ImportDialog />
 	{/if}
 
+	{#if !auth.mustChangePassword}
+		<ClipboardWindow />
+	{/if}
+
 	<!-- First installation: work cannot continue without a separate password. -->
 	{#if auth.mustChangePassword}
 		<PasswordChangeDialog />
 	{/if}
 
 	<ConfirmDialog />
+	<Toast />
 {:else if !auth.restoring}
 	<LoginMask />
 {/if}
@@ -204,7 +216,7 @@
 		grid-template-rows: auto minmax(0, 1fr);
 		grid-template-areas:
 			'page-head page-head'
-			'seite inhalt';
+			'sidebar content';
 		min-height: 100vh;
 	}
 	.shell {

@@ -3,7 +3,7 @@
  *
  * Three tables leave the module and come back unchanged, so master data written in one
  * installation can be read in the next without a hand on the file: the lists of the
- * employee mask, the employees themselves and the shifts of the duty planning. The
+ * employee mask, the employees themselves and the shifts of the schedulening. The
  * module reads them back in `crates/where-module-people/src/masterdata.rs`; head names
  * and values here have to stay in step with that reader.
  */
@@ -165,7 +165,7 @@ export function staffRows(employees: Employee[]): ExchangeSheet {
 }
 
 /**
- * The shifts of the duty planning as one sheet, in the order the page keeps them. The
+ * The shifts of the schedulening as one sheet, in the order the page keeps them. The
  * short name is the key; a shift without one is found by its name.
  */
 export function shiftRows(shifts: Shift[]): ExchangeSheet {

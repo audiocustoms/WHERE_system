@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { api, type ArticlePricing, type ScaleCategory, type ScaleStep } from '$core/api';
 
 	interface Props {
@@ -51,102 +53,102 @@
 	<section class="left">
 		<div class="prices">
 			<label class="field">
-				<span>VKPreis netto</span>
+				<span>{t('VKPreis netto')}</span>
 				<input bind:value={pricing.sale_price_net} inputmode="decimal" placeholder="0,00" />
 			</label>
 			<label class="field">
-				<span>VKPreis brutto</span>
+				<span>{t('VKPreis brutto')}</span>
 				<input bind:value={pricing.sale_price_gross} inputmode="decimal" placeholder="0,00" />
 			</label>
 			<label class="field">
-				<span>UVP brutto</span>
+				<span>{t('UVP brutto')}</span>
 				<input bind:value={pricing.sale_retail_price} inputmode="decimal" placeholder="0,00" />
 			</label>
 			<label class="field">
-				<span>EKPreis netto</span>
+				<span>{t('EKPreis netto')}</span>
 				<input bind:value={pricing.sale_cost_price_net} inputmode="decimal" placeholder="0,00" />
 			</label>
 			<label class="field">
-				<span>MwSt (%)</span>
+				<span>{t('MwSt (%)')}</span>
 				<input type="number" min="0" max="100" bind:value={pricing.sale_vat_rate} placeholder="19" />
 			</label>
 			<label class="field">
-				<span>EK → VK Aufschlag (%)</span>
+				<span>{t('EK → VK Aufschlag (%)')}</span>
 				<input bind:value={pricing.sale_markup_percent} inputmode="decimal" placeholder="0,00" />
 			</label>
 		</div>
 
 		<div class="scale">
 			<label class="field">
-				<span>Staffel</span>
+				<span>{t('Staffel')}</span>
 				<select value={scaleId ?? ''} onchange={(e) => setScale(e.currentTarget.value)}>
-					<option value="">— keine Staffel —</option>
+					<option value="">{t('— keine Staffel —')}</option>
 					{#each scales as s (s.id)}
-						<option value={s.id}>{s.name ?? `Staffel ${s.id}`}</option>
+						<option value={s.id}>{s.name ?? t('Staffel {n}', { n: s.id })}</option>
 					{/each}
 				</select>
 			</label>
 			<table>
 				<thead>
-					<tr><th>ab Menge</th><th>Staffelrabatt</th></tr>
+					<tr><th>{t('ab Menge')}</th><th>{t('Staffelrabatt')}</th></tr>
 				</thead>
 				<tbody>
 					{#each steps as s, i (i)}
 						<tr><td>{s.from_value}</td><td>{s.discount}</td></tr>
 					{:else}
-						<tr><td colspan="2" class="empty">Keine Stufen hinterlegt.</td></tr>
+						<tr><td colspan="2" class="empty">{t('Keine Stufen hinterlegt.')}</td></tr>
 					{/each}
 				</tbody>
 			</table>
-			<p class="note">Staffeln werden zentral gepflegt, nicht je Artikel.</p>
+			<p class="note">{t('Staffeln werden zentral gepflegt, nicht je Artikel.')}</p>
 		</div>
 	</section>
 
 	<section class="right">
 		<fieldset>
-			<legend>Verkaufseigenschaften</legend>
+			<legend>{t('Verkaufseigenschaften')}</legend>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.sale_no_discount} />
-				Nicht rabattierbar
+				{t('Nicht rabattierbar')}
 			</label>
 			<label class="check">
 				<input type="checkbox" bind:checked={pricing.sell_full_packages} />
-				Nur Vielfaches der Kolligröße verkaufen
+				{t('Nur Vielfaches der Kolligröße verkaufen')}
 			</label>
 		</fieldset>
 
 		<fieldset>
-			<legend>Kolliverkauf</legend>
+			<legend>{t('Kolliverkauf')}</legend>
 			<label class="field row">
-				<span>Kolli-Einheit</span>
+				<span>{t('Kolli-Einheit')}</span>
 				<input bind:value={pricing.package_unit} />
 			</label>
 			<label class="field row">
-				<span>Kolligröße</span>
+				<span>{t('Kolligröße')}</span>
 				<input bind:value={pricing.package_size} inputmode="decimal" placeholder="0" />
 			</label>
 			<label class="field row">
-				<span>Meldebestand</span>
+				<span>{t('Meldebestand')}</span>
 				<input bind:value={pricing.reorder_level} inputmode="decimal" placeholder="0" />
 			</label>
 		</fieldset>
 
 		<fieldset>
-			<legend>FiBu-Kontierung</legend>
+			<legend>{t('FiBu-Kontierung')}</legend>
 			<label class="field row">
-				<span>Ertragskonto</span>
+				<span>{t('Ertragskonto')}</span>
 				<input bind:value={pricing.sale_revenue_account} />
 			</label>
 			<label class="field row">
-				<span>Kostenstelle</span>
+				<span>{t('Kostenstelle')}</span>
 				<input bind:value={pricing.sale_cost_center} />
 			</label>
 		</fieldset>
 
 		<fieldset>
-			<legend>Weitere Informationen</legend>
+			<legend>{t('Weitere Informationen')}</legend>
 			<p class="note">
-				Festes Material, Alternativen und Preisklassen folgen mit der Verleih-Domäne.
+				{t('Festes Material, Alternativen und Preisklassen folgen mit der Verleih-Domäne.')}
 			</p>
 		</fieldset>
 	</section>

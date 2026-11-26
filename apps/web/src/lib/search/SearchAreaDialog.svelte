@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import SearchWindow from './SearchWindow.svelte';
 	import { SEARCH_AREAS, type SearchArea } from './areas';
 	import { auth } from '../auth.svelte';
@@ -31,8 +33,8 @@
 	let area = $state<SearchArea>(areas[0]?.id ?? 'addresses');
 </script>
 
-<SearchWindow title="Suchen" width="19.5rem" {onclose}>
-	<p class="sw-heading">Bereich</p>
+<SearchWindow title={t('Suchen')} width="19.5rem" {onclose}>
+	<p class="sw-heading">{t('Bereich')}</p>
 	<div class="sw-area">
 		{#each areas as entry (entry.id)}
 			<label>
@@ -43,7 +45,7 @@
 	</div>
 
 	{#snippet actions(cancel)}
-		<button class="sw-button" type="button" onclick={cancel}>Abbrechen</button>
-		<button class="sw-button sw-primary" type="button" onclick={() => onsearch(area)}>Suchen</button>
+		<button class="sw-button" type="button" onclick={cancel}>{t('Abbrechen')}</button>
+		<button class="sw-button sw-primary" type="button" onclick={() => onsearch(area)}>{t('Suchen')}</button>
 	{/snippet}
 </SearchWindow>

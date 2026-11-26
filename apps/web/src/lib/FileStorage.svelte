@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type ArticleFile } from './api';
 
@@ -71,7 +73,7 @@
 	}
 
 	async function remove(id: number) {
-		if (!confirm('Eintrag aus der Dateiablage entfernen?')) return;
+		if (!confirm(t('Eintrag aus der Dateiablage entfernen?'))) return;
 		try {
 			await api.article.files.remove(articleId, id);
 			await load();
@@ -95,7 +97,7 @@
 
 <div class="storage">
 	<button type="button" class="button" onclick={toggle}>
-		Dateiablage ({entries.filter((e) => e.is_current).length})
+		{t('Dateiablage ({count})', { count: entries.filter((e) => e.is_current).length })}
 	</button>
 
 	{#if open}
@@ -103,26 +105,26 @@
 			<div class="tools">
 				{#if schreibbar}
 					<label class="field">
-						<span>Ordner</span>
-						<input bind:value={folder} placeholder="(Wurzel)" />
+						<span>{t('Ordner')}</span>
+						<input bind:value={folder} placeholder={t('(Wurzel)')} />
 					</label>
 					<label class="field">
-						<span>Datei hinzufügen</span>
+						<span>{t('Datei hinzufügen')}</span>
 						<input type="file" onchange={upload} />
 					</label>
 				{/if}
 				<label class="check">
 					<input type="checkbox" bind:checked={allVersions} onchange={load} />
-					alle Versionen
+					{t('alle Versionen')}
 				</label>
-				<button type="button" class="button" onclick={load} disabled={laeuft}>Aktualisieren</button>
+				<button type="button" class="button" onclick={load} disabled={laeuft}>{t('Aktualisieren')}</button>
 			</div>
 
 			{#if schreibbar}
 				<form class="link" onsubmit={linkHinzufuegen}>
-					<input bind:value={linkName} placeholder="Name des Links" />
-					<input bind:value={linkTarget} placeholder="https://…" />
-					<button type="submit" class="button">Link hinzufügen</button>
+					<input bind:value={linkName} placeholder={t('Name des Links')} />
+					<input bind:value={linkTarget} placeholder={t('https://…')} />
+					<button type="submit" class="button">{t('Link hinzufügen')}</button>
 				</form>
 			{/if}
 
@@ -132,7 +134,7 @@
 
 			<table>
 				<thead>
-					<tr><th>Ordner</th><th>Name</th><th>Größe</th><th>Version</th><th>Hochgeladen</th><th></th></tr>
+					<tr><th>{t('Ordner')}</th><th>{t('Name')}</th><th>{t('Größe')}</th><th>{t('Version')}</th><th>{t('Hochgeladen')}</th><th></th></tr>
 				</thead>
 				<tbody>
 					{#each entries as e (e.id)}
@@ -150,12 +152,12 @@
 							<td>{e.uploaded_at ? new Date(e.uploaded_at).toLocaleString('de-DE') : '—'}</td>
 							<td>
 								{#if schreibbar}
-									<button type="button" class="delete" onclick={() => remove(e.id)}>entfernen</button>
+									<button type="button" class="delete" onclick={() => remove(e.id)}>{t('entfernen')}</button>
 								{/if}
 							</td>
 						</tr>
 					{:else}
-						<tr><td colspan="6" class="empty">Noch keine Dateien oder Links.</td></tr>
+						<tr><td colspan="6" class="empty">{t('Noch keine Dateien oder Links.')}</td></tr>
 					{/each}
 				</tbody>
 			</table>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type Employee } from '$core/api';
 	import { auth } from '$core/auth.svelte';
@@ -166,15 +168,19 @@
 		const columns = 6;
 </script>
 
-<svelte:head><title>Personal — WHERE</title></svelte:head>
+<svelte:head><title>{t('Personal — WHERE')}</title></svelte:head>
 
 {#if !auth.hasRight(RIGHT.mayReadPersonal)}
-	<AccessDenied pageName="Personal" right={RIGHT.mayReadPersonal} rightLabel="Personal lesen" />
+	<AccessDenied
+		pageName={t('Personal')}
+		right={RIGHT.mayReadPersonal}
+		rightLabel={t('Personal lesen')}
+	/>
 {:else}
-	<h1>Personal</h1>
+	<h1>{t('Personal')}</h1>
 
 		<div class="page">
-		<aside class="filter" aria-label="Filter">
+		<aside class="filter" aria-label={t('Filter')}>
 			<button
 				type="button"
 				class="entry"
@@ -183,21 +189,21 @@
 				onclick={() => {
 						activeFilter = 'all';
 						departmentFilter = null;
-				}}>Alle Mitarbeiter zeigen</button
+				}}>{t('Alle Mitarbeiter zeigen')}</button
 			>
 			<button
 				type="button"
 				class="entry"
 					class:active={activeFilter === 'active'}
 					aria-pressed={activeFilter === 'active'}
-					onclick={() => (activeFilter = 'active')}>Nur aktive Mitarbeiter zeigen</button
+					onclick={() => (activeFilter = 'active')}>{t('Nur aktive Mitarbeiter zeigen')}</button
 			>
 			<button
 				type="button"
 				class="entry"
 					class:active={activeFilter === 'inactive'}
 					aria-pressed={activeFilter === 'inactive'}
-					onclick={() => (activeFilter = 'inactive')}>Nur inaktive Mitarbeiter zeigen</button
+					onclick={() => (activeFilter = 'inactive')}>{t('Nur inaktive Mitarbeiter zeigen')}</button
 			>
 
 			<hr />
@@ -208,8 +214,8 @@
 					class="entry"
 						class:active={departmentFilter === ''}
 						aria-pressed={departmentFilter === ''}
-					title="Mitarbeiter ohne Abteilung"
-						onclick={() => (departmentFilter = '')}>Ohne Abteilung</button
+					title={t('Mitarbeiter ohne Abteilung')}
+						onclick={() => (departmentFilter = '')}>{t('Ohne Abteilung')}</button
 				>
 				<hr />
 			{/if}
@@ -224,45 +230,45 @@
 						onclick={() => (departmentFilter = group)}>{group}</button
 				>
 			{:else}
-				<p class="empty">Keine Abteilungen erfasst.</p>
+				<p class="empty">{t('Keine Abteilungen erfasst.')}</p>
 			{/each}
 		</aside>
 
 		<section>
-			<h2>Mitarbeiterliste</h2>
+			<h2>{t('Mitarbeiterliste')}</h2>
 			<div class="toolbar">
 				<input
-					placeholder="Schnellsuche (Name, Personalnr., Abteilung, Position)"
+					placeholder={t('Schnellsuche (Name, Personalnr., Abteilung, Position)')}
 					bind:value={quickSearch}
 					onkeydown={(e) => {
 						if (e.key !== 'Enter') return;
 						search();
 					}}
 				/>
-				<button onclick={search} disabled={loading}>{loading ? 'Lade …' : 'Schnellsuche'}</button>
-				<button onclick={() => (exchange = true)}>Import / Export</button>
+				<button onclick={search} disabled={loading}>{loading ? t('Lade …') : t('Schnellsuche')}</button>
+				<button onclick={() => (exchange = true)}>{t('Import / Export')}</button>
 				{#if auth.hasRight(RIGHT.mayCreatePersonal)}
-					<button class="search" onclick={() => (record = 'new')}>Mitarbeiter +</button>
+					<button class="search" onclick={() => (record = 'new')}>{t('Mitarbeiter +')}</button>
 				{/if}
 			</div>
 
 				{#if hasFilter}
 				<div class="criteria">
-					<span class="badge">Filter:</span>
+					<span class="badge">{t('Filter:')}</span>
 						{#if applied}
-						<span class="chip">	Suche „{applied}“</span>
+						<span class="chip">{t('Suche „{term}“', { term: applied })}</span>
 					{/if}
 						{#if activeFilter === 'active'}
-						<span class="chip">Nur aktive</span>
+						<span class="chip">{t('Nur aktive')}</span>
 						{:else if activeFilter === 'inactive'}
-						<span class="chip">Nur inaktive</span>
+						<span class="chip">{t('Nur inaktive')}</span>
 					{/if}
 						{#if departmentFilter === ''}
-						<span class="chip">Ohne Abteilung</span>
+						<span class="chip">{t('Ohne Abteilung')}</span>
 						{:else if departmentFilter !== null}
-						<span class="chip">	Abteilung „{departmentFilter}“</span>
+						<span class="chip">{t('Abteilung „{name}“', { name: departmentFilter })}</span>
 					{/if}
-					<button type="button" class="reset" onclick={reset}>Filter zurücksetzen</button>
+					<button type="button" class="reset" onclick={reset}>{t('Filter zurücksetzen')}</button>
 				</div>
 			{/if}
 
@@ -271,7 +277,7 @@
 					<tr>
 						<th aria-sort={ariaSort('personnel_no')}>
 							<button type="button" 	class="sorter" onclick={() => sortBy('personnel_no')}>
-								Pers.-Nr.
+								{t('Pers.-Nr.')}
 								{#if sortKey === 'personnel_no'}
 									<span class="arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>
 								{/if}
@@ -279,7 +285,7 @@
 						</th>
 						<th aria-sort={ariaSort('last_name')}>
 							<button type="button" 	class="sorter" onclick={() => sortBy('last_name')}>
-								Name
+								{t('Name')}
 								{#if sortKey === 'last_name'}
 									<span class="arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>
 								{/if}
@@ -287,7 +293,7 @@
 						</th>
 						<th aria-sort={ariaSort('department')}>
 							<button type="button" 	class="sorter" onclick={() => sortBy('department')}>
-								Abteilung
+								{t('Abteilung')}
 								{#if sortKey === 'department'}
 									<span class="arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>
 								{/if}
@@ -295,7 +301,7 @@
 						</th>
 						<th aria-sort={ariaSort('subdepartment')}>
 							<button type="button" 	class="sorter" onclick={() => sortBy('subdepartment')}>
-								Unterabteilung
+								{t('Unterabteilung')}
 								{#if sortKey === 'subdepartment'}
 									<span class="arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>
 								{/if}
@@ -303,15 +309,15 @@
 						</th>
 						<th aria-sort={ariaSort('position')}>
 							<button type="button" 	class="sorter" onclick={() => sortBy('position')}>
-								Position
+								{t('Position')}
 								{#if sortKey === 'position'}
 									<span class="arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>
 								{/if}
 							</button>
 						</th>
-						<th aria-sort={ariaSort('vacation_days')} title="Resturlaubstage">
+						<th aria-sort={ariaSort('vacation_days')} title={t('Resturlaubstage')}>
 							<button type="button" 	class="sorter" onclick={() => sortBy('vacation_days')}>
-								Resturlaub
+								{t('Resturlaub')}
 								{#if sortKey === 'vacation_days'}
 									<span class="arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>
 								{/if}
@@ -324,7 +330,7 @@
 						<tr
 							class:inactive={!employee.active}
 							tabindex="0"
-							title="Mitarbeiter öffnen"
+							title={t('Mitarbeiter öffnen')}
 							onclick={() => edit(employee)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
@@ -337,7 +343,7 @@
 								<td class="employeeName">
 								{name(employee)}
 								{#if employee.user_id != null}
-									<span class="userAccess" title="Hat einen Benutzerzugang">✓</span>
+									<span class="userAccess" title={t('Hat einen Benutzerzugang')}>✓</span>
 								{/if}
 							</td>
 							<td>{employee.department ?? '—'}</td>
@@ -349,10 +355,10 @@
 						<tr>
 								<td colspan={columns}>
 									{applied
-									? 'Kein Mitarbeiter passt zur Suche.'
+									? t('Kein Mitarbeiter passt zur Suche.')
 										: departmentFilter !== null || activeFilter !== 'all'
-										? 'Kein Mitarbeiter passt zum Filter.'
-										: 'Noch keine Mitarbeiter erfasst.'}
+										? t('Kein Mitarbeiter passt zum Filter.')
+										: t('Noch keine Mitarbeiter erfasst.')}
 							</td>
 						</tr>
 					{/each}
@@ -379,7 +385,7 @@
 	{#if exchange}
 		<MasterExchangeDialog
 			area="employees"
-			title="Personal"
+			title={t('Personal')}
 			filename="personal"
 			onimported={saved}
 			onclose={() => (exchange = false)}

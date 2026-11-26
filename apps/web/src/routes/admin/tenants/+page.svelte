@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import { api, errorText, type Address, type Tenant, type TenantReference } from '../../../lib/api';
 	import '../../../lib/search/search-window.css';
@@ -7,29 +9,32 @@
 	type Tab = 'einstellungen' | 'adresse';
 
 	const TABS: { key: Tab; label: string }[] = [
-		{ key: 'einstellungen', label: 'Einstellungen' },
-		{ key: 'adresse', label: 'Adresse' }
+		{ key: 'einstellungen', label: t('Einstellungen') },
+		{ key: 'adresse', label: t('Adresse') }
 	];
 
 	/** The four options of the master data sync. */
 	const SYNC_OPTIONS = [
-		{ key: 'mandanten.sync.preise', label: 'Preise synchronisieren' },
-		{ key: 'mandanten.sync.mwst', label: 'MwSt-Zuordnung synchronisieren' },
-		{ key: 'mandanten.sync.fibu', label: 'FiBu-Kontierung synchronisieren' },
-		{ key: 'mandanten.sync.lagerplatz', label: 'Anhänger Lagerplatz' }
+		{ key: 'mandanten.sync.preise', label: t('Preise synchronisieren') },
+		{ key: 'mandanten.sync.mwst', label: t('MwSt-Zuordnung synchronisieren') },
+		{ key: 'mandanten.sync.fibu', label: t('FiBu-Kontierung synchronisieren') },
+		{ key: 'mandanten.sync.lagerplatz', label: t('Anhänger Lagerplatz') }
 	];
 
 	/** The seven separations that apply to all tenants. */
 	const SEPARATOR_OPTIONS = [
-		{ key: 'mandanten.trennen.kassenbuecher', label: 'Kassenbücher trennen' },
-		{ key: 'mandanten.trennen.dokumentvorlagen', label: 'Dokumentvorlagen trennen' },
-		{ key: 'mandanten.trennen.zahlungskonditionen', label: 'Zahlungskonditionen trennen' },
-		{ key: 'mandanten.trennen.standardtexte', label: 'Standardtexte trennen' },
-		{ key: 'mandanten.trennen.staffeln', label: 'Zeitfaktoren- und Mengenstaffeln trennen' },
-		{ key: 'mandanten.trennen.emailvorlagen', label: 'E-Mailvorlagen trennen' },
+		{ key: 'mandanten.trennen.kassenbuecher', label: t('Kassenbücher trennen') },
+		{ key: 'mandanten.trennen.dokumentvorlagen', label: t('Dokumentvorlagen trennen') },
+		{ key: 'mandanten.trennen.zahlungskonditionen', label: t('Zahlungskonditionen trennen') },
+		{ key: 'mandanten.trennen.standardtexte', label: t('Standardtexte trennen') },
+		{
+			key: 'mandanten.trennen.staffeln',
+			label: t('Zeitfaktoren- und Mengenstaffeln trennen')
+		},
+		{ key: 'mandanten.trennen.emailvorlagen', label: t('E-Mailvorlagen trennen') },
 		{
 			key: 'mandanten.trennen.stammdaten',
-			label: 'Möglichkeit die Sichtbarkeit der Stammdaten zu separieren'
+			label: t('Möglichkeit die Sichtbarkeit der Stammdaten zu separieren')
 		}
 	];
 
@@ -275,7 +280,7 @@
 				if (war !== ist) await api.prefs.save(entry.key, ist ? 'true' : null);
 			}
 			await loadAll(mandant.id);
-			message = 'Gespeichert.';
+			message = t('Gespeichert.');
 		} catch (e) {
 			error = errorText(e);
 		}
@@ -323,7 +328,7 @@
 	function setAddress(address: Address) {
 		if (!form) return;
 		form.linked_address = address.id;
-		form.linked_address_name = address.name1 ?? `Adresse ${address.id}`;
+		form.linked_address_name = address.name1 ?? t('Adresse {id}', { id: address.id });
 		addressSearch = null;
 	}
 
@@ -335,9 +340,9 @@
 	}
 </script>
 
-<svelte:head><title>Einstellungen Mandanten — WHERE</title></svelte:head>
+<svelte:head><title>{t('Einstellungen Mandanten — WHERE')}</title></svelte:head>
 
-<h1>Einstellungen Mandanten</h1>
+<h1>{t('Einstellungen Mandanten')}</h1>
 
 <div class="window">
 	<div class="left">
@@ -345,9 +350,9 @@
 			<table>
 				<thead>
 					<tr>
-						<th class="abbr">Abk.</th>
-						<th>Firmename</th>
-						<th class="center">Stammdaten-Sync</th>
+						<th class="abbr">{t('Abk.')}</th>
+						<th>{t('Firmename')}</th>
+						<th class="center">{t('Stammdaten-Sync')}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -360,30 +365,30 @@
 									type="checkbox"
 									checked={mandant.sync_id > 0}
 									disabled
-									title="Stammdaten-Abgleich eingerichtet (SyncID)"
+									title={t('Stammdaten-Abgleich eingerichtet (SyncID)')}
 								/>
 							</td>
 						</tr>
 					{:else}
-						<tr><td colspan="3">{load ? 'Lade …' : 'Noch kein Mandant.'}</td></tr>
+						<tr><td colspan="3">{load ? t('Lade …') : t('Noch kein Mandant.')}</td></tr>
 					{/each}
 				</tbody>
 			</table>
 		</div>
 
 		<div class="list-head">
-			<button type="button" class="square" title="Neuer Mandant" onclick={createNew}>+</button>
+			<button type="button" class="square" title={t('Neuer Mandant')} onclick={createNew}>+</button>
 			<button
 				type="button"
 				class="square"
-				title="Weitere Angaben zum Mandanten"
+				title={t('Weitere Angaben zum Mandanten')}
 				disabled={form?.id == null}
 				onclick={detailsOeffnen}>⚙</button
 			>
 		</div>
 
 		<section class="group">
-			<h2>Optionen für Stammdaten-Sync</h2>
+			<h2>{t('Optionen für Stammdaten-Sync')}</h2>
 			{#each SYNC_OPTIONS as entry (entry.key)}
 				<label class="check">
 					<input
@@ -397,7 +402,7 @@
 		</section>
 
 		<section class="group">
-			<h2>Optionen (für alle Mandanten)</h2>
+			<h2>{t('Optionen (für alle Mandanten)')}</h2>
 			{#each SEPARATOR_OPTIONS as entry (entry.key)}
 				<label class="check">
 					<input
@@ -412,7 +417,7 @@
 	</div>
 
 	<div class="right">
-		<div class="tabs" role="tablist" aria-label="Mandant">
+		<div class="tabs" role="tablist" aria-label={t('Mandant')}>
 			{#each TABS as entry (entry.key)}
 				<button
 					type="button"
@@ -428,7 +433,7 @@
 			<div class="sheet">
 				{#if tab === 'einstellungen'}
 					<div class="row">
-						<span class="caption">Firmenname</span>
+						<span class="caption">{t('Firmenname')}</span>
 						<input
 							class="text"
 							maxlength="80"
@@ -437,7 +442,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Abkürzung</span>
+						<span class="caption">{t('Abkürzung')}</span>
 						<input
 							class="text short"
 							maxlength="20"
@@ -446,7 +451,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Ident.-Nr.</span>
+						<span class="caption">{t('Ident.-Nr.')}</span>
 						<input
 							class="numeric"
 							type="number"
@@ -456,19 +461,19 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Land</span>
+						<span class="caption">{t('Land')}</span>
 						<input
 							class="text short"
 							maxlength="3"
 							list="mandanten-laender"
-							placeholder="DEU"
+							placeholder={t('DEU')}
 							value={form.country_iso3}
 							oninput={(e) => (form!.country_iso3 = e.currentTarget.value.toUpperCase())}
 						/>
 						<span class="computed">{landName(form.country_iso3)}</span>
 					</div>
 					<div class="row">
-						<span class="caption">Drucksprache</span>
+						<span class="caption">{t('Drucksprache')}</span>
 						<select
 							class="text"
 							value={form.print_language}
@@ -483,50 +488,50 @@
 						</select>
 					</div>
 					<div class="row">
-						<span class="caption">Toolbarfarbe</span>
+						<span class="caption">{t('Toolbarfarbe')}</span>
 						<label class="check">
 							<input
 								type="checkbox"
 								checked={form.color_on}
 								onchange={(e) => (form!.color_on = e.currentTarget.checked)}
 							/>
-							Aktiv
+							{t('Aktiv')}
 						</label>
 					</div>
 					<div class="row">
-						<span class="caption">Informationen über den Artikeleinsatz zeigen</span>
+						<span class="caption">{t('Informationen über den Artikeleinsatz zeigen')}</span>
 						<label class="check">
 							<input
 								type="checkbox"
 								checked={form.hide_actions}
 								onchange={(e) => (form!.hide_actions = e.currentTarget.checked)}
 							/>
-							Vor Anderen verstecken
+							{t('Vor Anderen verstecken')}
 						</label>
 					</div>
 					<div class="row">
-						<span class="caption">Verlinkte Adresse</span>
+						<span class="caption">{t('Verlinkte Adresse')}</span>
 						<div class="field-with-button">
 							<button
 								type="button"
 								class="square"
-								title="Adresse wählen"
+								title={t('Adresse wählen')}
 								onclick={() => loadAddresses('')}>+</button
 							>
 							{#if form.linked_address != null}
 								<button
 									type="button"
 									class="square"
-									title="Verlinkung entfernen"
+									title={t('Verlinkung entfernen')}
 									onclick={mayDeleteAddress}>×</button
 								>
 							{/if}
-							<span class="value">{form.linked_address_name || 'Keine'}</span>
+							<span class="value">{form.linked_address_name || t('Keine')}</span>
 						</div>
 					</div>
 				{:else}
 					<div class="row">
-						<span class="caption">Adresszusatz</span>
+						<span class="caption">{t('Adresszusatz')}</span>
 						<input
 							class="text"
 							value={form.address_extra}
@@ -534,7 +539,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Straße / Postfach</span>
+						<span class="caption">{t('Straße / Postfach')}</span>
 						<input
 							class="text"
 							value={form.street}
@@ -542,7 +547,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">PLZ</span>
+						<span class="caption">{t('PLZ')}</span>
 						<input
 							class="text short"
 							maxlength="10"
@@ -551,7 +556,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Ort</span>
+						<span class="caption">{t('Ort')}</span>
 						<input
 							class="text"
 							value={form.city}
@@ -559,19 +564,19 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Land</span>
+						<span class="caption">{t('Land')}</span>
 						<input
 							class="text short"
 							maxlength="3"
 							list="mandanten-laender"
-							placeholder="DEU"
+							placeholder={t('DEU')}
 							value={form.country_iso3}
 							oninput={(e) => (form!.country_iso3 = e.currentTarget.value.toUpperCase())}
 						/>
 						<span class="computed">{landName(form.country_iso3)}</span>
 					</div>
 					<div class="row">
-						<span class="caption">Telefon</span>
+						<span class="caption">{t('Telefon')}</span>
 						<input
 							class="text"
 							value={form.phone}
@@ -579,11 +584,11 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Fax</span>
+						<span class="caption">{t('Fax')}</span>
 						<input class="text" value={form.fax} oninput={(e) => (form!.fax = e.currentTarget.value)} />
 					</div>
 					<div class="row">
-						<span class="caption">eMail</span>
+						<span class="caption">{t('eMail')}</span>
 						<input
 							class="text"
 							value={form.email}
@@ -591,7 +596,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">eMail (Buchhaltung)</span>
+						<span class="caption">{t('eMail (Buchhaltung)')}</span>
 						<input
 							class="text"
 							value={form.email_accounting}
@@ -599,7 +604,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Webseite</span>
+						<span class="caption">{t('Webseite')}</span>
 						<input
 							class="text"
 							value={form.website}
@@ -607,7 +612,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">UST-Ident-Nr.</span>
+						<span class="caption">{t('UST-Ident-Nr.')}</span>
 						<input
 							class="text"
 							value={form.vat_id}
@@ -615,7 +620,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Steuernummer</span>
+						<span class="caption">{t('Steuernummer')}</span>
 						<input
 							class="text"
 							value={form.tax_number}
@@ -623,7 +628,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Register-Eintrag</span>
+						<span class="caption">{t('Register-Eintrag')}</span>
 						<input
 							class="text"
 							value={form.register_entry}
@@ -631,7 +636,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Register-Sitz</span>
+						<span class="caption">{t('Register-Sitz')}</span>
 						<input
 							class="text"
 							value={form.register_place}
@@ -651,13 +656,13 @@
 						type="button"
 						class="btn primary"
 						onclick={commit}
-						disabled={!form.name.trim() || !changed}>Änderungen speichern</button
+						disabled={!form.name.trim() || !changed}>{t('Änderungen speichern')}</button
 					>
 				</div>
 			</div>
 		{:else}
 			<div class="sheet empty">
-				<p class="small">Links einen Mandanten wählen oder mit `+` einen neuen anlegen.</p>
+				<p class="small">{t('Links einen Mandanten wählen oder mit `+` einen neuen anlegen.')}</p>
 			</div>
 		{/if}
 	</div>
@@ -665,17 +670,17 @@
 
 <footer class="foot">
 	<span class="small">
-		Die Liste zeigt `Abk.`, Firmenname und ob ein Stammdaten-Abgleich eingerichtet ist.
+		{t('Die Liste zeigt `Abk.`, Firmenname und ob ein Stammdaten-Abgleich eingerichtet ist.')}
 	</span>
 	<span class="spacer"></span>
 	<button type="button" class="btn" onclick={cancel} disabled={!form || !changed}>
-		Abbrechen
+		{t('Abbrechen')}
 	</button>
 	<button
 		type="button"
 		class="btn primary"
 		onclick={commit}
-		disabled={!form?.name.trim() || !changed}>Sichern</button
+		disabled={!form?.name.trim() || !changed}>{t('Sichern')}</button
 	>
 </footer>
 
@@ -692,35 +697,35 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Weitere Angaben"
+			aria-label={t('Weitere Angaben')}
 			style="width: min(30rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
-				<span class="sw-title">Weitere Angaben — {details.name}</span>
+				<span class="sw-title">{t('Weitere Angaben — {name}', { name: details.name })}</span>
 				<button
 					class="sw-close"
 					type="button"
-					title="Schließen"
+					title={t('Schließen')}
 					onclick={() => (details = null)}>×</button
 				>
 			</div>
 			<div class="sw-content">
 				<label class="field">
-					Übergeordneter Mandant
+					{t('Übergeordneter Mandant')}
 					<select
 						class="text"
 						value={details.parent}
 						onchange={(e) => (details!.parent = e.currentTarget.value)}
 					>
-						<option value="">— keiner —</option>
+						<option value="">{t('— keiner —')}</option>
 						{#each tenants.filter((entry) => entry.id !== details!.id) as entry (entry.id)}
 							<option value={String(entry.id)}>{entry.name}</option>
 						{/each}
 					</select>
 				</label>
 				<label class="field">
-					Stammdaten-Sync (ID)
+					{t('Stammdaten-Sync (ID)')}
 					<input
 						class="text"
 						type="number"
@@ -730,7 +735,7 @@
 					/>
 				</label>
 				<label class="field">
-					Web-Kennung
+					{t('Web-Kennung')}
 					<input
 						class="text"
 						maxlength="64"
@@ -739,19 +744,19 @@
 					/>
 				</label>
 				<label class="field">
-					Währung
+					{t('Währung')}
 					<input
 						class="text short"
 						maxlength="20"
-						placeholder="EUR"
+						placeholder={t('EUR')}
 						value={details.currency}
 						oninput={(e) => (details!.currency = e.currentTarget.value.toUpperCase())}
 					/>
 				</label>
 			</div>
 			<div class="sw-footer">
-				<button type="button" class="sw-button" onclick={() => (details = null)}>Abbrechen</button>
-				<button type="button" class="sw-button primary" onclick={saveDetails}>Übernehmen</button>
+				<button type="button" class="sw-button" onclick={() => (details = null)}>{t('Abbrechen')}</button>
+				<button type="button" class="sw-button primary" onclick={saveDetails}>{t('Übernehmen')}</button>
 			</div>
 		</div>
 	</div>
@@ -763,27 +768,27 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Adresse wählen"
+			aria-label={t('Adresse wählen')}
 			style="width: min(34rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
-				<span class="sw-title">Verlinkte Adresse</span>
+				<span class="sw-title">{t('Verlinkte Adresse')}</span>
 				<button
 					class="sw-close"
 					type="button"
-					title="Schließen"
+					title={t('Schließen')}
 					onclick={() => (addressSearch = null)}>×</button
 				>
 			</div>
 			<div class="sw-content">
 				<label class="field">
-					Suche
+					{t('Suche')}
 					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						class="text"
 						autofocus
-						placeholder="Name, Nummer, Ort"
+						placeholder={t('Name, Nummer, Ort')}
 						value={addressSearch.q}
 						oninput={(e) => loadAddresses(e.currentTarget.value)}
 					/>
@@ -792,16 +797,16 @@
 					{#each addressSearch.matches as address (address.id)}
 						<button type="button" class="match-row" onclick={() => setAddress(address)}>
 							<span class="number">{address.customer_no ?? ''}</span>
-							<span>{address.name1 ?? `Adresse ${address.id}`}</span>
+							<span>{address.name1 ?? t('Adresse {id}', { id: address.id })}</span>
 							<span class="small">{address.city ?? ''}</span>
 						</button>
 					{:else}
-						<p class="small">Keine Adresse gefunden.</p>
+						<p class="small">{t('Keine Adresse gefunden.')}</p>
 					{/each}
 				</div>
 			</div>
 			<div class="sw-footer">
-				<button type="button" class="sw-button" onclick={() => (addressSearch = null)}>Abbrechen</button>
+				<button type="button" class="sw-button" onclick={() => (addressSearch = null)}>{t('Abbrechen')}</button>
 			</div>
 		</div>
 	</div>

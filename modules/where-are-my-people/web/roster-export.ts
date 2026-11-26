@@ -1,5 +1,5 @@
 /**
- * The duty plan as a file: CSV, XLSX and PDF.
+ * The schedule as a file: CSV, XLSX and PDF.
  *
  * The preview shows the same sheets the PDF carries, so both are built from one
  * report — the days of the month, the rows of the disposition per location and the

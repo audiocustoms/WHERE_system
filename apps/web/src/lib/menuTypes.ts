@@ -21,7 +21,23 @@ export type Entry =
 			/** Module whose licence does not grant it — drawn with a lock in the template. */
 			locked?: boolean;
 			/** Entry that opens a window instead of navigating. */
-			action?: 'address-create' | 'search' | 'address-search' | 'article-create' | 'import';
+			action?:
+				| 'address-create'
+				| 'search'
+				| 'address-search'
+				| 'article-create'
+				| 'import'
+				| 'personal-settings'
+				| 'quit'
+				/** Die Befehle des Menüs `Bearbeiten`; sie wirken auf das aktive Feld. */
+				| 'edit-undo'
+				| 'edit-redo'
+				| 'edit-cut'
+				| 'edit-copy'
+				| 'edit-paste'
+				| 'edit-delete'
+				| 'edit-select-all'
+				| 'clipboard-show';
 			/** Right without which the entry does not appear; a list is enough with one of them. */
 			need?: string | string[];
 			/** Module without which the entry does not appear. */

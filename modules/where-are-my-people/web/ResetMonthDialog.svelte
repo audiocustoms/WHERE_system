@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '$core/escape.svelte';
 	import '$core/search/search-window.css';
 
@@ -70,19 +72,19 @@
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
 			<span class="sw-title">{title}</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={onclose}>×</button>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={onclose}>×</button>
 		</div>
 
 		<div class="sw-content">
 			<div class="sw-form">
 				<div class="row">
-					<label for="reset-month">Monat</label>
+					<label for="reset-month">{t('Monat')}</label>
 					<select id="reset-month" class="month" bind:value={monthChoice}>
 						{#each MONTHS as name, index (name)}
-							<option value={String(index + 1)}>{name}</option>
+							<option value={String(index + 1)}>{t(name)}</option>
 						{/each}
 					</select>
-					<label for="reset-year">Jahr</label>
+					<label for="reset-year">{t('Jahr')}</label>
 					<select id="reset-year" class="year" bind:value={yearChoice}>
 						{#each YEARS as year (year)}
 							<option value={String(year)}>{year}</option>
@@ -93,7 +95,7 @@
 		</div>
 
 		<div class="sw-footer">
-			<button class="sw-button" type="button" onclick={onclose}>Abbrechen</button>
+			<button class="sw-button" type="button" onclick={onclose}>{t('Abbrechen')}</button>
 			<button class="sw-button sw-primary" type="button" onclick={confirm}>{title}</button>
 		</div>
 	</div>

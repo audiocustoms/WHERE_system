@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -14,11 +16,11 @@
 	type Tab = 'rules' | 'times' | 'schedule' | 'headings' | 'macros';
 
 	const TABS: { key: Tab; label: string }[] = [
-		{ key: 'rules', label: 'Regeln' },
-		{ key: 'times', label: 'Zeiten' },
-		{ key: 'schedule', label: 'Zeitplan' },
-		{ key: 'headings', label: 'Überschriften' },
-		{ key: 'macros', label: 'Makros' }
+		{ key: 'rules', label: t('Regeln') },
+		{ key: 'times', label: t('Zeiten') },
+		{ key: 'schedule', label: t('Zeitplan') },
+		{ key: 'headings', label: t('Überschriften') },
+		{ key: 'macros', label: t('Makros') }
 	];
 
 	/** An input window for one macro. */
@@ -101,10 +103,10 @@
 
 	async function cancel() {
 		if (changed && !(await askConfirm({
-			title: 'Abbrechen',
-			message: 'Das Bearbeiten der Auftragseinstellungen wirklich abbrechen? Nicht gesicherte Eingaben gehen verloren.',
-			confirmLabel: 'Ja, abbrechen',
-			cancelLabel: 'Weiter bearbeiten'
+			title: t('Abbrechen'),
+			message: t('Das Bearbeiten der Auftragseinstellungen wirklich abbrechen? Nicht gesicherte Eingaben gehen verloren.'),
+			confirmLabel: t('Ja, abbrechen'),
+			cancelLabel: t('Weiter bearbeiten')
 		})))
 			return;
 		await loadAll();
@@ -135,7 +137,7 @@
 
 	function newMacro() {
 		macroDialog = {
-			title: 'Neues Makro',
+			title: t('Neues Makro'),
 			id: null,
 			label: '',
 			for_sale: false,
@@ -148,7 +150,7 @@
 		const macro = macros.find((entry) => entry.id === macroChoice);
 		if (!macro) return;
 		macroDialog = {
-			title: 'Makro ändern',
+			title: t('Makro ändern'),
 			id: macro.id,
 			label: macro.label,
 			for_sale: macro.for_sale,
@@ -182,10 +184,10 @@
 		const macro = macros.find((entry) => entry.id === macroChoice);
 		if (!macro) return;
 		const ok = await askConfirm({
-			title: 'Löschen',
-			message: `Makro „${macro.label}“ löschen?`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+			title: t('Löschen'),
+			message: t('Makro „{label}“ löschen?', { label: macro.label }),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
@@ -199,11 +201,11 @@
 	}
 </script>
 
-<svelte:head><title>Auftragseinstellungen — WHERE</title></svelte:head>
+<svelte:head><title>{t('Auftragseinstellungen — WHERE')}</title></svelte:head>
 
-<h1>Auftragseinstellungen</h1>
+<h1>{t('Auftragseinstellungen')}</h1>
 
-<div class="tab" role="tablist" aria-label="Auftragseinstellungen">
+<div class="tab" role="tablist" aria-label={t('Auftragseinstellungen')}>
 	{#each TABS as entry (entry.key)}
 		<button
 			type="button"
@@ -217,16 +219,16 @@
 
 <section class="box" aria-label={tab}>
 	{#if load}
-		<p class="small">Lade…</p>
+		<p class="small">{t('Lade…')}</p>
 	{:else if tab === 'rules'}
-		<h2>Regeln für die Angebotswiderbearbeitung</h2>
+		<h2>{t('Regeln für die Angebotswiderbearbeitung')}</h2>
 		<label class="check">
 			<input
 				type="checkbox"
 				checked={bool('order.regeln.dispo-pflicht')}
 				onchange={(e) => setPrefBool('order.regeln.dispo-pflicht', e.currentTarget.checked)}
 			/>
-			Angebot muss disponiert sein zum Beauftragen
+			{t('Angebot muss disponiert sein zum Beauftragen')}
 		</label>
 		<label class="check">
 			<input
@@ -235,9 +237,9 @@
 				onchange={(e) =>
 					setPrefBool('order.regeln.nur-auftraege-packschein', e.currentTarget.checked)}
 			/>
-			Nur Aufträge zum Packschein erstellen zulassen
+			{t('Nur Aufträge zum Packschein erstellen zulassen')}
 		</label>
-		<p class="note">Angebote werden ignoriert</p>
+		<p class="note">{t('Angebote werden ignoriert')}</p>
 		<label class="check">
 			<input
 				type="checkbox"
@@ -245,9 +247,9 @@
 				onchange={(e) =>
 					setPrefBool('order.regeln.angebote-direkt-abrechnen', e.currentTarget.checked)}
 			/>
-			Angebote können direkt abgerechnet werden
+			{t('Angebote können direkt abgerechnet werden')}
 		</label>
-		<p class="note">Angebote müssen nicht erst beauftragt werden um sie abzurechnen</p>
+		<p class="note">{t('Angebote müssen nicht erst beauftragt werden um sie abzurechnen')}</p>
 		<label class="check indented">
 			<input
 				type="checkbox"
@@ -255,20 +257,20 @@
 				onchange={(e) =>
 					setPrefBool('order.regeln.nicht-aktuelle-abrechnen', e.currentTarget.checked)}
 			/>
-			Abrechnung von nicht-aktuellen Angeboten zulassen
+			{t('Abrechnung von nicht-aktuellen Angeboten zulassen')}
 		</label>
 		<p class="note indented">
-			Angebote müssen nicht den Status „aktuelle Version“ haben um sie abzurechnen
+			{t('Angebote müssen nicht den Status „aktuelle Version“ haben um sie abzurechnen')}
 		</p>
 
-		<h2>Artikeldiposition</h2>
+		<h2>{t('Artikeldiposition')}</h2>
 		<label class="check">
 			<input
 				type="checkbox"
 				checked={bool('order.regeln.dispo-aktivieren')}
 				onchange={(e) => setPrefBool('order.regeln.dispo-aktivieren', e.currentTarget.checked)}
 			/>
-			Dispo bei Neuanlage von Angeboten immer aktivieren
+			{t('Dispo bei Neuanlage von Angeboten immer aktivieren')}
 		</label>
 		<label class="check">
 			<input
@@ -276,10 +278,10 @@
 				checked={bool('order.regeln.freie-artikel-fremd')}
 				onchange={(e) => setPrefBool('order.regeln.freie-artikel-fremd', e.currentTarget.checked)}
 			/>
-			Freie Artikel immer als Fremdanmietung/-einkauf behandeln
+			{t('Freie Artikel immer als Fremdanmietung/-einkauf behandeln')}
 		</label>
 
-		<h2>Personaldisposition</h2>
+		<h2>{t('Personaldisposition')}</h2>
 		<label class="check">
 			<input
 				type="checkbox"
@@ -287,17 +289,17 @@
 				onchange={(e) =>
 					setPrefBool('order.regeln.personal-keine-mehrfachbuchung', e.currentTarget.checked)}
 			/>
-			Keine Mehrfachbuchung von Personal zur selben Zeit zulassen
+			{t('Keine Mehrfachbuchung von Personal zur selben Zeit zulassen')}
 		</label>
 
-		<h2>Druckoptionen setzen bei Neuanlage</h2>
+		<h2>{t('Druckoptionen setzen bei Neuanlage')}</h2>
 		<label class="check">
 			<input
 				type="checkbox"
 				checked={bool('order.regeln.druck.einzelpreise')}
 				onchange={(e) => setPrefBool('order.regeln.druck.einzelpreise', e.currentTarget.checked)}
 			/>
-			Einzelpreise drucken
+			{t('Einzelpreise drucken')}
 		</label>
 		<label class="check">
 			<input
@@ -305,7 +307,7 @@
 				checked={bool('order.regeln.druck.gesamtpreise')}
 				onchange={(e) => setPrefBool('order.regeln.druck.gesamtpreise', e.currentTarget.checked)}
 			/>
-			Gesamtpreise drucken von Artikeln/Personal/Transport/Kapiteln
+			{t('Gesamtpreise drucken von Artikeln/Personal/Transport/Kapiteln')}
 		</label>
 		<label class="check">
 			<input
@@ -313,26 +315,26 @@
 				checked={bool('order.regeln.druck.zwischensummen')}
 				onchange={(e) => setPrefBool('order.regeln.druck.zwischensummen', e.currentTarget.checked)}
 			/>
-			Gesamtpreise drucken von Zwischensummen
+			{t('Gesamtpreise drucken von Zwischensummen')}
 		</label>
 
-		<h2>Anzeige</h2>
+		<h2>{t('Anzeige')}</h2>
 		<div class="row">
-			<a class="button" href="/agenda">Bearbeiten</a>
-			<span>Auftragskategorien für TeamAgenda-Darstellung</span>
+			<a class="button" href="/agenda">{t('Bearbeiten')}</a>
+			<span>{t('Auftragskategorien für TeamAgenda-Darstellung')}</span>
 		</div>
 	{:else if tab === 'times'}
-		<h2>Angebotsdatum</h2>
+		<h2>{t('Angebotsdatum')}</h2>
 		<label class="check">
 			<input
 				type="checkbox"
 				checked={bool('order.angebotsdatum.aktuell')}
 				onchange={(e) => setPrefBool('order.angebotsdatum.aktuell', e.currentTarget.checked)}
 			/>
-			Angebotsdatum bei jedem Sichern auf aktuelles Datum setzen
+			{t('Angebotsdatum bei jedem Sichern auf aktuelles Datum setzen')}
 		</label>
 
-		<h2>Einsatztage-Berechnung</h2>
+		<h2>{t('Einsatztage-Berechnung')}</h2>
 		<label class="check">
 			<input
 				type="radio"
@@ -340,9 +342,9 @@
 				checked={text('order.einsatztage.regel') !== '24h'}
 				onchange={() => setPref('order.einsatztage.regel', 'tagesregel')}
 			/>
-			Tagesregel
+			{t('Tagesregel')}
 		</label>
-		<p class="note">Jeder angefangene Tag zählt als Einsatztag</p>
+		<p class="note">{t('Jeder angefangene Tag zählt als Einsatztag')}</p>
 		<label class="check">
 			<input
 				type="radio"
@@ -350,21 +352,20 @@
 				checked={text('order.einsatztage.regel') === '24h'}
 				onchange={() => setPref('order.einsatztage.regel', '24h')}
 			/>
-			24h Regel
+			{t('24h Regel')}
 		</label>
 		<p class="note">
-			Die Tage werden nach 24h Einheiten berechnet ab der Einsatzzeit. Einsätze unter 24h
-			werden als 1 Tag berechnet.
+			{t('Die Tage werden nach 24h Einheiten berechnet ab der Einsatzzeit. Einsätze unter 24h werden als 1 Tag berechnet.')}
 		</p>
 
-		<h2>Angebotsablauffrist (Miete)</h2>
+		<h2>{t('Angebotsablauffrist (Miete)')}</h2>
 		<label class="check">
 			<input
 				type="checkbox"
 				checked={bool('order.ablauffrist.miete.active')}
 				onchange={(e) => setPrefBool('order.ablauffrist.miete.active', e.currentTarget.checked)}
 			/>
-			Angebotsablauffrist bei Neuanlage aktivieren
+			{t('Angebotsablauffrist bei Neuanlage aktivieren')}
 		</label>
 		<div class="row">
 			<input
@@ -374,7 +375,7 @@
 				value={text('order.ablauffrist.miete.nachdatum')}
 				oninput={(e) => setPref('order.ablauffrist.miete.nachdatum', e.currentTarget.value)}
 			/>
-			<span>(Tage) zur Berechnung der Angebotsablauffrist nach Angebotsdatum</span>
+			<span>{t('(Tage) zur Berechnung der Angebotsablauffrist nach Angebotsdatum')}</span>
 		</div>
 		<div class="row">
 			<input
@@ -384,17 +385,17 @@
 				value={text('order.ablauffrist.miete.vorevent')}
 				oninput={(e) => setPref('order.ablauffrist.miete.vorevent', e.currentTarget.value)}
 			/>
-			<span>(Tage) zur Berechnung der Angebotsablauffrist vor Eventbeginn</span>
+			<span>{t('(Tage) zur Berechnung der Angebotsablauffrist vor Eventbeginn')}</span>
 		</div>
 
-		<h2>Angebotsablauffrist (Verkauf)</h2>
+		<h2>{t('Angebotsablauffrist (Verkauf)')}</h2>
 		<label class="check">
 			<input
 				type="checkbox"
 				checked={bool('order.ablauffrist.verkauf.active')}
 				onchange={(e) => setPrefBool('order.ablauffrist.verkauf.active', e.currentTarget.checked)}
 			/>
-			Angebotsablauffrist bei Neuanlage aktivieren
+			{t('Angebotsablauffrist bei Neuanlage aktivieren')}
 		</label>
 		<div class="row">
 			<input
@@ -404,10 +405,10 @@
 				value={text('order.ablauffrist.verkauf.nachdatum')}
 				oninput={(e) => setPref('order.ablauffrist.verkauf.nachdatum', e.currentTarget.value)}
 			/>
-			<span>(Tage) zur Berechnung der Angebotsablauffrist nach Angebotsdatum</span>
+			<span>{t('(Tage) zur Berechnung der Angebotsablauffrist nach Angebotsdatum')}</span>
 		</div>
 
-		<h2>Zeiteinstellungen</h2>
+		<h2>{t('Zeiteinstellungen')}</h2>
 		<div class="row">
 			<input
 				class="time"
@@ -416,7 +417,7 @@
 				oninput={(e) => setPref('order.zeit.start', e.currentTarget.value)}
 			/>
 			<span>+</span>
-			<span>Standard Startzeit</span>
+			<span>{t('Standard Startzeit')}</span>
 			<input
 				class="time"
 				type="time"
@@ -424,7 +425,7 @@
 				oninput={(e) => setPref('order.zeit.ende', e.currentTarget.value)}
 			/>
 			<span>+</span>
-			<span>Standard Endzeit beim Anlegen von AU und RE</span>
+			<span>{t('Standard Endzeit beim Anlegen von AU und RE')}</span>
 		</div>
 		<div class="row">
 			<input
@@ -434,7 +435,7 @@
 				value={text('order.dispo.vor')}
 				oninput={(e) => setPref('order.dispo.vor', e.currentTarget.value)}
 			/>
-			<span>(Stunden) Dispostart vordatieren in Abhängigkeit der Eventstartzeit</span>
+			<span>{t('(Stunden) Dispostart vordatieren in Abhängigkeit der Eventstartzeit')}</span>
 		</div>
 		<div class="row">
 			<input
@@ -444,10 +445,10 @@
 				value={text('order.dispo.nach')}
 				oninput={(e) => setPref('order.dispo.nach', e.currentTarget.value)}
 			/>
-			<span>(Stunden) Dispoende nachdatieren in Abhängigkeit der Eventendzeit</span>
+			<span>{t('(Stunden) Dispoende nachdatieren in Abhängigkeit der Eventendzeit')}</span>
 		</div>
 
-		<h2>Automatische Archivierung von Aufträgen/Packscheinen</h2>
+		<h2>{t('Automatische Archivierung von Aufträgen/Packscheinen')}</h2>
 		<div class="row">
 			<input
 				class="number"
@@ -456,7 +457,7 @@
 				value={text('order.archiv.auftrag')}
 				oninput={(e) => setPref('order.archiv.auftrag', e.currentTarget.value)}
 			/>
-			<span>(Tage) nach Auftragsbeendigung/Stornierung den Auftrag automatisch archivieren</span>
+			<span>{t('(Tage) nach Auftragsbeendigung/Stornierung den Auftrag automatisch archivieren')}</span>
 		</div>
 		<div class="row">
 			<input
@@ -466,16 +467,15 @@
 				value={text('order.archiv.packschein')}
 				oninput={(e) => setPref('order.archiv.packschein', e.currentTarget.value)}
 			/>
-			<span>(Tage) nach komplettem Check-In den Packschein automatisch archivieren</span>
+			<span>{t('(Tage) nach komplettem Check-In den Packschein automatisch archivieren')}</span>
 		</div>
 	{:else if tab === 'schedule'}
 		<p class="intro">
-			Der folgende Zeitplan mit den ausgewählten Zeiten wird bei einer Neuanlage eines
-			Auftrages/einer Rechnung standarmäßig angezeigt.
+			{t('Der folgende Zeitplan mit den ausgewählten Zeiten wird bei einer Neuanlage eines Auftrages/einer Rechnung standarmäßig angezeigt.')}
 		</p>
 		<table>
 			<thead>
-				<tr><th>Timeline</th><th class="center">Anzeigen</th></tr>
+				<tr><th>{t('Timeline')}</th><th class="center">{t('Anzeigen')}</th></tr>
 			</thead>
 			<tbody>
 				{#each timeline as row (row.key)}
@@ -490,19 +490,19 @@
 						</td>
 					</tr>
 				{:else}
-					<tr><td colspan="2">Kein Zeitplan hinterlegt.</td></tr>
+					<tr><td colspan="2">{t('Kein Zeitplan hinterlegt.')}</td></tr>
 				{/each}
 			</tbody>
 		</table>
 	{:else if tab === 'headings'}
 		<table>
 			<thead>
-				<tr><th>Überschrift</th><th class="center">Anzeigen</th><th>Bezeichnung</th></tr>
+				<tr><th>{t('Überschrift')}</th><th class="center">{t('Anzeigen')}</th><th>{t('Bezeichnung')}</th></tr>
 			</thead>
 			<tbody>
 				{#each headings as row (row.number)}
 					<tr>
-						<td>Überschrift {row.number}</td>
+						<td>{t('Überschrift')} {row.number}</td>
 						<td class="center">
 							<input
 								type="checkbox"
@@ -520,7 +520,7 @@
 						</td>
 					</tr>
 				{:else}
-					<tr><td colspan="3">Keine Überschriften hinterlegt.</td></tr>
+					<tr><td colspan="3">{t('Keine Überschriften hinterlegt.')}</td></tr>
 				{/each}
 			</tbody>
 		</table>
@@ -528,10 +528,10 @@
 		<table>
 			<thead>
 				<tr>
-					<th>Bezeichnung</th>
-					<th class="center">Verkauf</th>
-					<th class="center">Aktiv</th>
-					<th>Erstellt von</th>
+					<th>{t('Bezeichnung')}</th>
+					<th class="center">{t('Verkauf')}</th>
+					<th class="center">{t('Aktiv')}</th>
+					<th>{t('Erstellt von')}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -545,29 +545,29 @@
 						}}
 					>
 						<td>{macro.label}</td>
-						<td class="center">{macro.for_sale ? 'Ja' : 'Nein'}</td>
-						<td class="center">{macro.active ? 'Ja' : 'Nein'}</td>
+						<td class="center">{macro.for_sale ? t('Ja') : t('Nein')}</td>
+						<td class="center">{macro.active ? t('Ja') : t('Nein')}</td>
 						<td>{macro.created_by ?? '—'}</td>
 					</tr>
 				{:else}
-					<tr><td colspan="4">Noch keine Makros.</td></tr>
+					<tr><td colspan="4">{t('Noch keine Makros.')}</td></tr>
 				{/each}
 			</tbody>
 		</table>
 		<div class="macro-foot">
-			<div class="button-group" role="group" aria-label="Makro">
-				<button type="button" class="square" title="Neues Makro" onclick={newMacro}>+</button>
+			<div class="button-group" role="group" aria-label={t('Makro')}>
+				<button type="button" class="square" title={t('Neues Makro')} onclick={newMacro}>+</button>
 				<button
 					type="button"
 					class="square"
-					title="Ändern"
+					title={t('Ändern')}
 					disabled={macroChoice === null}
 					onclick={editMacro}>✎</button
 				>
 				<button
 					type="button"
 					class="square"
-					title="Löschen"
+					title={t('Löschen')}
 					disabled={macroChoice === null}
 					onclick={deleteMacro}>−</button
 				>
@@ -579,17 +579,17 @@
 <footer class="footer">
 	<span class="small">
 		{tab === 'rules' || tab === 'times'
-			? 'Regeln und Zeiten sichern mit „Sichern“.'
-			: 'Diese Listen sichern sofort.'}
+			? t('Regeln und Zeiten sichern mit „Sichern“.')
+			: t('Diese Listen sichern sofort.')}
 	</span>
 	<span class="spacer"></span>
-	<button type="button" class="button" onclick={cancel} disabled={load}>Abbrechen</button>
+	<button type="button" class="button" onclick={cancel} disabled={load}>{t('Abbrechen')}</button>
 	<button
 		type="button"
 		class="button primary"
 		onclick={commit}
 		disabled={!changed}
-		title={changed ? 'Änderungen speichern' : 'Nichts geändert'}>{changed ? 'Sichern' : 'Sichern'}</button
+		title={changed ? t('Änderungen speichern') : t('Nichts geändert')}>{t('Sichern')}</button
 	>
 </footer>
 
@@ -612,13 +612,13 @@
 				<button
 					class="sw-close"
 					type="button"
-					title="Schließen"
+					title={t('Schließen')}
 					onclick={() => (macroDialog = null)}>×</button
 				>
 			</div>
 			<div class="sw-content">
 				<label class="field">
-					Bezeichnung
+					{t('Bezeichnung')}
 					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						class="text"
@@ -637,7 +637,7 @@
 						checked={macroDialog.for_sale}
 						onchange={(e) => (macroDialog!.for_sale = e.currentTarget.checked)}
 					/>
-					Verkauf
+					{t('Verkauf')}
 				</label>
 				<label class="check">
 					<input
@@ -645,14 +645,14 @@
 						checked={macroDialog.active}
 						onchange={(e) => (macroDialog!.active = e.currentTarget.checked)}
 					/>
-					Aktiv
+					{t('Aktiv')}
 				</label>
 				<label class="field">
-					Schritte
+					{t('Schritte')}
 					<textarea
 						class="text"
 						rows="4"
-						placeholder="Was das Makro später ausführen soll"
+						placeholder={t('Was das Makro später ausführen soll')}
 						value={macroDialog.body}
 						oninput={(e) => (macroDialog!.body = e.currentTarget.value)}
 					></textarea>
@@ -660,12 +660,12 @@
 			</div>
 			<div class="sw-footer">
 				<span class="spacer"></span>
-				<button type="button" class="button" onclick={() => (macroDialog = null)}>Abbrechen</button>
+				<button type="button" class="button" onclick={() => (macroDialog = null)}>{t('Abbrechen')}</button>
 				<button
 					type="button"
 					class="button primary"
 					disabled={!macroDialog.label.trim()}
-					onclick={saveMacro}>{macroDialog.id === null ? 'Anlegen' : 'Sichern'}</button
+					onclick={saveMacro}>{macroDialog.id === null ? t('Anlegen') : t('Sichern')}</button
 				>
 			</div>
 		</div>

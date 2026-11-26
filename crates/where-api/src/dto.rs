@@ -27,6 +27,16 @@ pub struct ListParams {
     pub q: Option<String>,
 }
 
+/// Filter of the stock history: one device and the number of lines.
+#[derive(Debug, Clone, Default, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct MovementParams {
+    /// Only the lines of this device.
+    pub device: Option<i32>,
+    /// Newest first, 1..=1000 (default 100).
+    pub limit: Option<i64>,
+}
+
 impl ListParams {
     pub fn window(&self) -> (i64, i64) {
         where_domain::PageRequest {
@@ -534,7 +544,7 @@ pub struct ArticleListParams {
     /// Article group of the left menu; includes its subgroups. Empty = all articles,
     /// `0` = only articles that stand in no group at all.
     pub group: Option<i32>,
-    /// `active` = only active articles, `inactive` = only inactive, empty/`all` = both.
+    /// `active` = only active articles (the default), `inactive` = only inactive, `all` = both.
     pub active: Option<String>,
 }
 
@@ -556,11 +566,13 @@ impl ArticleListParams {
         self.group.filter(|id| *id >= 0)
     }
 
-    /// `None` = all articles; an unknown value is a 422.
+    /// `active` (the default) shows only articles in use, `inactive` only the ones set
+    /// aside, `all` both. An inactive article keeps its data but leaves every list, every
+    /// statistic and — later — every obligation; an unknown value is a 422.
     pub fn active(&self) -> Result<Option<bool>, DomainError> {
         match self.active.as_deref().map(str::trim) {
-            None | Some("") | Some("all") => Ok(None),
-            Some("active") => Ok(Some(true)),
+            None | Some("") | Some("active") => Ok(Some(true)),
+            Some("all") => Ok(None),
             Some("inactive") => Ok(Some(false)),
             Some(other) => Err(DomainError::Validation(format!(
                 "unknown active filter '{other}' (active, inactive, all)"
@@ -831,6 +843,10 @@ pub struct StockRowDto {
     pub stock_id: i32,
     pub stock_name: String,
     pub is_default: bool,
+    /// The warehouse takes part in the working masks (`"where_zugriff"`).
+    pub zugriff: bool,
+    /// Material may be taken out of it (`"where_entnahme"`).
+    pub entnahme: bool,
     /// `null` = no booking exists for this warehouse yet.
     pub total: Option<String>,
     pub rental: Option<String>,
@@ -841,6 +857,106 @@ pub struct StockRowDto {
     pub withdrawal: Option<String>,
     /// Total minus reservations and withdrawals.
     pub available: Option<String>,
+}
+
+/// Hands material out to a place of the house.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct IssueInput {
+    pub place_id: i32,
+    /// Amount handed out; the whole row when omitted.
+    #[serde(default)]
+    pub quantity: Option<rust_decimal::Decimal>,
+    /// Day the material is expected back, `YYYY-MM-DD`.
+    #[serde(default)]
+    pub until: Option<String>,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+/// Moves material to another warehouse of the house.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct TransferInput {
+    pub stock_id: i32,
+    /// Amount moved; the whole row when omitted.
+    #[serde(default)]
+    pub quantity: Option<rust_decimal::Decimal>,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+/// Moves several rows of one article into another warehouse (`Sammel-Umlagerung`).
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct BulkTransferInput {
+    /// Devices and batches of the article.
+    pub devices: Vec<i32>,
+    pub stock_id: i32,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+/// One row that could not be moved.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct BulkTransferFailureDto {
+    pub device_id: i32,
+    pub reason: String,
+}
+
+/// Result of a bulk transfer: what moved and what did not.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct BulkTransferDto {
+    pub moved: i64,
+    pub failed: Vec<BulkTransferFailureDto>,
+}
+
+/// Takes issued material back.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ReturnInput {
+    /// Rated condition of the piece when it comes back; `null` keeps the recorded one.
+    #[serde(default)]
+    pub condition: Option<String>,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+/// Consumes material out of a batch.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ConsumeInput {
+    pub quantity: rust_decimal::Decimal,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+/// One line of the stock history (`"where_stock_movement"`).
+///
+/// Every booking writes one line: goods receipt, change of device data, move to another
+/// warehouse, issue to a place of the house, taking it back, discard, discard taken back
+/// and delete. The line keeps the serial number, warehouse, place, bin and condition of
+/// that moment, so it stays readable after the device is gone.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct MovementDto {
+    pub id: i64,
+    pub device_id: i32,
+    pub serial_no: Option<String>,
+    /// `receipt`, `change`, `move`, `issue`, `return`, `retire`, `reinstate` or `delete`.
+    pub kind: String,
+    pub quantity: Option<String>,
+    pub warehouse_from: Option<i32>,
+    pub warehouse_from_name: Option<String>,
+    pub warehouse_to: Option<i32>,
+    pub warehouse_to_name: Option<String>,
+    pub bin_from: Option<String>,
+    pub bin_to: Option<String>,
+    pub place_from_name: Option<String>,
+    pub place_to_name: Option<String>,
+    pub condition_from: Option<String>,
+    pub condition_to: Option<String>,
+    pub discarded_from: Option<bool>,
+    pub discarded_to: Option<bool>,
+    pub note: Option<String>,
+    /// When the booking happened (`YYYY-MM-DDTHH:MM:SS`, local time of the server).
+    pub at: String,
+    /// Account that booked.
+    pub by: String,
 }
 
 /// One device or batch (lower grid, right side = device data).
@@ -864,7 +980,7 @@ pub struct DeviceDto {
     pub bin_location: Option<String>,
     pub condition: Option<String>,
     pub discarded: bool,
-    /// Status column of the form: "in stock" or "discarded".
+    /// Status column of the form: "im Lager", "ausgegeben: <Ort>" or "ausgesondert".
     pub status: String,
     pub purchase_price: Option<String>,
     pub purchase_date: Option<String>,
@@ -876,6 +992,11 @@ pub struct DeviceDto {
     pub note: Option<String>,
     pub without_serial: bool,
     pub recorded_at: Option<String>,
+    /// Place the device stands at while it is issued; `null` = in the warehouse.
+    pub place_id: Option<i32>,
+    pub place_name: Option<String>,
+    pub issued_from: Option<String>,
+    pub issued_until: Option<String>,
 }
 
 /// Content of the stock tab: warehouses on top, devices/batches below.
@@ -883,6 +1004,16 @@ pub struct DeviceDto {
 pub struct StockLevelDto {
     pub stock: Vec<StockRowDto>,
     pub devices: Vec<DeviceDto>,
+    /// `Meldebestand` of the article (`"VerkaufMindBestand"`); `null` = no level set.
+    pub reorder_level: Option<String>,
+}
+
+/// Reorder level of one article.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ReorderLevelInput {
+    /// `null` or `0` removes the level.
+    #[serde(default)]
+    pub level: Option<rust_decimal::Decimal>,
 }
 
 /// Result of a goods receipt.
@@ -922,6 +1053,9 @@ pub struct GoodsReceiptInput {
     pub inventory_no: Option<String>,
     #[serde(default)]
     pub reason: Option<String>,
+    /// Line of a purchase order (`Bestellung`) this delivery belongs to.
+    #[serde(default)]
+    pub order_line: Option<i32>,
     /// Usage areas — at least one, several at the same time are allowed.
     #[serde(default)]
     pub inventory: bool,
@@ -1078,6 +1212,8 @@ pub struct WarehouseDto {
     pub id: i32,
     pub name: Option<String>,
     pub is_default: bool,
+    /// The warehouse takes part in the working masks (`"where_zugriff"`).
+    pub zugriff: bool,
 }
 
 // ---------------------------------------------------------------- File storage

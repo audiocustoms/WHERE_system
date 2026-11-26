@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	/**
 	 * Panel for a mask whose right is missing: it does not open at all, it names the
 	 * missing right and offers the way back.
@@ -18,13 +20,12 @@
 </script>
 
 <section class="denied">
-	<h1>Kein Zugriff</h1>
+	<h1>{t('Kein Zugriff')}</h1>
 	<p>
-		Für die Maske <strong>{pageName}</strong> fehlt das Recht
-		<strong>{rightLabel}</strong> (<code>{right}</code>). Es wird in der Benutzerverwaltung
-		über eine Berechtigungsgruppe vergeben.
+		{t('Für die Maske {name} fehlt das Recht {right}', { name: pageName, right: rightLabel })}
+		(<code>{right}</code>). {t('Es wird in der Benutzerverwaltung über eine Berechtigungsgruppe vergeben.')}
 	</p>
-	<button type="button" onclick={() => goto('/')}>Zur Zentrale</button>
+	<button type="button" onclick={() => goto('/')}>{t('Zur Zentrale')}</button>
 </section>
 
 <style>

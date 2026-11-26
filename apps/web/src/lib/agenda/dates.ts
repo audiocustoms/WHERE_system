@@ -4,6 +4,7 @@
  * All functions work with local time and with `YYYY-MM-DD` texts, so that the
  * time zone of a workstation never pushes an appointment to the previous day.
  */
+import { t } from '../i18n.svelte';
 
 /** `2026-11-13` → Date (local midnight). */
 export function parseDay(text: string): Date {
@@ -95,12 +96,12 @@ const MONTHS = [
 ];
 
 export function monthLabel(date: Date): string {
-	return `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+	return `${t(MONTHS[date.getMonth()])} ${date.getFullYear()}`;
 }
 
 /** `Nov` */
 export function monthShort(date: Date): string {
-	return MONTHS[date.getMonth()].slice(0, 3);
+	return t(MONTHS[date.getMonth()]).slice(0, 3);
 }
 
 /** `13. Nov` — this is how the calendar writes the days in the week header. */
@@ -123,7 +124,7 @@ export function shortDate(text: string): string {
 
 /** `Mo, 10.11.` */
 export function dayLabel(date: Date): string {
-	const weekday = WEEKDAYS[(date.getDay() + 6) % 7];
+	const weekday = t(WEEKDAYS[(date.getDay() + 6) % 7]);
 	return `${weekday}, ${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.`;
 }
 

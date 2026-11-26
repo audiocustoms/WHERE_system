@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import { onMount } from 'svelte';
 	import {
@@ -46,7 +48,7 @@
 	function value(row: SettingsRow, field: SettingsField): string {
 		const value = row.values[field.column];
 		if (value === null || value === undefined || value === '') return '';
-		if (field.kind === 'bool') return value === 'true' ? 'Ja' : 'Nein';
+		if (field.kind === 'bool') return value === 'true' ? t('Ja') : t('Nein');
 		if (field.kind === 'date') {
 			const [year, month, day] = value.split('-');
 			return year ? `${day}.${month}.${year}` : value;
@@ -60,10 +62,12 @@
 		const nameField = area.name_column;
 		const name = choice.values[nameField] ?? area.title;
 		const ok = await askConfirm({
-			title: `${area.title} löschen`,
-			message: `„${name}“ wird aus der Liste entfernt. Verweise darauf behalten ihre Nummer.`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+			title: t('{area} löschen', { area: area.title }),
+			message: t('„{name}“ wird aus der Liste entfernt. Verweise darauf behalten ihre Nummer.', {
+				name
+			}),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		try {
@@ -97,7 +101,7 @@
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
 			<span class="sw-title">{area.title}</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={onclose}>×</button>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={onclose}>×</button>
 		</div>
 
 		<div class="lf-body">
@@ -136,7 +140,7 @@
 						{:else}
 							<tr class="empty">
 								<td colspan={area.fields.length}>
-									{loading ? 'lade …' : 'Noch kein Eintrag — „Neuer Eintrag“ legt den ersten an.'}
+									{loading ? t('lade …') : t('Noch kein Eintrag — „Neuer Eintrag“ legt den ersten an.')}
 								</td>
 							</tr>
 						{/each}
@@ -145,18 +149,18 @@
 			</div>
 
 			<div class="lf-buttons">
-				<button type="button" onclick={() => (dialog = { row: null })}>Neuer Eintrag</button>
+				<button type="button" onclick={() => (dialog = { row: null })}>{t('Neuer Eintrag')}</button>
 				<button type="button" disabled={!choice} onclick={() => choice && (dialog = { row: choice })}>
-					Umbenennen
+					{t('Umbenennen')}
 				</button>
-				<button type="button" disabled={!choice} onclick={loeschen}>Löschen</button>
+				<button type="button" disabled={!choice} onclick={loeschen}>{t('Löschen')}</button>
 				<span class="spacer"></span>
-				<button type="button" onclick={onclose}>Schließen</button>
+				<button type="button" onclick={onclose}>{t('Schließen')}</button>
 			</div>
 		</div>
 
 		<p class="lf-footer">
-			Einträge: {rows.length}
+			{t('Einträge:')} {rows.length}
 			<span class="lf-note">{area.description}</span>
 		</p>
 	</div>

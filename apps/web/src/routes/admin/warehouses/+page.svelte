@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
 		errorText,
+		type Place,
 		type Tenant,
 		type WarehouseAdmin,
 		type WarehouseBin,
@@ -17,7 +20,7 @@
 	 * Only with a selected tenant can a warehouse be assigned and a storage bin
 	 * be picked — before that the right side stays empty, as in the template.
 	 */
-	type Tab = 'lager' | 'symetrisch' | 'selbst';
+	type Tab = 'lager' | 'symetrisch' | 'selbst' | 'orte';
 
 	type Toggle = {
 		zugriff: boolean;
@@ -30,20 +33,21 @@
 	};
 
 	const TABS: { key: Tab; label: string }[] = [
-		{ key: 'lager', label: 'Lager' },
-		{ key: 'symetrisch', label: 'Lagerplatz (Symetric)' },
-		{ key: 'selbst', label: 'Lagerplatz (Self defined)' }
+		{ key: 'lager', label: t('Lager') },
+		{ key: 'symetrisch', label: t('Lagerplatz (Symetric)') },
+		{ key: 'selbst', label: t('Lagerplatz (Self defined)') },
+		{ key: 'orte', label: t('Orte') }
 	];
 
 	/** The seven switches of the warehouse table, in the order of the template. */
 	const TOGGLES: { key: keyof Toggle; label: string }[] = [
-		{ key: 'zugriff', label: 'Zugriff' },
-		{ key: 'prioritaet', label: 'Priorität' },
-		{ key: 'such_std', label: 'Such-Std.' },
-		{ key: 'entnahme', label: 'Entnahme' },
-		{ key: 'anmelden', label: 'Anmelden' },
-		{ key: 'fremd', label: 'Fremd' },
-		{ key: 'konzern', label: 'Konzerninternes Lager oder ohne Dispo' }
+		{ key: 'zugriff', label: t('Zugriff') },
+		{ key: 'prioritaet', label: t('Priorität') },
+		{ key: 'such_std', label: t('Such-Std.') },
+		{ key: 'entnahme', label: t('Entnahme') },
+		{ key: 'anmelden', label: t('Anmelden') },
+		{ key: 'fremd', label: t('Fremd') },
+		{ key: 'konzern', label: t('Konzerninternes Lager oder ohne Dispo') }
 	];
 
 	const STORAGE = 'where.warehouse-mandant';
@@ -59,6 +63,9 @@
 	let error = $state<string | null>(null);
 	let message = $state<string | null>(null);
 
+	/** Places of the house — they belong to no tenant. */
+	let orte = $state<Place[]>([]);
+
 	const currentWarehouse = $derived(lager.find((l) => l.id === gewaehltesLager) ?? null);
 
 	onMount(async () => {
@@ -67,12 +74,66 @@
 			const remembered = Number(localStorage.getItem(STORAGE) ?? '');
 			const start = tenants.find((m) => m.id === remembered) ?? tenants[0];
 			if (start) await mandantWaehlen(start.id);
+			orte = await api.places.list();
 		} catch (e) {
 			error = errorText(e, true);
 		} finally {
 			load = false;
 		}
 	});
+
+	// ------------------------------------------------------------- Places
+
+	async function ortNeu() {
+		error = null;
+		try {
+			await api.places.create({ name: 'Neuer Ort', note: null, active: true });
+			orte = await api.places.list();
+			changed(t('Ort angelegt — Namen bitte anpassen.'));
+		} catch (e) {
+			error = errorText(e, true);
+		}
+	}
+
+	async function saveOrt(p: Place, aenderung: Partial<Place>) {
+		const neu = { ...p, ...aenderung };
+		const name = neu.name.trim();
+		if (!name) {
+			error = t('Der Name des Ortes darf nicht leer sein.');
+			return;
+		}
+		error = null;
+		try {
+			const saved = await api.places.update(p.id, {
+				name,
+				note: neu.note,
+				active: neu.active
+			});
+			orte = orte.map((x) => (x.id === saved.id ? saved : x));
+			changed();
+		} catch (e) {
+			error = errorText(e, true);
+			orte = await api.places.list();
+		}
+	}
+
+	async function ortLoeschen(p: Place) {
+		const ok = await askConfirm({
+			title: t('Ort löschen'),
+			message: t('Ort „{name}" wirklich löschen?', { name: p.name }),
+			confirmLabel: t('Ja, löschen'),
+			cancelLabel: t('Abbrechen')
+		});
+		if (!ok) return;
+		error = null;
+		try {
+			await api.places.remove(p.id);
+			orte = await api.places.list();
+			changed(t('Ort gelöscht.'));
+		} catch (e) {
+			error = errorText(e, true);
+		}
+	}
 
 	async function mandantWaehlen(id: number) {
 		mandant = id;
@@ -123,7 +184,7 @@
 		}
 	}
 
-	function changed(text = 'Gespeichert.') {
+	function changed(text = t('Gespeichert.')) {
 		message = text;
 		setTimeout(() => (message = null), 2500);
 	}
@@ -138,7 +199,7 @@
 			await loadWarehouses();
 			gewaehltesLager = createNew.id;
 			await loadPlaces();
-			changed('Lager angelegt — Namen bitte anpassen.');
+			changed(t('Lager angelegt — Namen bitte anpassen.'));
 		} catch (e) {
 			error = errorText(e, true);
 		}
@@ -149,7 +210,7 @@
 		const createNew = { ...w, ...aenderung };
 		const name = (createNew.name ?? '').trim();
 		if (!name) {
-			error = 'Der Name des Lagers darf nicht leer sein.';
+			error = t('Der Name des Lagers darf nicht leer sein.');
 			return;
 		}
 		error = null;
@@ -179,7 +240,7 @@
 		try {
 			const saved = await api.warehouses.assign(w.id, mandant);
 			lager = lager.map((l) => (l.id === saved.id ? saved : l));
-			changed('Lager dem Mandanten zugeordnet.');
+			changed(t('Lager dem Mandanten zugeordnet.'));
 		} catch (e) {
 			error = errorText(e, true);
 		}
@@ -188,10 +249,10 @@
 	async function lagerLoeschen() {		const w = currentWarehouse;
 		if (!w) return;
 		const ok = await askConfirm({
-			title: 'Lager löschen',
-			message: `Lager „${w.name ?? ''}“ wirklich löschen?`,
-			confirmLabel: 'Ja, löschen',
-			cancelLabel: 'Abbrechen'
+			title: t('Lager löschen'),
+			message: t('Lager „{name}“ wirklich löschen?', { name: w.name ?? '' }),
+			confirmLabel: t('Ja, löschen'),
+			cancelLabel: t('Abbrechen')
 		});
 		if (!ok) return;
 		error = null;
@@ -201,7 +262,7 @@
 			await loadWarehouses();
 			lagerplaetze = [];
 			bins = [];
-			changed('Lager gelöscht.');
+			changed(t('Lager gelöscht.'));
 		} catch (e) {
 			error = errorText(e, true);
 		}
@@ -215,7 +276,7 @@
 		try {
 			await api.warehouses.locationCreate(gewaehltesLager, 'Neuer Lagerplatz');
 			await loadPlaces();
-			changed('Lagerplatz angelegt.');
+			changed(t('Lagerplatz angelegt.'));
 		} catch (e) {
 			error = errorText(e, true);
 		}
@@ -241,17 +302,17 @@
 	async function deleteSlot(p: WarehouseLocation) {
 		if (gewaehltesLager === null) return;
 		const ok = await askConfirm({
-			title: 'Lagerplatz löschen',
-			message: `Lagerplatz „${p.name ?? ''}“ wirklich löschen?`,
-			confirmLabel: 'Ja, löschen',
-			cancelLabel: 'Abbrechen'
+			title: t('Lagerplatz löschen'),
+			message: t('Lagerplatz „{name}“ wirklich löschen?', { name: p.name ?? '' }),
+			confirmLabel: t('Ja, löschen'),
+			cancelLabel: t('Abbrechen')
 		});
 		if (!ok) return;
 		error = null;
 		try {
 			await api.warehouses.locationRemove(gewaehltesLager, p.id);
 			await loadPlaces();
-			changed('Lagerplatz gelöscht.');
+			changed(t('Lagerplatz gelöscht.'));
 		} catch (e) {
 			error = errorText(e, true);
 		}
@@ -265,7 +326,7 @@
 		try {
 			await api.warehouses.binCreate(gewaehltesLager, 'Neuer Lagerplatz');
 			await loadPlaces();
-			changed('Lagerplatz angelegt.');
+			changed(t('Lagerplatz angelegt.'));
 		} catch (e) {
 			error = errorText(e, true);
 		}
@@ -286,26 +347,26 @@
 	async function binLoeschen(b: WarehouseBin) {
 		if (gewaehltesLager === null) return;
 		const ok = await askConfirm({
-			title: 'Lagerplatz löschen',
-			message: `Lagerplatz „${b.label ?? ''}“ wirklich löschen?`,
-			confirmLabel: 'Ja, löschen',
-			cancelLabel: 'Abbrechen'
+			title: t('Lagerplatz löschen'),
+			message: t('Lagerplatz „{name}“ wirklich löschen?', { name: b.label ?? '' }),
+			confirmLabel: t('Ja, löschen'),
+			cancelLabel: t('Abbrechen')
 		});
 		if (!ok) return;
 		error = null;
 		try {
 			await api.warehouses.binRemove(gewaehltesLager, b.id);
 			await loadPlaces();
-			changed('Lagerplatz gelöscht.');
+			changed(t('Lagerplatz gelöscht.'));
 		} catch (e) {
 			error = errorText(e, true);
 		}
 	}
 </script>
 
-<h1>Lager &amp; Lagerplätze</h1>
+<h1>{t('Lager & Lagerplätze')}</h1>
 
-<nav class="tabs" aria-label="Bereiche">
+<nav class="tabs" aria-label={t('Bereiche')}>
 	{#each TABS as entry (entry.key)}
 		<button
 			type="button"
@@ -316,10 +377,91 @@
 	{/each}
 </nav>
 
-{#if tab === 'lager'}
+{#if tab === 'orte'}
 	<div class="window">
-		<div class="side" aria-label="Mandant">
-			<div class="head">Mandant</div>
+		<div class="side" aria-label={t('Ort')}>
+			<div class="head">{t('Orte')}</div>
+			<ul>
+				{#each orte as p (p.id)}
+					<li>
+						<button type="button" class:active={false} onclick={() => saveOrt(p, { active: !p.active })}>
+							{p.name}{#if !p.active}<span class="small">{t('inaktiv')}</span>{/if}
+						</button>
+					</li>
+				{:else}
+					<li class="empty">{t('Kein Ort vorhanden.')}</li>
+				{/each}
+			</ul>
+		</div>
+
+		<div class="content">
+			<div class="scroll-area">
+				<table>
+					<thead>
+						<tr>
+							<th>{t('Ort')}</th>
+							<th>{t('Notiz')}</th>
+							<th class="narrow">{t('aktiv')}</th>
+							<th class="narrow"></th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each orte as p (p.id)}
+							<tr>
+								<td>
+									<input
+										value={p.name}
+										onblur={(e) => {
+											const value = e.currentTarget.value;
+											if (value !== p.name) saveOrt(p, { name: value });
+										}}
+									/>
+								</td>
+								<td>
+									<input
+										value={p.note ?? ''}
+										onblur={(e) => {
+											const value = e.currentTarget.value.trim();
+											if (value !== (p.note ?? '')) saveOrt(p, { note: value || null });
+										}}
+									/>
+								</td>
+								<td class="narrow">
+									<input
+										type="checkbox"
+										checked={p.active}
+										onchange={(e) => saveOrt(p, { active: e.currentTarget.checked })}
+									/>
+								</td>
+								<td class="narrow">
+									<button
+										type="button"
+										class="square"
+										title={t('Ort löschen')}
+										onclick={() => ortLoeschen(p)}>−</button
+									>
+								</td>
+							</tr>
+						{:else}
+							<tr><td colspan="4">{t('Noch kein Ort — „+" legt einen an.')}</td></tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+
+			<div class="foot-row">
+				<span class="counter">{t('{n} Orte', { n: orte.length })}</span>
+				<span class="spacer"></span>
+				<div class="button-group" role="group" aria-label={t('Ort')}>
+					<button type="button" class="square" title={t('Neuer Ort')} onclick={ortNeu}>+</button>
+				</div>
+			</div>
+		</div>
+	</div>
+{:else if tab === 'lager'}
+	<div class="window">
+		<div class="side" aria-label={t('Mandant')}>
+			<div class="head">{t('Mandant')}</div>
 			<ul>
 				{#each tenants as m (m.id)}
 					<li>
@@ -333,27 +475,24 @@
 						</button>
 					</li>
 				{:else}
-					<li class="empty">Kein Mandant vorhanden.</li>
+					<li class="empty">{t('Kein Mandant vorhanden.')}</li>
 				{/each}
 			</ul>
 		</div>
 
 		<div class="content">
 			{#if mandant === null}
-				<p class="notice">
-					Bitte zuerst links einen Mandanten wählen — erst dann lassen sich Lager zuweisen und
-					Lagerplätze anwählen.
-				</p>
+				<div class="scroll-area"></div>
 			{:else}
 				<div class="scroll-area">
 					<table>
 						<thead>
 							<tr>
-								<th class="name">Lager</th>
+								<th class="name">{t('Lager')}</th>
 								{#each TOGGLES as s (s.key)}
 									<th class="check" title={s.label}>{s.label}</th>
 								{/each}
-								<th class="id">ID</th>
+								<th class="id">{t('ID')}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -371,16 +510,16 @@
 												if (e.key === 'Enter') e.currentTarget.blur();
 											}}
 										/>
-										{#if w.is_default}<span class="default" title="Vorgabelager">Vorgabe</span>{/if}
+										{#if w.is_default}<span class="default" title={t('Vorgabelager')}>{t('Vorgabe')}</span>{/if}
 										{#if w.mandant_id === null}
 											<button
 												type="button"
 												class="assign"
-												title="Diesem Mandanten zuordnen"
+												title={t('Diesem Mandanten zuordnen')}
 												onclick={(e) => {
 													e.stopPropagation();
 													assignWarehouse(w);
-												}}>zuordnen</button
+												}}>{t('zuordnen')}</button
 											>
 										{/if}
 									</td>
@@ -391,7 +530,10 @@
 												checked={w[s.key]}
 												onclick={(e) => e.stopPropagation()}
 												onchange={(e) => saveWarehouse(w, { [s.key]: e.currentTarget.checked })}
-												aria-label={`${s.label} für ${w.name ?? ''}`}
+												aria-label={t('{label} für {name}', {
+													label: s.label,
+													name: w.name ?? ''
+												})}
 											/>
 										</td>
 									{/each}
@@ -401,8 +543,8 @@
 								<tr
 									><td colspan={TOGGLES.length + 2}>
 										{load
-											? 'Lade …'
-											: 'Noch kein Lager für diesen Mandanten — „+" legt eines an.'}
+											? t('Lade …')
+											: t('Noch kein Lager für diesen Mandanten — „+" legt eines an.')}
 									</td></tr
 								>
 							{/each}
@@ -413,21 +555,21 @@
 
 			<div class="foot-row">
 				<span class="counter">
-					{#if mandant !== null}{lager.length} Lager{/if}
+					{#if mandant !== null}{t('{n} Lager', { n: lager.length })}{/if}
 				</span>
 				<span class="spacer"></span>
-				<div class="button-group" role="group" aria-label="Lager">
+				<div class="button-group" role="group" aria-label={t('Lager')}>
 					<button
 						type="button"
 						class="square"
-						title="Neues Lager"
+						title={t('Neues Lager')}
 						disabled={mandant === null}
 						onclick={lagerNeu}>+</button
 					>
 					<button
 						type="button"
 						class="square"
-						title="Lager löschen"
+						title={t('Lager löschen')}
 						disabled={!currentWarehouse}
 						onclick={lagerLoeschen}>−</button
 					>
@@ -437,8 +579,8 @@
 	</div>
 {:else}
 	<div class="window">
-		<div class="side" aria-label="Lager">
-			<div class="head">Lager</div>
+		<div class="side" aria-label={t('Lager')}>
+			<div class="head">{t('Lager')}</div>
 			<ul>
 				{#each lager as w (w.id)}
 					<li>
@@ -447,32 +589,26 @@
 							class:active={w.id === gewaehltesLager}
 							onclick={() => lagerWaehlen(w.id)}
 						>
-							{w.name ?? `Lager ${w.id}`}
+							{w.name ?? t('Lager {id}', { id: w.id })}
 						</button>
 					</li>
 				{:else}
-					<li class="empty">Kein Lager vorhanden.</li>
+					<li class="empty">{t('Kein Lager vorhanden.')}</li>
 				{/each}
 			</ul>
 		</div>
 
 		<div class="content">
 			{#if gewaehltesLager === null}
-				<p class="notice">
-					{#if tab === 'symetrisch'}
-						Links ein Lager wählen — dann stehen seine ortsbezogenen Lagerplätze hier.
-					{:else}
-						Links ein Lager wählen — dann stehen seine frei benannten Lagerplätze hier.
-					{/if}
-				</p>
+				<div class="scroll-area"></div>
 			{:else if tab === 'symetrisch'}
 				<div class="scroll-area">
 					<table>
 						<thead>
 							<tr>
-								<th>Lagerplatz</th>
-								<th class="short-code">Kürzel</th>
-								<th>Werte</th>
+								<th>{t('Lagerplatz')}</th>
+								<th class="short-code">{t('Kürzel')}</th>
+								<th>{t('Werte')}</th>
 								<th class="narrow"></th>
 							</tr>
 						</thead>
@@ -510,14 +646,14 @@
 										<button
 											type="button"
 											class="square"
-											title="Lagerplatz löschen"
+											title={t('Lagerplatz löschen')}
 											onclick={() => deleteSlot(p)}>−</button
 										>
 									</td>
 								</tr>
 							{:else}
 								<tr
-									><td colspan="4">Noch kein Lagerplatz — „+" legt einen an.</td></tr
+									><td colspan="4">{t('Noch kein Lagerplatz — „+" legt einen an.')}</td></tr
 								>
 							{/each}
 						</tbody>
@@ -538,12 +674,12 @@
 								<button
 									type="button"
 									class="square"
-									title="Lagerplatz löschen"
+									title={t('Lagerplatz löschen')}
 									onclick={() => binLoeschen(b)}>−</button
 								>
 							</li>
 						{:else}
-							<li class="empty">Noch kein Lagerplatz — „+" legt einen an.</li>
+							<li class="empty">{t('Noch kein Lagerplatz — „+" legt einen an.')}</li>
 						{/each}
 					</ul>
 				</div>
@@ -552,20 +688,22 @@
 			<div class="foot-row">
 				<span class="counter">
 					{#if gewaehltesLager !== null}
-						{tab === 'symetrisch' ? lagerplaetze.length : bins.length} Lagerplätze
+						{t('{n} Lagerplätze', {
+							n: tab === 'symetrisch' ? lagerplaetze.length : bins.length
+						})}
 					{/if}
 				</span>
 				<span class="spacer"></span>
 				<label class="input-help">
 					<input type="checkbox" disabled />
-					Eingabehilfe active
+					{t('Eingabehilfe aktiv')}
 				</label>
 				<span class="spacer"></span>
-				<div class="button-group" role="group" aria-label="Lagerplatz">
+				<div class="button-group" role="group" aria-label={t('Lagerplatz')}>
 					<button
 						type="button"
 						class="square"
-						title="Neuer Lagerplatz"
+						title={t('Neuer Lagerplatz')}
 						disabled={gewaehltesLager === null}
 						onclick={tab === 'symetrisch' ? newSlot : binNeu}>+</button
 					>
@@ -682,14 +820,6 @@
 		flex-direction: column;
 		min-width: 0;
 		min-height: 20rem;
-	}
-	.notice {
-		margin: auto;
-		padding: 2rem 1.5rem;
-		max-width: 32rem;
-		text-align: center;
-		font-size: 0.82rem;
-		color: var(--muted);
 	}
 	.scroll-area {
 		flex: 1 1 auto;

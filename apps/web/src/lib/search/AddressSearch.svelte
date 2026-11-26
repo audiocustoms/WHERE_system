@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import SearchWindow from './SearchWindow.svelte';
 	import { api, errorText, type AddressSearchInput, type SetOperator } from '../api';
@@ -12,23 +14,23 @@
 
 	/** Choice list „Typ" — in the original „Alle Adressen" as default. */
 	const TYPES: { value: NonNullable<AddressSearchInput['address_type']>; text: string }[] = [
-		{ value: 'all', text: 'Alle Adressen' },
-		{ value: 'customers', text: 'Kunden' },
-		{ value: 'suppliers', text: 'Lieferanten' }
+		{ value: 'all', text: t('Alle Adressen') },
+		{ value: 'customers', text: t('Kunden') },
+		{ value: 'suppliers', text: t('Lieferanten') }
 	];
 
 	const OPERATORS: { value: SetOperator; text: string }[] = [
-		{ value: 'contains', text: 'enthält' },
-		{ value: 'contains_any', text: 'oder enthält' },
-		{ value: 'contains_all', text: 'und enthält' },
-		{ value: 'contains_none', text: 'enthält nicht' }
+		{ value: 'contains', text: t('enthält') },
+		{ value: 'contains_any', text: t('oder enthält') },
+		{ value: 'contains_all', text: t('und enthält') },
+		{ value: 'contains_none', text: t('enthält nicht') }
 	];
 
 	/** Right-hand choice of the „Vorgang" bar („Suchtext enthält…"). */
 	const MODI: { value: NonNullable<AddressSearchInput['name_match']>; text: string }[] = [
-		{ value: 'contains', text: 'Suchtext enthält…' },
-		{ value: 'starts_with', text: 'Suchtext beginnt mit…' },
-		{ value: 'equals', text: 'Suchtext ist genau…' }
+		{ value: 'contains', text: t('Suchtext enthält…') },
+		{ value: 'starts_with', text: t('Suchtext beginnt mit…') },
+		{ value: 'equals', text: t('Suchtext ist genau…') }
 	];
 
 	let typ = $state<NonNullable<AddressSearchInput['address_type']>>('all');
@@ -102,10 +104,10 @@
 </script>
 
 <SearchWindow
-	title="Adresssuche"
+	title={t('Adresssuche')}
 	width="26rem"
-	bandLabel="Vorgang"
-	bandText="Adressliste"
+	bandLabel={t('Vorgang')}
+	bandText={t('Adressliste')}
 	modeOptions={MODI}
 	modeValue={modus}
 	onmodechange={(value) => (modus = value as NonNullable<AddressSearchInput['name_match']>)}
@@ -113,41 +115,41 @@
 >
 	<div class="sw-form">
 		<div class="sw-row">
-			<span class="sw-label">Typ</span>
-			<select bind:value={typ} aria-label="Typ">
+			<span class="sw-label">{t('Typ')}</span>
+			<select bind:value={typ} aria-label={t('Typ')}>
 				{#each TYPES as t (t.value)}
 					<option value={t.value}>{t.text}</option>
 				{/each}
 			</select>
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Name</span>
+			<span class="sw-label">{t('Name')}</span>
 			<input bind:value={name} onkeydown={(e) => e.key === 'Enter' && search()} />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Adressgruppe</span>
+			<span class="sw-label">{t('Adressgruppe')}</span>
 			<input bind:value={group} />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Knd. / Debitor-Nr.</span>
+			<span class="sw-label">{t('Knd. / Debitor-Nr.')}</span>
 			<input bind:value={customerNo} inputmode="numeric" />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Anschrift</span>
+			<span class="sw-label">{t('Anschrift')}</span>
 			<input bind:value={address} />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">Telefon</span>
+			<span class="sw-label">{t('Telefon')}</span>
 			<input bind:value={phone} />
 		</div>
 		<div class="sw-row">
-			<span class="sw-label">eMail</span>
+			<span class="sw-label">{t('eMail')}</span>
 			<input bind:value={email} />
 		</div>
 		<div class="sw-row indented">
 			<label class="sw-check">
 				<input type="checkbox" bind:checked={includeContacts} />
-				inklusive Ansprechpartner
+				{t('inklusive Ansprechpartner')}
 			</label>
 		</div>
 	</div>
@@ -156,18 +158,18 @@
 
 	<div class="sw-form">
 		<div class="sw-row">
-			<span class="sw-label">Suchindex</span>
-			<select class="operator" bind:value={indexOp} aria-label="Verknüpfung Suchindex">
+			<span class="sw-label">{t('Suchindex')}</span>
+			<select class="operator" bind:value={indexOp} aria-label={t('Verknüpfung Suchindex')}>
 				{#each OPERATORS as o (o.value)}
 					<option value={o.value}>{o.text}</option>
 				{/each}
 			</select>
-			<button class="sw-button" type="button" onclick={openIndex}>Index wählen</button>
+			<button class="sw-button" type="button" onclick={openIndex}>{t('Index wählen')}</button>
 		</div>
 		{#if index.length}
 			<div class="sw-row indented">
 				<span class="value">{index.join(', ')}</span>
-				<button class="sw-extra" type="button" title="Auswahl löschen" onclick={() => (index = [])}>
+				<button class="sw-extra" type="button" title={t('Auswahl löschen')} onclick={() => (index = [])}>
 					×
 				</button>
 			</div>
@@ -175,7 +177,7 @@
 		<div class="sw-row indented">
 			<label class="sw-check">
 				<input type="checkbox" bind:checked={includeContactsIndex} />
-				inklusive Ansprechpartner
+				{t('inklusive Ansprechpartner')}
 			</label>
 		</div>
 	</div>
@@ -185,26 +187,25 @@
 	{/if}
 	{#if sucheditor}
 		<p class="sw-note">
-			Gespeicherte Suchen für Adressen gibt es in WHERE noch nicht — der Sucheditor folgt mit dem
-			Adressstamm.
+			{t('Gespeicherte Suchen für Adressen gibt es in WHERE noch nicht — der Sucheditor folgt mit dem Adressstamm.')}
 		</p>
 	{/if}
 
 	{#if indexChoice}
 		<div class="sw-backdrop">
-			<div class="sw-window" role="dialog" aria-modal="true" aria-label="Index wählen" style="width: min(22rem, 100%)">
+			<div class="sw-window" role="dialog" aria-modal="true" aria-label={t('Index wählen')} style="width: min(22rem, 100%)">
 				<div class="sw-titlebar">
 					<span class="sw-icon" aria-hidden="true"></span>
-					<span class="sw-title">Index wählen</span>
-					<button class="sw-close" type="button" title="Schließen" onclick={() => (indexChoice = false)}>
+					<span class="sw-title">{t('Index wählen')}</span>
+					<button class="sw-close" type="button" title={t('Schließen')} onclick={() => (indexChoice = false)}>
 						×
 					</button>
 				</div>
 				<div class="sw-content">
 					{#if indexValues === null}
-						<p class="sw-small">Lade Index …</p>
+						<p class="sw-small">{t('Lade Index …')}</p>
 					{:else if indexValues.length === 0}
-						<p class="sw-small">Für Adressen sind noch keine Suchindex-Werte gepflegt.</p>
+						<p class="sw-small">{t('Für Adressen sind noch keine Suchindex-Werte gepflegt.')}</p>
 					{:else}
 						<div class="sw-form">
 							{#each indexValues as value (value)}
@@ -222,7 +223,7 @@
 				</div>
 				<div class="sw-footer">
 					<button class="sw-button sw-primary" type="button" onclick={() => (indexChoice = false)}>
-						Übernehmen
+						{t('Übernehmen')}
 					</button>
 				</div>
 			</div>
@@ -230,8 +231,8 @@
 	{/if}
 
 	{#snippet actions(cancel)}
-		<button class="sw-button" type="button" onclick={cancel}>Abbrechen</button>
-		<button class="sw-button" type="button" onclick={() => (sucheditor = !sucheditor)}>Sucheditor</button>
-		<button class="sw-button sw-primary" type="button" onclick={search}>Suchen</button>
+		<button class="sw-button" type="button" onclick={cancel}>{t('Abbrechen')}</button>
+		<button class="sw-button" type="button" onclick={() => (sucheditor = !sucheditor)}>{t('Sucheditor')}</button>
+		<button class="sw-button sw-primary" type="button" onclick={search}>{t('Suchen')}</button>
 	{/snippet}
 </SearchWindow>

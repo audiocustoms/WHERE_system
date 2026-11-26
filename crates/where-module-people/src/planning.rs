@@ -1,4 +1,4 @@
-//! Rules the duty planning follows.
+//! Rules the schedule planning follows.
 //!
 //! The defaults are the usual values for rest period, maximum working time and
 //! breaks and can be adjusted per installation. There is exactly one set of
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use where_domain::DomainError;
 
-/// The rules of the duty planning.
+/// The rules of the schedule planning.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct PlanningRules {
     /// Rest period between two shifts in hours (default 11).
@@ -57,13 +57,13 @@ pub struct PlanningRules {
     /// Federal state (`BW`, `BY`, …) for the regional and school holidays.
     #[serde(default)]
     pub holiday_state: Option<String>,
-    /// Colour of the holiday columns in the duty plan as `#RRGGBB`.
+    /// Colour of the holiday columns in the schedule plan as `#RRGGBB`.
     pub holiday_color: String,
     /// Show the public holidays on the board (independent of the import).
     pub show_holidays: bool,
     /// Show the school holidays on the board (independent of the import).
     pub show_school_holidays: bool,
-    /// Colour of the school holidays in the duty plan as `#RRGGBB`.
+    /// Colour of the school holidays in the schedule plan as `#RRGGBB`.
     pub school_holiday_color: String,
     /// Is work allowed on public holidays?
     pub holiday_work_allowed: bool,
@@ -78,9 +78,9 @@ pub struct PlanningRules {
     pub vacation_day_hours: Decimal,
     /// Hours a sick day counts (default 8).
     pub sick_day_hours: Decimal,
-    /// Colour of the vacation cells in the duty plan as `#RRGGBB`.
+    /// Colour of the vacation cells in the schedule plan as `#RRGGBB`.
     pub vacation_color: String,
-    /// Colour of the sick cells in the duty plan as `#RRGGBB`.
+    /// Colour of the sick cells in the schedule plan as `#RRGGBB`.
     pub sick_color: String,
     /// From this date the plan counts over- and under-hours; everything before
     /// stays out of the balance. Without a date the balance starts on 1 January.
@@ -96,9 +96,9 @@ pub const HORIZON_MONTHS: &str = "months";
 pub const DEFAULT_VACATION_COLOR: &str = "#0369A1";
 /// Default colour of the sick cells.
 pub const DEFAULT_SICK_COLOR: &str = "#B91C1C";
-/// Default colour of the holiday columns in the duty plan.
+/// Default colour of the holiday columns in the schedule plan.
 pub const DEFAULT_HOLIDAY_COLOR: &str = "#B45309";
-/// Default colour of the school holidays in the duty plan.
+/// Default colour of the school holidays in the schedule plan.
 pub const DEFAULT_SCHOOL_HOLIDAY_COLOR: &str = "#2563EB";
 /// Days an employee keeps the same shift before early and late may swap.
 pub const DEFAULT_SHIFT_ROTATION_DAYS: i16 = 14;

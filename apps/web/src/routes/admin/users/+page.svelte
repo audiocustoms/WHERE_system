@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -24,19 +26,19 @@
 
 	/** The four lists behind `Aktuelle Ansicht`. */
 	const VIEWS: { key: UserView; label: string }[] = [
-		{ key: 'local-active', label: 'Aktive lokale Benutzer' },
-		{ key: 'mobile-active', label: 'Aktive mobile Benutzer' },
-		{ key: 'local-inactive', label: 'Inaktive lokale Benutzer' },
-		{ key: 'mobile-inactive', label: 'Inaktive mobile Benutzer' }
+		{ key: 'local-active', label: t('Aktive lokale Benutzer') },
+		{ key: 'mobile-active', label: t('Aktive mobile Benutzer') },
+		{ key: 'local-inactive', label: t('Inaktive lokale Benutzer') },
+		{ key: 'mobile-inactive', label: t('Inaktive mobile Benutzer') }
 	];
 
 	/** The four tabs of the user dialog. */
 	type Tab = 'login' | 'sso' | 'kommunikation' | 'zuordnung';
 	const TABS: { key: Tab; label: string }[] = [
-		{ key: 'login', label: 'Login' },
-		{ key: 'sso', label: 'SSO' },
-		{ key: 'kommunikation', label: 'Kommunikation' },
-		{ key: 'zuordnung', label: 'Mandanten & Lager' }
+		{ key: 'login', label: t('Login') },
+		{ key: 'sso', label: t('SSO') },
+		{ key: 'kommunikation', label: t('Kommunikation') },
+		{ key: 'zuordnung', label: t('Mandanten & Lager') }
 	];
 
 	/** The two right sets of the group dialog. */
@@ -460,7 +462,7 @@
 		message = '';
 		if (passwordDiffers.ab) {
 			tab = 'login';
-			error = 'Die Kennwörter stimmen nicht überein.';
+			error = t('Die Kennwörter stimmen nicht überein.');
 			return;
 		}
 		const selectedEmployee = form.employee;
@@ -471,7 +473,7 @@
 					: await api.users.update(form.id, input());
 			await linkEmployee(user.id, selectedEmployee);
 			await loadAll(user.id);
-			message = 'Gespeichert.';
+			message = t('Gespeichert.');
 		} catch (e) {
 			error = errorText(e);
 		}
@@ -497,10 +499,10 @@
 	async function deleteUser() {
 		if (!choice) return;
 		const ok = await askConfirm({
-			title: 'Löschen',
-			message: `Benutzer „${choice.name}“ löschen?`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+			title: t('Löschen'),
+			message: t('Benutzer „{name}“ löschen?', { name: choice.name }),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
@@ -579,14 +581,14 @@
 	/** Assigns a group to a user. */
 	async function assignTo(userId: number, groupId: number) {
 		error = null;
-		const name = allGroups.find((entry) => entry.id === groupId)?.name ?? 'Gruppe';
-		const account = user.find((entry) => entry.id === userId)?.name ?? 'Benutzer';
+		const name = allGroups.find((entry) => entry.id === groupId)?.name ?? t('Gruppe');
+		const account = user.find((entry) => entry.id === userId)?.name ?? t('Benutzer');
 		try {
 			await api.users.addGroup(userId, groupId);
 			isGroupOpen[groupId] = true;
 			isUserOpen[userId] = true;
 			await loadAll(choice?.id);
-			message = `„${name}“ ist jetzt bei „${account}“.`;
+			message = t('„{group}“ ist jetzt bei „{account}“.', { group: name, account });
 		} catch (e) {
 			error = errorText(e);
 		}
@@ -594,22 +596,28 @@
 
 	/** Takes a user out of a group again (`×` on the child row). */
 	async function clearAssignment(userId: number, groupId: number) {
-		const name = allGroups.find((entry) => entry.id === groupId)?.name ?? 'Gruppe';
+		const name = allGroups.find((entry) => entry.id === groupId)?.name ?? t('Gruppe');
 		const account = allGroups
 			.find((entry) => entry.id === groupId)
 			?.member_users.find((entry) => entry.id === userId)?.name;
 		const ok = await askConfirm({
-			title: 'Zuordnung entfernen',
-			message: `„${account ?? 'Benutzer'}“ aus der Gruppe „${name}“ nehmen?`,
-			confirmLabel: 'Entfernen',
-			cancelLabel: 'Behalten'
+			title: t('Zuordnung entfernen'),
+			message: t('„{account}“ aus der Gruppe „{group}“ nehmen?', {
+				account: account ?? t('Benutzer'),
+				group: name
+			}),
+			confirmLabel: t('Entfernen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
 		try {
 			await api.users.removeGroup(userId, groupId);
 			await loadAll(choice?.id);
-			message = `„${account ?? 'Benutzer'}“ ist nicht mehr in „${name}“.`;
+			message = t('„{account}“ ist nicht mehr in „{group}“.', {
+				account: account ?? t('Benutzer'),
+				group: name
+			});
 		} catch (e) {
 			error = errorText(e);
 		}
@@ -645,7 +653,7 @@
 			const copy = await api.users.groupCopy(group.id);
 			if (choice) await api.users.addGroup(choice.id, copy.id);
 			await loadAll(choice?.id);
-			message = `Kopie „${copy.name}“ angelegt.`;
+			message = t('Kopie „{name}“ angelegt.', { name: copy.name });
 		} catch (e) {
 			error = errorText(e);
 		}
@@ -654,10 +662,13 @@
 	async function removeGroup() {
 		if (!group || !choice) return;
 		const ok = await askConfirm({
-			title: 'Zuordnung entfernen',
-			message: `Berechtigungsgruppe „${group.name}“ beim Benutzer „${choice.name}“ entfernen?`,
-			confirmLabel: 'Entfernen',
-			cancelLabel: 'Behalten'
+			title: t('Zuordnung entfernen'),
+			message: t('Berechtigungsgruppe „{group}“ beim Benutzer „{user}“ entfernen?', {
+				group: group.name,
+				user: choice.name
+			}),
+			confirmLabel: t('Entfernen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
@@ -674,10 +685,13 @@
 	async function deleteGroup() {
 		if (!group) return;
 		const ok = await askConfirm({
-			title: 'Löschen',
-			message: `Berechtigungsgruppe „${group.name}“ mit ihren Rechten und Zuordnungen löschen?`,
-			confirmLabel: 'Löschen',
-			cancelLabel: 'Behalten'
+			title: t('Löschen'),
+			message: t(
+				'Berechtigungsgruppe „{group}“ mit ihren Rechten und Zuordnungen löschen?',
+				{ group: group.name }
+			),
+			confirmLabel: t('Löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		error = null;
@@ -685,7 +699,7 @@
 			await api.users.groupRemove(group.id);
 			group = null;
 			await loadAll(choice?.id ?? null);
-			message = 'Berechtigungsgruppe gelöscht.';
+			message = t('Berechtigungsgruppe gelöscht.');
 		} catch (e) {
 			error = errorText(e);
 		}
@@ -716,7 +730,7 @@
 			if (id === null && choice) await api.users.addGroup(choice.id, saved.id);
 			groupForm = null;
 			await loadAll(choice?.id);
-			message = `Berechtigungsgruppe „${saved.name}“ gespeichert.`;
+			message = t('Berechtigungsgruppe „{name}“ gespeichert.', { name: saved.name });
 		} catch (e) {
 			error = errorText(e);
 		}
@@ -813,12 +827,12 @@
 	$effect(() => (departmentChoice ? escapeWindows(() => (departmentChoice = null)) : undefined));
 </script>
 
-<svelte:head><title>Benutzerverwaltung — WHERE</title></svelte:head>
+<svelte:head><title>{t('Benutzerverwaltung — WHERE')}</title></svelte:head>
 
-<h1>Benutzerverwaltung</h1>
+<h1>{t('Benutzerverwaltung')}</h1>
 
 <div class="head">
-	<span class="caption">Aktuelle Ansicht</span>
+	<span class="caption">{t('Aktuelle Ansicht')}</span>
 	<select class="text" value={view} onchange={(e) => {
 		view = e.currentTarget.value as UserView;
 		changeView();
@@ -832,7 +846,7 @@
 <div class="window">
 	<div class="column">
 		<div class="bar">
-			<button type="button" class="square" title="Benutzer hinzufügen" onclick={newUser}>
+			<button type="button" class="square" title={t('Benutzer hinzufügen')} onclick={newUser}>
 				<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
 					<circle cx="6" cy="4.6" r="2.6" fill="currentColor" />
 					<path d="M1.4 14c0-2.5 2-4.4 4.6-4.4s4.6 1.9 4.6 4.4z" fill="currentColor" />
@@ -842,7 +856,7 @@
 			<button
 				type="button"
 				class="square"
-				title="Benutzer entfernen"
+				title={t('Benutzer entfernen')}
 				disabled={!choice}
 				onclick={deleteUser}
 			>
@@ -856,7 +870,7 @@
 		<div class="list">
 			<table>
 				<thead>
-					<tr><th>Benutzer ({user.length})</th></tr>
+					<tr><th>{t('Benutzer ({n})', { n: user.length })}</th></tr>
 				</thead>
 				<tbody>
 					{#each user as entry (entry.id)}
@@ -871,14 +885,14 @@
 							ondragover={(e) => overTarget(e, 'benutzer', entry.id)}
 							ondragleave={() => (above = null)}
 							ondrop={(e) => assignGroup(e, 'benutzer', entry.id)}
-							title="Doppelklick öffnet den Benutzer; eine Gruppe hierher ziehen ordnet sie zu"
+							title={t('Doppelklick öffnet den Benutzer; eine Gruppe hierher ziehen ordnet sie zu')}
 						>
 							<td>
 								{#if entry.groups.length}
 									<button
 										type="button"
 										class="branch-arrow"
-										title={istOffen(isUserOpen, entry.id) ? 'zugeklappt' : 'aufgeklappt'}
+										title={istOffen(isUserOpen, entry.id) ? t('zugeklappt') : t('aufgeklappt')}
 										onclick={(e) => {
 											e.stopPropagation();
 											collapse(isUserOpen, entry.id);
@@ -908,14 +922,16 @@
 									}}
 									ondragleave={() => (above = null)}
 									ondrop={(e) => assignGroup(e, 'gruppe', zugeordnet.id)}
-									title="Doppelklick öffnet die Rechte; einen Benutzer hierher ziehen ordnet ihn zu"
+									title={t('Doppelklick öffnet die Rechte; einen Benutzer hierher ziehen ordnet ihn zu')}
 								>
 									<td>{zugeordnet.name}</td>
 								</tr>
 							{/each}
 						{/if}
 					{:else}
-						<tr><td class="small">{load ? 'Lade …' : 'Kein Benutzer in dieser Ansicht.'}</td></tr>
+						<tr>
+							<td class="small">{load ? t('Lade …') : t('Kein Benutzer in dieser Ansicht.')}</td>
+						</tr>
 					{/each}
 				</tbody>
 			</table>
@@ -927,7 +943,7 @@
 			<button
 				type="button"
 				class="square"
-				title="Berechtigungsgruppe hinzufügen"
+				title={t('Berechtigungsgruppe hinzufügen')}
 				disabled={!choice}
 				onclick={newGroup}
 			>
@@ -942,7 +958,7 @@
 			<button
 				type="button"
 				class="square"
-				title="Berechtigungsgruppe kopieren"
+				title={t('Berechtigungsgruppe kopieren')}
 				disabled={!group}
 				onclick={copyGroup}
 			>
@@ -954,7 +970,7 @@
 			<button
 				type="button"
 				class="square"
-				title="Zuordnung des Benutzers aufheben"
+				title={t('Zuordnung des Benutzers aufheben')}
 				disabled={!group}
 				onclick={removeGroup}
 			>
@@ -967,7 +983,7 @@
 			<button
 				type="button"
 				class="square"
-				title="Berechtigungsgruppe löschen"
+				title={t('Berechtigungsgruppe löschen')}
 				disabled={!group}
 				onclick={deleteGroup}
 			>
@@ -982,7 +998,7 @@
 		<div class="list">
 			<table>
 				<thead>
-					<tr><th>Berechtigungsgruppen ({allGroups.length})</th></tr>
+					<tr><th>{t('Berechtigungsgruppen ({n})', { n: allGroups.length })}</th></tr>
 				</thead>
 				<tbody>
 					{#each allGroups as entry (entry.id)}
@@ -997,14 +1013,14 @@
 							ondragover={(e) => overTarget(e, 'gruppe', entry.id)}
 							ondragleave={() => (above = null)}
 							ondrop={(e) => assignGroup(e, 'gruppe', entry.id)}
-							title="Doppelklick öffnet die Rechte; einen Benutzer hierher ziehen ordnet ihn zu"
+							title={t('Doppelklick öffnet die Rechte; einen Benutzer hierher ziehen ordnet ihn zu')}
 						>
 							<td>
 								{#if entry.member_users.length}
 									<button
 										type="button"
 										class="branch-arrow"
-										title={istOffen(isGroupOpen, entry.id) ? 'zugeklappt' : 'aufgeklappt'}
+										title={istOffen(isGroupOpen, entry.id) ? t('zugeklappt') : t('aufgeklappt')}
 										onclick={(e) => {
 											e.stopPropagation();
 											collapse(isGroupOpen, entry.id);
@@ -1026,14 +1042,14 @@
 									ondblclick={() => editUser(mitglied.id)}
 									ondragstart={(e) => startDrag(e, 'benutzer', mitglied.id)}
 									ondragend={endDrag}
-									title="Doppelklick öffnet den Benutzer"
+									title={t('Doppelklick öffnet den Benutzer')}
 								>
 									<td>
 										{mitglied.name}
 										<button
 											type="button"
 											class="branch-arrow remove"
-											title="Aus der Gruppe nehmen"
+											title={t('Aus der Gruppe nehmen')}
 											onclick={(e) => {
 												e.stopPropagation();
 												clearAssignment(mitglied.id, entry.id);
@@ -1042,13 +1058,13 @@
 									</td>
 								</tr>
 							{:else}
-								<tr class="child empty"><td>keine Benutzer</td></tr>
+								<tr class="child empty"><td>{t('keine Benutzer')}</td></tr>
 							{/each}
 						{/if}
 					{:else}
 						<tr>
 							<td class="small">
-								{load ? 'Lade …' : 'Keine Gruppe — mit `+` eine anlegen.'}
+								{load ? t('Lade …') : t('Keine Gruppe — mit `+` eine anlegen.')}
 							</td>
 						</tr>
 					{/each}
@@ -1060,7 +1076,7 @@
 
 <footer class="foot">
 	<span class="spacer"></span>
-	<a class="btn" href="/">Schließen</a>
+	<a class="btn" href="/">{t('Schließen')}</a>
 </footer>
 
 {#if error}
@@ -1076,17 +1092,17 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Benutzer"
+			aria-label={t('Benutzer')}
 			style="width: min(34rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
 				<span class="sw-title"
 					>{form.id === null
-						? 'Benutzer hinzufügen'
-						: `Benutzer — ${form.display_name || form.user_name}`}</span
+						? t('Benutzer hinzufügen')
+						: t('Benutzer — {name}', { name: form.display_name || form.user_name })}</span
 				>
-				<button class="sw-close" type="button" title="Schließen" onclick={() => (form = null)}
+				<button class="sw-close" type="button" title={t('Schließen')} onclick={() => (form = null)}
 					>×</button
 				>
 			</div>
@@ -1106,7 +1122,7 @@
 								checked={form.local_login}
 								onchange={(e) => (form!.local_login = e.currentTarget.checked)}
 							/>
-							Login local
+							{t('Login local')}
 						</label>
 						<label class="check">
 							<input
@@ -1114,11 +1130,11 @@
 								checked={form.mobile_login}
 								onchange={(e) => (form!.mobile_login = e.currentTarget.checked)}
 							/>
-							Login mobile
+							{t('Login mobile')}
 						</label>
 					</div>
 					<div class="row">
-						<span class="caption">Anmeldename</span>
+						<span class="caption">{t('Anmeldename')}</span>
 						<input
 							class="text"
 							maxlength="40"
@@ -1128,7 +1144,7 @@
 					</div>
 					{#if modulePersonal && employees.length > 0}
 						<div class="row">
-							<span class="caption">Mitarbeiterliste</span>
+							<span class="caption">{t('Mitarbeiterliste')}</span>
 							<select
 								class="text"
 								onchange={(e) =>
@@ -1146,7 +1162,7 @@
 						</div>
 					{/if}
 					<div class="row">
-						<span class="caption">Vollständiger Name</span>
+						<span class="caption">{t('Vollständiger Name')}</span>
 						<input
 							class="text"
 							maxlength="80"
@@ -1155,25 +1171,29 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Kennwort</span>
+						<span class="caption">{t('Kennwort')}</span>
 						<input
 							class="text"
 							type="password"
 							autocomplete="new-password"
-							placeholder={form.has_password ? 'gespeichert — leer lassen zum Behalten' : 'noch keines'}
+							placeholder={form.has_password
+								? t('gespeichert — leer lassen zum Behalten')
+								: t('noch keines')}
 							value={form.password}
 							oninput={(e) => (form!.password = e.currentTarget.value)}
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Kennwort wiederholen</span>
+						<span class="caption">{t('Kennwort wiederholen')}</span>
 						<input
 							class="text"
 							class:error-field={passwordDiffers.ab}
 							type="password"
 							autocomplete="new-password"
 							disabled={!passwordDiffers.input}
-							placeholder={passwordDiffers.input ? 'zur Kontrolle noch einmal' : 'erst oben eingeben'}
+							placeholder={passwordDiffers.input
+								? t('zur Kontrolle noch einmal')
+								: t('erst oben eingeben')}
 							value={form.password_repeat}
 							oninput={(e) => (form!.password_repeat = e.currentTarget.value)}
 						/>
@@ -1181,24 +1201,24 @@
 					{#if passwordDiffers.ab}
 						<div class="row">
 							<span class="caption"></span>
-							<span class="warning">Die Kennwörter stimmen nicht überein.</span>
+							<span class="warning">{t('Die Kennwörter stimmen nicht überein.')}</span>
 						</div>
 					{/if}
 					<div class="row">
-						<span class="caption">Benutzerkürzel</span>
+						<span class="caption">{t('Benutzerkürzel')}</span>
 						<input
 							class="text short"
 							maxlength="3"
 							value={form.short_name}
 							oninput={(e) => (form!.short_name = e.currentTarget.value)}
 						/>
-						<span class="unit">max. 3 Zeichen</span>
+						<span class="unit">{t('max. 3 Zeichen')}</span>
 					</div>
 					<div class="row">
-						<span class="caption">Terminfarbe</span>
+						<span class="caption">{t('Terminfarbe')}</span>
 						<ColorPicker
 							bind:value={form.color}
-							label="Terminfarbe des Benutzers"
+							label={t('Terminfarbe des Benutzers')}
 						/>
 					</div>
 					<div class="block">
@@ -1208,7 +1228,7 @@
 								checked={form.change_next_login}
 								onchange={(e) => (form!.change_next_login = e.currentTarget.checked)}
 							/>
-							Kennwort ändern bei der nächsten Anmeldung
+							{t('Kennwort ändern bei der nächsten Anmeldung')}
 						</label>
 						<label class="check">
 							<input
@@ -1216,7 +1236,7 @@
 								checked={form.cannot_change}
 								onchange={(e) => (form!.cannot_change = e.currentTarget.checked)}
 							/>
-							Benutzer kann Kennwort nicht ändern
+							{t('Benutzer kann Kennwort nicht ändern')}
 						</label>
 						<label class="check">
 							<input
@@ -1224,7 +1244,7 @@
 								checked={form.never_expires}
 								onchange={(e) => (form!.never_expires = e.currentTarget.checked)}
 							/>
-							Kennwort läuft nie ab
+							{t('Kennwort läuft nie ab')}
 						</label>
 						<label class="check">
 							<input
@@ -1232,25 +1252,25 @@
 								checked={form.disabled}
 								onchange={(e) => (form!.disabled = e.currentTarget.checked)}
 							/>
-							Zugang deaktiviert
+							{t('Zugang deaktiviert')}
 						</label>
 						<label class="check">
 							<input type="checkbox" checked={!form.address_linked} disabled />
-							Benutzer nicht mit Adresse verlinkt
+							{t('Benutzer nicht mit Adresse verlinkt')}
 						</label>
 						<label class="check off">
 							<input type="checkbox" checked={!form.personal_linked} disabled />
-							Benutzer nicht mit Personal verlinkt
+							{t('Benutzer nicht mit Personal verlinkt')}
 						</label>
 					</div>
 					<div class="row">
-						<span class="caption">Sprache</span>
+						<span class="caption">{t('Sprache')}</span>
 						<select
 							class="text"
 							value={form.language}
 							onchange={(e) => (form!.language = e.currentTarget.value)}
 						>
-							<option value="">nach Systemsprache</option>
+							<option value="">{t('nach Systemsprache')}</option>
 							{#each languages as sprache (sprache.id)}
 								<option value={sprache.language ?? ''}>{sprache.language ?? ''}</option>
 							{/each}
@@ -1259,7 +1279,7 @@
 					<div class="row">
 						<label class="check off">
 							<input type="checkbox" checked={false} disabled />
-							2FA active
+							{t('2FA aktiv')}
 						</label>
 					</div>
 				{:else if tab === 'sso'}
@@ -1270,10 +1290,10 @@
 								checked={form.sso_ad_active}
 								onchange={(e) => (form!.sso_ad_active = e.currentTarget.checked)}
 							/>
-							Active Directory - Single Sign On
+							{t('Active Directory - Single Sign On')}
 						</label>
 						<div class="row">
-							<span class="caption">AD-Benutzername</span>
+							<span class="caption">{t('AD-Benutzername')}</span>
 							<input
 								class="text"
 								value={form.sso_ad_user}
@@ -1281,7 +1301,7 @@
 							/>
 						</div>
 						<div class="row">
-							<span class="caption">AD-Domäne</span>
+							<span class="caption">{t('AD-Domäne')}</span>
 							<input
 								class="text"
 								value={form.sso_ad_domain}
@@ -1296,10 +1316,10 @@
 								checked={form.sso_mb_active}
 								onchange={(e) => (form!.sso_mb_active = e.currentTarget.checked)}
 							/>
-							Computer-Benutzerprofil-Bindung - Single Sign On
+							{t('Computer-Benutzerprofil-Bindung - Single Sign On')}
 						</label>
 						<div class="row">
-							<span class="caption">OS-Benutzername</span>
+							<span class="caption">{t('OS-Benutzername')}</span>
 							<input
 								class="text"
 								value={form.sso_mb_os_user}
@@ -1308,7 +1328,7 @@
 							<span class="unit">+</span>
 						</div>
 						<div class="row">
-							<span class="caption">OS-Computername</span>
+							<span class="caption">{t('OS-Computername')}</span>
 							<input
 								class="text"
 								value={form.sso_mb_machine}
@@ -1324,39 +1344,39 @@
 								checked={form.sso_default_entries}
 								onchange={(e) => (form!.sso_default_entries = e.currentTarget.checked)}
 							/>
-							Automatische Mandanten- und Lagerwahl
+							{t('Automatische Mandanten- und Lagerwahl')}
 						</label>
 						<div class="row">
-							<span class="caption">Mandant</span>
+							<span class="caption">{t('Mandant')}</span>
 							<select
 								class="text"
 								value={form.sso_default_mandant}
 								onchange={(e) => (form!.sso_default_mandant = e.currentTarget.value)}
 							>
-								<option value="">— keiner —</option>
+								<option value="">{t('— keiner —')}</option>
 								{#each tenants as entry (entry.id)}
 									<option value={String(entry.id)}>{entry.name}</option>
 								{/each}
 							</select>
 						</div>
 						<div class="row">
-							<span class="caption">Lager</span>
+							<span class="caption">{t('Lager')}</span>
 							<select
 								class="text"
 								value={form.sso_default_lager}
 								onchange={(e) => (form!.sso_default_lager = e.currentTarget.value)}
 							>
-								<option value="">— keines —</option>
+								<option value="">{t('— keines —')}</option>
 								{#each lager as entry (entry.id)}
-									<option value={String(entry.id)}>{entry.name ?? `Lager ${entry.id}`}</option>
+									<option value={String(entry.id)}>{entry.name ?? t('Lager {id}', { id: entry.id })}</option>
 								{/each}
 							</select>
 						</div>
 					</div>
 				{:else if tab === 'kommunikation'}
-					<h3>Persönliche Kontaktdaten</h3>
+					<h3>{t('Persönliche Kontaktdaten')}</h3>
 					<div class="row">
-						<span class="caption">Funktion</span>
+						<span class="caption">{t('Funktion')}</span>
 						<input
 							class="text"
 							value={form.function}
@@ -1364,7 +1384,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Telefon</span>
+						<span class="caption">{t('Telefon')}</span>
 						<input
 							class="text"
 							value={form.phone}
@@ -1372,7 +1392,7 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Mobiltelefon</span>
+						<span class="caption">{t('Mobiltelefon')}</span>
 						<input
 							class="text"
 							value={form.mobile}
@@ -1380,11 +1400,11 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Fax</span>
+						<span class="caption">{t('Fax')}</span>
 						<input class="text" value={form.fax} oninput={(e) => (form!.fax = e.currentTarget.value)} />
 					</div>
 					<div class="row">
-						<span class="caption">eMail-Adresse</span>
+						<span class="caption">{t('eMail-Adresse')}</span>
 						<input
 							class="text"
 							value={form.email}
@@ -1392,11 +1412,11 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">eMail-Provider</span>
+						<span class="caption">{t('eMail-Provider')}</span>
 						<button
 							type="button"
 							class="square red"
-							title="Auf Standard zurücksetzen"
+							title={t('Auf Standard zurücksetzen')}
 							onclick={() => (form!.email_provider = 0)}>×</button
 						>
 						<select
@@ -1404,21 +1424,21 @@
 							value={String(form.email_provider)}
 							onchange={(e) => (form!.email_provider = Number(e.currentTarget.value))}
 						>
-							<option value="0">SMTP Mailserver</option>
-							<option value="1">OAuth 2.0 (Microsoft 365 / Google)</option>
+							<option value="0">{t('SMTP Mailserver')}</option>
+							<option value="1">{t('OAuth 2.0 (Microsoft 365 / Google)')}</option>
 						</select>
 					</div>
 					<div class="row">
 						<span class="caption"></span>
 						<button type="button" class="btn" onclick={() => (accountDialog = true)}>
-							eMail-Konto Einstellungen
+							{t('eMail-Konto Einstellungen')}
 						</button>
 					</div>
 					<div class="row">
-						<span class="caption">Instant-Messenger 1</span>
+						<span class="caption">{t('Instant-Messenger 1')}</span>
 						<input
 							class="text short"
-							placeholder="Typ"
+							placeholder={t('Typ')}
 							value={form.im1_type}
 							oninput={(e) => (form!.im1_type = e.currentTarget.value)}
 						/>
@@ -1429,10 +1449,10 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Instant-Messenger 2</span>
+						<span class="caption">{t('Instant-Messenger 2')}</span>
 						<input
 							class="text short"
-							placeholder="Typ"
+							placeholder={t('Typ')}
 							value={form.im2_type}
 							oninput={(e) => (form!.im2_type = e.currentTarget.value)}
 						/>
@@ -1443,21 +1463,21 @@
 						/>
 					</div>
 					<div class="row">
-						<span class="caption">Standardprofil für Mandant</span>
+						<span class="caption">{t('Standardprofil für Mandant')}</span>
 						<select
 							class="text"
 							value={form.profile_mandant}
 							onchange={(e) => (form!.profile_mandant = e.currentTarget.value)}
 						>
-							<option value="">— keiner —</option>
+							<option value="">{t('— keiner —')}</option>
 							{#each tenants as entry (entry.id)}
 								<option value={String(entry.id)}>{entry.name}</option>
 							{/each}
 						</select>
 					</div>
-					<h3>Daten für Telefonidentifizierung (Profilunabhängig)</h3>
+					<h3>{t('Daten für Telefonidentifizierung (Profilunabhängig)')}</h3>
 					<div class="row">
-						<span class="caption">Interne Durchwahlnummer</span>
+						<span class="caption">{t('Interne Durchwahlnummer')}</span>
 						<input
 							class="text short"
 							maxlength="10"
@@ -1466,9 +1486,9 @@
 						/>
 					</div>
 				{:else}
-					<div class="grid-title">Mandant</div>
+					<div class="grid-title">{t('Mandant')}</div>
 					<div class="grid">
-						<div class="grid-head"><span>Aktiv</span><span>Mandant</span></div>
+						<div class="grid-head"><span>{t('Aktiv')}</span><span>{t('Mandant')}</span></div>
 						{#each tenants as entry (entry.id)}
 							<div class="grid-row">
 								<input
@@ -1484,12 +1504,12 @@
 								<span>{entry.name}</span>
 							</div>
 						{:else}
-							<p class="small">Noch kein Mandant angelegt.</p>
+							<p class="small">{t('Noch kein Mandant angelegt.')}</p>
 						{/each}
 					</div>
-					<div class="grid-title">Lager</div>
+					<div class="grid-title">{t('Lager')}</div>
 					<div class="grid">
-						<div class="grid-head"><span>Aktiv</span><span>Lager</span></div>
+						<div class="grid-head"><span>{t('Aktiv')}</span><span>{t('Lager')}</span></div>
 						{#each lager as entry (entry.id)}
 							<div class="grid-row">
 								<input
@@ -1502,23 +1522,23 @@
 										form!.lager = [...form!.lager];
 									}}
 								/>
-								<span>{entry.name ?? `Lager ${entry.id}`}</span>
+								<span>{entry.name ?? t('Lager {id}', { id: entry.id })}</span>
 							</div>
 						{:else}
-							<p class="small">Noch kein Lager angelegt.</p>
+							<p class="small">{t('Noch kein Lager angelegt.')}</p>
 						{/each}
 					</div>
 				{/if}
 			</div>
 			<div class="sw-footer">
-				<button type="button" class="sw-button" onclick={() => (form = null)}>Abbrechen</button>
+				<button type="button" class="sw-button" onclick={() => (form = null)}>{t('Abbrechen')}</button>
 				<button
 					type="button"
 					class="sw-button primary"
 					disabled={!form.user_name.trim() ||
 						(!form.local_login && !form.mobile_login) ||
 						passwordDiffers.ab}
-					onclick={saveUser}>Ok</button
+					onclick={saveUser}>{t('Ok')}</button
 				>
 			</div>
 		</div>
@@ -1531,19 +1551,19 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="eMail-Konto"
+			aria-label={t('eMail-Konto')}
 			style="width: min(30rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
-				<span class="sw-title">eMail-Konto Einstellungen</span>
-				<button class="sw-close" type="button" title="Schließen" onclick={() => (accountDialog = false)}
+				<span class="sw-title">{t('eMail-Konto Einstellungen')}</span>
+				<button class="sw-close" type="button" title={t('Schließen')} onclick={() => (accountDialog = false)}
 					>×</button
 				>
 			</div>
 			<div class="sw-content">
 				<div class="row">
-					<span class="caption">SMTP-Server</span>
+					<span class="caption">{t('SMTP-Server')}</span>
 					<input
 						class="text"
 						value={form.smtp_server}
@@ -1551,7 +1571,7 @@
 					/>
 				</div>
 				<div class="row">
-					<span class="caption">Port</span>
+					<span class="caption">{t('Port')}</span>
 					<input
 						class="numeric"
 						type="number"
@@ -1562,11 +1582,11 @@
 					/>
 				</div>
 				<div class="row">
-					<span class="caption">BCC-Adresse</span>
+					<span class="caption">{t('BCC-Adresse')}</span>
 					<input class="text" value={form.bcc} oninput={(e) => (form!.bcc = e.currentTarget.value)} />
 				</div>
 				<label class="field">
-					Signatur
+					{t('Signatur')}
 					<textarea
 						class="text"
 						rows="5"
@@ -1577,7 +1597,7 @@
 			</div>
 			<div class="sw-footer">
 				<button type="button" class="sw-button primary" onclick={() => (accountDialog = false)}>
-					Übernehmen
+					{t('Übernehmen')}
 				</button>
 			</div>
 		</div>
@@ -1590,23 +1610,23 @@
 			class="sw-window"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Gruppenrechte"
+			aria-label={t('Gruppenrechte')}
 			style="width: min(56rem, 100%)"
 		>
 			<div class="sw-titlebar">
 				<span class="sw-icon" aria-hidden="true"></span>
-				<span class="sw-title">Einstellungen: Gruppenrechte</span>
+				<span class="sw-title">{t('Einstellungen: Gruppenrechte')}</span>
 				<button
 					class="sw-close"
 					type="button"
-					title="Schließen"
+					title={t('Schließen')}
 					onclick={() => (groupForm = null)}>×</button
 				>
 			</div>
 			<div class="sw-content">
-				<div class="heading">Übersicht der Gruppe</div>
+				<div class="heading">{t('Übersicht der Gruppe')}</div>
 				<div class="row">
-					<span class="caption">Gruppe</span>
+					<span class="caption">{t('Gruppe')}</span>
 					<input
 						class="text"
 						maxlength="40"
@@ -1616,7 +1636,7 @@
 				</div>
 				<div class="scope">
 					<div class="scope-list">
-						<div class="scope-head">Mandanten</div>
+						<div class="scope-head">{t('Mandanten')}</div>
 						{#each tenants as entry (entry.id)}
 							<div class="scope-row">
 								<input
@@ -1627,11 +1647,11 @@
 								{entry.name}
 							</div>
 						{:else}
-							<p class="small">Kein Mandant.</p>
+							<p class="small">{t('Kein Mandant.')}</p>
 						{/each}
 					</div>
 					<div class="scope-list">
-						<div class="scope-head">Lager</div>
+						<div class="scope-head">{t('Lager')}</div>
 						{#each lager as entry (entry.id)}
 							<div class="scope-row">
 								<input
@@ -1639,15 +1659,15 @@
 									checked={groupForm.lager.includes(entry.id)}
 									onchange={() => toggleScope('lager', entry.id)}
 								/>
-								{entry.name ?? `Lager ${entry.id}`}
+								{entry.name ?? t('Lager {id}', { id: entry.id })}
 							</div>
 						{:else}
-							<p class="small">Kein Lager.</p>
+							<p class="small">{t('Kein Lager.')}</p>
 						{/each}
 					</div>
 					<div class="scope-list">
-						<div class="scope-head">Client</div>
-						<p class="small">WHERE führt noch keine Clients.</p>
+						<div class="scope-head">{t('Client')}</div>
+						<p class="small">{t('WHERE führt noch keine Clients.')}</p>
 					</div>
 				</div>
 				<div class="rights">
@@ -1656,14 +1676,14 @@
 							<button
 								type="button"
 								class:active={rechtesatz === 'max'}
-								title="Setzt alle Rechte aller Kategorien — Adressen, Interessenten, Kunden, Artikel … bis Admin"
-								onclick={setMaxRights}>Max. Rechte</button
+								title={t('Setzt alle Rechte aller Kategorien — Adressen, Interessenten, Kunden, Artikel … bis Admin')}
+								onclick={setMaxRights}>{t('Max. Rechte')}</button
 							>
 							<button
 								type="button"
 								class:active={rechtesatz === 'min'}
-								title="Wechselt auf die Min. Rechte; die Auswahl bleibt, wie sie ist"
-								onclick={() => (rechtesatz = 'min')}>Min. Rechte</button
+								title={t('Wechselt auf die Min. Rechte; die Auswahl bleibt, wie sie ist')}
+								onclick={() => (rechtesatz = 'min')}>{t('Min. Rechte')}</button
 							>
 						</div>
 						<div class="tree">
@@ -1671,12 +1691,12 @@
 								type="button"
 								class="node leaf"
 								class:active={sheet === 'uebersicht'}
-								onclick={() => (sheet = 'uebersicht')}>Übersicht</button
+								onclick={() => (sheet = 'uebersicht')}>{t('Übersicht')}</button
 							>
 							{#each tree as branch (branch.key)}
 								<button type="button" class="node branch" onclick={() => toggleBranch(branch.key)}>
 									<span class="arrow">{isOpen[branch.key] ? '▾' : '▸'}</span>
-									{branch.label}
+									{t(branch.label)}
 								</button>
 								{#if isOpen[branch.key]}
 									{#each branch.areas as area (area.key)}
@@ -1684,7 +1704,7 @@
 											type="button"
 											class="node leaf indented"
 											class:active={sheet === area.key}
-											onclick={() => (sheet = area.key)}>{area.label}</button
+											onclick={() => (sheet = area.key)}>{t(area.label)}</button
 										>
 									{/each}
 								{/if}
@@ -1694,23 +1714,23 @@
 					<div class="rights-right">
 						<div class="rights-head">
 							<span class="rights-title"
-								>{sheet === 'uebersicht' ? 'Übersicht' : (activeSheet?.label ?? '')}</span
+								>{sheet === 'uebersicht' ? t('Übersicht') : (activeSheet?.label ?? '')}</span
 							>
 							<button
 								type="button"
 								class="btn"
 								title={activeSheet
-									? `Alle Rechte von ${activeSheet.label} setzen`
-									: 'Alle Rechte des Katalogs setzen — einschließlich Admin'}
-								onclick={() => allRights(true)}>Alles aktivieren</button
+									? t('Alle Rechte von {area} setzen', { area: activeSheet.label })
+									: t('Alle Rechte des Katalogs setzen — einschließlich Admin')}
+								onclick={() => allRights(true)}>{t('Alles aktivieren')}</button
 							>
 							<button
 								type="button"
 								class="btn"
 								title={activeSheet
-									? `Alle Rechte von ${activeSheet.label} entfernen`
-									: 'Alle Rechte des Katalogs entfernen'}
-								onclick={() => allRights(false)}>Alles deaktivieren</button
+									? t('Alle Rechte von {area} entfernen', { area: activeSheet.label })
+									: t('Alle Rechte des Katalogs entfernen')}
+								onclick={() => allRights(false)}>{t('Alles deaktivieren')}</button
 							>
 						</div>
 						{#if activeSheet}
@@ -1722,24 +1742,27 @@
 											checked={rightSetNow.includes(right.key)}
 											onchange={() => toggleRight(right.key)}
 										/>
-										{right.label}
+										{t(right.label)}
 									</label>
 								{/each}
 							</div>
 							<p class="small">
-								{gewaehlt.length} von {activeSheet.rights.length} Rechten in
-								{rechtesatz === 'max' ? 'Max. Rechte' : 'Min. Rechte'} gesetzt.
+								{t('{count} von {total} Rechten in {set} gesetzt.', {
+									count: gewaehlt.length,
+									total: activeSheet.rights.length,
+									set: rechtesatz === 'max' ? t('Max. Rechte') : t('Min. Rechte')
+								})}
 							</p>
 						{:else}
 							<div class="rights-list">
 								<table class="branches">
 									<thead>
-										<tr><th>Zweig</th><th class="center">Bereiche</th><th class="center">Rechte</th></tr>
+										<tr><th>{t('Zweig')}</th><th class="center">{t('Bereiche')}</th><th class="center">{t('Rechte')}</th></tr>
 									</thead>
 									<tbody>
 										{#each tree as branch (branch.key)}
 											<tr>
-												<td>{branch.label}</td>
+												<td>{t(branch.label)}</td>
 												<td class="center">{branch.areas.length}</td>
 												<td class="center">
 													{branch.areas.reduce((summe, area) => summe + area.rights.length, 0)}
@@ -1749,21 +1772,23 @@
 									</tbody>
 								</table>
 								<p class="small">
-									{rightSetNow.length} von {alleRechtsschluessel.length} Rechten in
-									{rechtesatz === 'max' ? 'Max. Rechte' : 'Min. Rechte'} gesetzt.
+									{t('{count} von {total} Rechten in {set} gesetzt.', {
+										count: rightSetNow.length,
+										total: alleRechtsschluessel.length,
+										set: rechtesatz === 'max' ? t('Max. Rechte') : t('Min. Rechte')
+									})}
 								</p>
 								<p class="small">
-									`Max. Rechte` setzt alle Rechte aller Kategorien; links einen Zweig öffnen,
-									um einzelne Bereiche zu setzen.
+									{t('`Max. Rechte` setzt alle Rechte aller Kategorien; links einen Zweig öffnen, um einzelne Bereiche zu setzen.')}
 								</p>
 							</div>
 						{/if}
 						{#if sheet === 'personal'}
 							<div class="departments">
-								<div class="scope-head">Abteilungen</div>
+								<div class="scope-head">{t('Abteilungen')}</div>
 								<div class="department-rows">
 									{#if selectedDepartments('departments').length === 0}
-										<span class="department-row">alle</span>
+										<span class="department-row">{t('alle')}</span>
 									{:else}
 										{#each selectedDepartments('departments') as entry (entry.id)}
 											<span class="department-row">
@@ -1771,7 +1796,7 @@
 												<button
 													type="button"
 													class="drop"
-													title="Abteilung entfernen"
+													title={t('Abteilung entfernen')}
 													onclick={() => removeDepartment('departments', entry.id)}>×</button
 												>
 											</span>
@@ -1784,15 +1809,15 @@
 										class="btn"
 										onclick={() =>
 											(departmentChoice = departmentChoice === 'departments' ? null : 'departments')}
-										>+ Abteilung hinzufügen</button
+										>{t('+ Abteilung hinzufügen')}</button
 									>
 									{#if departmentChoice === 'departments'}
-										<div class="choice" role="listbox" aria-label="Abteilungen">
+										<div class="choice" role="listbox" aria-label={t('Abteilungen')}>
 											<button
 												type="button"
 												role="option"
 												aria-selected="false"
-												onclick={() => departmentAll('departments')}>alle</button
+												onclick={() => departmentAll('departments')}>{t('alle')}</button
 											>
 											{#each freeDepartments('departments') as entry (entry.id)}
 												<button
@@ -1803,7 +1828,7 @@
 													>{entry.name}</button
 												>
 											{:else}
-												<span class="empty-choice">Keine weitere Abteilung</span>
+												<span class="empty-choice">{t('Keine weitere Abteilung')}</span>
 											{/each}
 										</div>
 									{/if}
@@ -1812,10 +1837,10 @@
 						{/if}
 						{#if sheet === 'personaldispo'}
 							<div class="departments">
-								<div class="scope-head">Abteilungen</div>
+								<div class="scope-head">{t('Abteilungen')}</div>
 								<div class="department-rows">
 									{#if selectedDepartments('dispo_departments').length === 0}
-										<span class="department-row">alle</span>
+										<span class="department-row">{t('alle')}</span>
 									{:else}
 										{#each selectedDepartments('dispo_departments') as entry (entry.id)}
 											<span class="department-row">
@@ -1823,7 +1848,7 @@
 												<button
 													type="button"
 													class="drop"
-													title="Abteilung entfernen"
+													title={t('Abteilung entfernen')}
 													onclick={() => removeDepartment('dispo_departments', entry.id)}>×</button
 												>
 											</span>
@@ -1838,15 +1863,15 @@
 											(departmentChoice = departmentChoice === 'dispo_departments'
 												? null
 												: 'dispo_departments')}
-										>+ Abteilung hinzufügen</button
+										>{t('+ Abteilung hinzufügen')}</button
 									>
 									{#if departmentChoice === 'dispo_departments'}
-										<div class="choice" role="listbox" aria-label="Abteilungen">
+										<div class="choice" role="listbox" aria-label={t('Abteilungen')}>
 											<button
 												type="button"
 												role="option"
 												aria-selected="false"
-												onclick={() => departmentAll('dispo_departments')}>alle</button
+												onclick={() => departmentAll('dispo_departments')}>{t('alle')}</button
 											>
 											{#each freeDepartments('dispo_departments') as entry (entry.id)}
 												<button
@@ -1857,7 +1882,7 @@
 													>{entry.name}</button
 												>
 											{:else}
-												<span class="empty-choice">Keine weitere Abteilung</span>
+												<span class="empty-choice">{t('Keine weitere Abteilung')}</span>
 											{/each}
 										</div>
 									{/if}
@@ -1868,12 +1893,12 @@
 				</div>
 			</div>
 			<div class="sw-footer">
-				<button type="button" class="sw-button" onclick={() => (groupForm = null)}>Abbrechen</button>
+				<button type="button" class="sw-button" onclick={() => (groupForm = null)}>{t('Abbrechen')}</button>
 				<button
 					type="button"
 					class="sw-button primary"
 					disabled={!groupForm.name.trim()}
-					onclick={saveGroup}>Ok</button
+					onclick={saveGroup}>{t('Ok')}</button
 				>
 			</div>
 		</div>

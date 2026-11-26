@@ -10,8 +10,15 @@
 	import { openAddressCreate } from './addresses/addressDialogStore.svelte';
 	import { openArticleCreate } from './articles/articleDialogStore.svelte';
 	import { openImport } from './import/importStore.svelte';
+	import { askConfirm } from './confirm.svelte';
+	import { runEditorCommand, type EditorCommand } from './edit/editorCommands';
+	import { showClipboard } from './edit/clipboard.svelte';
+	import { showStatus } from './statusMessage.svelte';
 	import { modules } from './modules.svelte';
 	import type { Entry, Menu, ModuleMenuContribution, Tool, Tone } from './menuTypes';
+	import { t } from './i18n.svelte';
+	import PersonalSettingsDialog from './settings/PersonalSettingsDialog.svelte';
+	import { personalSettings } from './settings/personalSettings.svelte';
 	import goMenu from '$modules/where-does-my-stuff-go/web/menu';
 	import moneyMenu from '$modules/where-is-my-money/web/menu';
 	import peopleMenu from '$modules/where-are-my-people/web/menu';
@@ -40,12 +47,6 @@
 				{ kind: 'item', label: 'Kalender', href: '/agenda', need: 'teamagenda.termine-lesen', module: 'stuff' },
 				{ kind: 'item', label: 'Zentrale', href: '/', module: 'stuff' },
 				{ kind: 'item', label: 'Gesendete eMails' },
-				{ kind: 'item', label: 'Dateiablage', submenu: true },
-				separator,
-				{ kind: 'item', label: 'Widgets', submenu: true },
-				separator,
-				{ kind: 'item', label: 'Dokumentenliste' },
-				{ kind: 'item', label: 'Dokumentvorlagen' },
 				separator,
 				{ kind: 'item', label: 'Neu anlegen...', submenu: true },
 				{
@@ -55,26 +56,26 @@
 					children: [{ kind: 'item', label: 'Import-Manager', action: 'import' }]
 				},
 				separator,
-				{ kind: 'item', label: 'Persönliche Einstellungen', submenu: true },
+				{ kind: 'item', label: 'Persönliche Einstellungen', action: 'personal-settings' },
 				separator,
 				{ kind: 'item', label: 'Auf Updates prüfen' },
 				separator,
-				{ kind: 'item', label: 'Beenden', shortcut: 'Ctrl+Q' }
+				{ kind: 'item', label: 'Beenden', shortcut: 'Ctrl+Q', action: 'quit' }
 			]
 		},
 		{
 			label: 'Bearbeiten',
 			items: [
-				{ kind: 'item', label: 'Widerrufen', shortcut: 'Ctrl+Z' },
-				{ kind: 'item', label: 'Wiederholen', shortcut: 'Ctrl+Shift+Z' },
+				{ kind: 'item', label: 'Widerrufen', shortcut: 'Ctrl+Z', action: 'edit-undo' },
+				{ kind: 'item', label: 'Wiederholen', shortcut: 'Ctrl+Shift+Z', action: 'edit-redo' },
 				separator,
-				{ kind: 'item', label: 'Ausschneiden', shortcut: 'Ctrl+X' },
-				{ kind: 'item', label: 'Kopieren', shortcut: 'Ctrl+C' },
-				{ kind: 'item', label: 'Einsetzen', shortcut: 'Ctrl+V' },
-				{ kind: 'item', label: 'Löschen' },
-				{ kind: 'item', label: 'Alles auswählen', shortcut: 'Ctrl+A' },
+				{ kind: 'item', label: 'Ausschneiden', shortcut: 'Ctrl+X', action: 'edit-cut' },
+				{ kind: 'item', label: 'Kopieren', shortcut: 'Ctrl+C', action: 'edit-copy' },
+				{ kind: 'item', label: 'Einsetzen', shortcut: 'Ctrl+V', action: 'edit-paste' },
+				{ kind: 'item', label: 'Löschen', shortcut: '[del] / [entf]', action: 'edit-delete' },
+				{ kind: 'item', label: 'Alles auswählen', shortcut: 'Ctrl+A', action: 'edit-select-all' },
 				separator,
-				{ kind: 'item', label: 'Zwischenablage anzeigen' }
+				{ kind: 'item', label: 'Zwischenablage anzeigen', action: 'clipboard-show' }
 			]
 		},
 		{
@@ -101,6 +102,11 @@
 		{
 			label: 'Lager',
 			items: [
+				{ kind: 'item', label: 'Inventur', href: '/stocktaking', need: 'artikel.artikel-lesen', module: 'stuff' },
+				{ kind: 'item', label: 'Beschaffung', href: '/procurement', need: 'artikel.artikel-lesen', module: 'stuff' },
+				{ kind: 'item', label: 'Bestellungen', href: '/purchase-orders', need: 'artikel.artikel-lesen', module: 'stuff' },
+				{ kind: 'item', label: 'Bestandswert', href: '/stock-value', need: 'artikel.artikel-lesen', module: 'stuff' },
+				separator,
 				{ kind: 'item', label: 'Werkstatt Logbuch', module: 'stuff' },
 				separator,
 				{ kind: 'item', label: 'Inventur DGUV-Prüfplan', module: 'stuff' },
@@ -140,8 +146,10 @@
 			 * Content of `img/admin_menu.PNG` (window „Einstellungen"): the three groups
 			 * system settings, modules and administration. Two entries are renamed because
 			 * they carry the product name of the old system: „EPI-Admin" → „Systemverwaltung",
-			 * „epirent-Lizenz" → „Lizenz". `Übersetzer` carries the template with a
-			 * lock — the module is not licensed. The
+			 * „epirent-Lizenz" → „Lizenz". On request, nine entries of the
+			 * original are gone: „Digitale Unterschrift", „Erweiterungsfelder", „PDF",
+			 * „Sprachen", „Standarttexte", „Status", „Schnittstelle REST", „Telefonie"
+			 * and „Übersetzer". The
 			 * product groups are maintained by the article settings, hence no entry of
 			 * their own; an admin overview page no longer exists, the entries lead
 			 * directly to their page.
@@ -151,17 +159,11 @@
 				{ kind: 'item', label: 'Adressen', href: '/admin/addresses', module: 'stuff' },
 				{ kind: 'item', label: 'Artikel', href: '/admin/articles', module: 'stuff' },
 				{ kind: 'item', label: 'Barcode & CheckOut/-In', module: 'stuff' },
-				{ kind: 'item', label: 'Digitale Unterschrift', module: 'stuff' },
 				{ kind: 'item', label: 'Druckereinstellungen', module: 'stuff' },
 				{ kind: 'item', label: 'eMailversand', module: 'stuff' },
-				{ kind: 'item', label: 'Erweiterungsfelder', module: 'stuff' },
 				{ kind: 'item', label: 'Lager & Lagerplätze', href: '/admin/warehouses', module: 'stuff' },
 				{ kind: 'item', label: 'Messenger', module: 'stuff' },
 				{ kind: 'item', label: 'Nummernkreisläufe', href: '/admin/number-series', module: 'stuff' },
-				{ kind: 'item', label: 'PDF', module: 'stuff' },
-				{ kind: 'item', label: 'Sprachen', href: '/admin/settings#sprachen', module: 'stuff' },
-				{ kind: 'item', label: 'Standardtexte', module: 'stuff' },
-				{ kind: 'item', label: 'Status', href: '/admin/settings#status', module: 'stuff' },
 				{ kind: 'item', label: 'TeamAgenda', href: '/agenda', module: 'stuff' },
 				{ kind: 'item', label: 'Textverarbeitung', module: 'stuff' },
 				{ kind: 'item', label: 'Währungen', href: '/admin/settings#waehrungen', module: 'stuff' },
@@ -172,9 +174,6 @@
 				{ kind: 'item', label: 'Kalender Abonnement', module: 'stuff' },
 				{ kind: 'item', label: 'Mandanten', href: '/admin/tenants' },
 				{ kind: 'item', label: 'Pyrotech', module: 'stuff' },
-				{ kind: 'item', label: 'Schnittstelle REST', module: 'stuff' },
-				{ kind: 'item', label: 'Telefonie', module: 'stuff' },
-				{ kind: 'item', label: 'Übersetzer', locked: true, module: 'stuff' },
 				separator,
 				{ kind: 'heading', label: 'Administration' },
 				{ kind: 'item', label: 'Backup', module: 'stuff' },
@@ -406,11 +405,93 @@
 	};
 	const reload = () => location.reload();
 
+	/**
+	 * Ein Eintrag mit `action` — eine Stelle für die Menüleiste und ihr Untermenü.
+	 * Die Befehle des Menüs `Bearbeiten` wirken auf das zuletzt benutzte Feld; ohne
+	 * Feld sagen sie es kurz an, statt stumm nichts zu tun.
+	 */
+	async function runAction(action: string): Promise<void> {
+		switch (action) {
+			case 'address-create':
+				openAddressCreate();
+				return;
+			case 'article-create':
+				openArticleCreate();
+				return;
+			case 'import':
+				openImport(pageImportTarget());
+				return;
+			case 'search':
+				openSearch();
+				return;
+			case 'personal-settings':
+				personalSettings.show();
+				return;
+			case 'quit':
+				await beenden();
+				return;
+			case 'clipboard-show':
+				showClipboard();
+				return;
+			case 'edit-undo':
+			case 'edit-redo':
+			case 'edit-cut':
+			case 'edit-copy':
+			case 'edit-paste':
+			case 'edit-delete':
+			case 'edit-select-all': {
+				const command = action.slice('edit-'.length) as EditorCommand;
+				if (!(await runEditorCommand(command))) showStatus(t('Kein Eingabefeld aktiv.'));
+				return;
+			}
+			default:
+				openAddressSearch();
+		}
+	}
+
 	/** Sign out: end the session, the mask appears instead of the application. */
 	async function signOut() {
 		close();
 		await auth.logout();
 		await goto('/');
+	}
+
+	/**
+	 * `Datei → Beenden` and `Ctrl+Q`: the session ends and the window closes.
+	 *
+	 * A browser tab that a script did not open cannot be closed; there the login
+	 * mask remains, which is what quitting means outside the desktop shell.
+	 */
+	async function beenden() {
+		close();
+		const sicher = await askConfirm({
+			title: t('Beenden'),
+			message: t('Die Anwendung wirklich beenden?'),
+			confirmLabel: t('Ja, beenden'),
+			cancelLabel: t('Weiterarbeiten')
+		});
+		if (!sicher) return;
+
+		await auth.logout();
+		fensterSchliessen();
+	}
+
+	/** Im Desktop-Fenster (Tauri) schließt nur der eigene Befehl verlässlich. */
+	function fensterSchliessen() {
+		const tauri = (
+			window as {
+				__TAURI_INTERNALS__?: {
+					invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+				};
+			}
+		).__TAURI_INTERNALS__;
+		if (tauri?.invoke) {
+			void tauri
+				.invoke('plugin:window|close', { label: 'main' })
+				.catch(() => window.close());
+			return;
+		}
+		window.close();
 	}
 
 	/** Tile that belongs to the current address: exact hit before prefix. */
@@ -444,6 +525,12 @@
 	}
 
 	function onWindowKey(event: KeyboardEvent) {
+		// `Ctrl+Q` beendet die Anwendung — der Kürzel steht so im Menü `Datei`.
+		if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'q') {
+			event.preventDefault();
+			void beenden();
+			return;
+		}
 		if (event.key !== 'Escape') return;
 		isTenantOpen = false;
 		close();
@@ -503,7 +590,7 @@
 			{/if}
 		{:else if name === 'serial'}
 			<rect x="2.4" y="3.6" width="19.2" height="16.8" rx="2" fill="currentColor" />
-			<text x="12" y="10.8" text-anchor="middle" font-size="7" font-weight="700" fill={TONES[tone]}>S/N:</text>
+			<text x="12" y="10.8" text-anchor="middle" font-size="7" font-weight="700" fill={TONES[tone]}>{t('S/N:')}</text>
 			<path
 				d="M5 13.4v3.6M6.9 13.4v3.6M8.8 13.4v3.6M10.7 13.4v3.6M12.6 13.4v3.6M14.5 13.4v3.6M16.4 13.4v3.6M18.3 13.4v3.6"
 				stroke={TONES[tone]}
@@ -566,7 +653,7 @@
 		</svg>
 	</span>
 
-	<nav class="menu-band" aria-label="Hauptmenü" bind:this={navEl}>
+	<nav class="menu-band" aria-label={t('Hauptmenü')} bind:this={navEl}>
 		{#each visibleMenus as menu (menu.label)}
 			<div class="menu">
 				<button
@@ -577,7 +664,7 @@
 					aria-expanded={open === menu.label}
 					onclick={() => toggle(menu.label)}
 				>
-					{menu.label}
+					{t(menu.label)}
 				</button>
 				{#if open === menu.label}
 					<ul class="list" role="menu">
@@ -585,12 +672,12 @@
 							{#if item.kind === 'separator'}
 								<li class="separator" role="separator"></li>
 							{:else if item.kind === 'heading'}
-								<li class="group" role="presentation">{item.label}</li>
+								<li class="group" role="presentation">{t(item.label)}</li>
 							{:else}
 								<li role="none">
 									{#if item.href}
 										<a role="menuitem" href={item.href} onclick={close}>
-											<span class="text">{item.label}</span>
+											<span class="text">{t(item.label)}</span>
 											{#if item.shortcut}<span class="shortcut">{item.shortcut}</span>{/if}
 										</a>
 									{:else if item.action}
@@ -600,14 +687,10 @@
 											type="button"
 											onclick={() => {
 												close();
-												if (item.action === 'address-create') openAddressCreate();
-												else if (item.action === 'article-create') openArticleCreate();
-												else if (item.action === 'import') openImport(pageImportTarget());
-												else if (item.action === 'search') openSearch();
-												else openAddressSearch();
+												void runAction(item.action!);
 											}}
 										>
-											<span class="text">{item.label}</span>
+											<span class="text">{t(item.label)}</span>
 											{#if item.shortcut}<span class="shortcut">{item.shortcut}</span>{/if}
 										</button>
 									{:else if item.children}
@@ -631,7 +714,7 @@
 														? (submenu = null)
 														: untermenueOeffnen(item.label, event.currentTarget.parentElement ?? event.currentTarget)}
 											>
-												<span class="text">{item.label}</span>
+												<span class="text">{t(item.label)}</span>
 												<span class="arrow" aria-hidden="true"></span>
 											</button>
 											{#if submenu?.label === item.label}
@@ -644,7 +727,7 @@
 														{#if unter.kind === 'separator'}
 															<li class="separator" role="separator"></li>
 														{:else if unter.kind === 'heading'}
-															<li class="group" role="presentation">{unter.label}</li>
+															<li class="group" role="presentation">{t(unter.label)}</li>
 														{:else if unter.action}
 															<li role="none">
 																<button
@@ -654,26 +737,22 @@
 																	onclick={() => {
 																		close();
 																		submenu = null;
-																		if (unter.action === 'import') openImport(pageImportTarget());
-																		else if (unter.action === 'article-create') openArticleCreate();
-																		else if (unter.action === 'address-create') openAddressCreate();
-																		else if (unter.action === 'search') openSearch();
-																		else openAddressSearch();
+																		void runAction(unter.action!);
 																	}}
 																>
-																	<span class="text">{unter.label}</span>
+																	<span class="text">{t(unter.label)}</span>
 																</button>
 															</li>
 														{:else if unter.href}
 															<li role="none">
 																<a role="menuitem" href={unter.href} onclick={close}>
-																	<span class="text">{unter.label}</span>
+																	<span class="text">{t(unter.label)}</span>
 																</a>
 															</li>
 														{:else}
 															<li role="none">
 																<span class="entry disabled" role="menuitem" aria-disabled="true">
-																	<span class="text">{unter.label}</span>
+																	<span class="text">{t(unter.label)}</span>
 																</span>
 															</li>
 														{/if}
@@ -688,10 +767,10 @@
 											aria-disabled="true"
 											title={item.locked ? 'nicht lizenziert' : 'noch nicht umgesetzt'}
 										>
-											<span class="text">{item.label}</span>
+											<span class="text">{t(item.label)}</span>
 											{#if item.shortcut}<span class="shortcut">{item.shortcut}</span>{/if}
 											{#if item.locked}
-												<span class="lock" aria-label="nicht lizenziert">
+												<span class="lock" aria-label={t('nicht lizenziert')}>
 													<svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true">
 														<path
 															d="M8 10V7a4 4 0 0 1 8 0v3"
@@ -727,10 +806,10 @@
 			<span class="track" class:on={isDark()}>
 				<span class="thumb"></span>
 			</span>
-			<span class="theme-text">Design</span>
+			<span class="theme-text">{t('Design')}</span>
 		</button>
 
-		<span class="user" title="Angemeldeter Benutzer">
+		<span class="user" title={t('Angemeldeter Benutzer')}>
 			<span class="user-icon">
 				{#if auth.user?.color}
 					<span class="user-dot" style={`background:${auth.user.color}`}></span>
@@ -746,7 +825,7 @@
 							type="button"
 							class="tenant switchable"
 							class:open={isTenantOpen}
-							title="Mandant wechseln"
+							title={t('Mandant wechseln')}
 							aria-haspopup="listbox"
 							aria-expanded={isTenantOpen}
 							onclick={() => (isTenantOpen = !isTenantOpen)}
@@ -755,7 +834,7 @@
 							<span class="arrow" aria-hidden="true">▾</span>
 						</button>
 						{#if isTenantOpen}
-							<ul class="tenant-list" role="listbox" aria-label="Mandant wählen">
+							<ul class="tenant-list" role="listbox" aria-label={t('Mandant wählen')}>
 								{#each switchableTenants as mandant (mandant.id)}
 									<li>
 										<button
@@ -773,7 +852,7 @@
 							</ul>
 						{/if}
 					{:else}
-						<span class="tenant" title="Mandant der Anmeldung">{auth.user.mandant_name}</span>
+						<span class="tenant" title={t('Mandant der Anmeldung')}>{auth.user.mandant_name}</span>
 					{/if}
 				</div>
 			{/if}
@@ -781,16 +860,16 @@
 		<button
 			type="button"
 			class="sign-out"
-			title="Abmelden und zur Anmeldemaske zurückkehren"
+			title={t('Abmelden und zur Anmeldemaske zurückkehren')}
 			onclick={signOut}
 		>
 			{@render symbol('logout', 'slate')}
-			<span class="sign-out-text">Abmelden</span>
+			<span class="sign-out-text">{t('Abmelden')}</span>
 		</button>
 	</div>
 </header>
 
-<nav class="sidebar" aria-label="Schnellzugriff">
+<nav class="sidebar" aria-label={t('Schnellzugriff')}>
 	{#each visibleTools as tool (tool.label)}
 		{#if tool.href}
 			<a
@@ -798,84 +877,88 @@
 				class:active={activeLabels.includes(tool.label)}
 				style="--ton: {TONES[tool.tone]}"
 				href={tool.href}
-				title={tool.label}
+				title={t(tool.label)}
 			>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</a>
 		{:else if tool.action === 'refresh'}
-			<button type="button" class="tile refresh" title={tool.label} onclick={reload}>
+			<button type="button" class="tile refresh" title={t(tool.label)} onclick={reload}>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</button>
 		{:else if tool.action === 'search'}
 			<button
 				type="button"
 				class="tile"
 				style="--ton: {TONES[tool.tone]}"
-				title={tool.label}
+				title={t(tool.label)}
 				onclick={openSearch}
 			>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</button>
 		{:else if tool.action === 'address-search'}
 			<button
 				type="button"
 				class="tile"
 				style="--ton: {TONES[tool.tone]}"
-				title="{tool.label} — Suchmaske öffnen"
+				title="{t(tool.label)} — {t('Suchmaske öffnen')}"
 				onclick={openAddressSearch}
 			>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</button>
 		{:else if tool.action === 'article-search'}
 			<button
 				type="button"
 				class="tile"
 				style="--ton: {TONES[tool.tone]}"
-				title="{tool.label} — Suchmaske öffnen"
+				title="{t(tool.label)} — {t('Suchmaske öffnen')}"
 				onclick={openArticleSearch}
 			>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</button>
 		{:else if tool.action === 'address-create'}
 			<button
 				type="button"
 				class="tile"
 				style="--ton: {TONES[tool.tone]}"
-				title="{tool.label} — neue Adresse anlegen"
+				title="{t(tool.label)} — {t('neue Adresse anlegen')}"
 				onclick={openAddressCreate}
 			>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</button>
 		{:else if tool.action === 'article-create'}
 			<button
 				type="button"
 				class="tile"
 				style="--ton: {TONES[tool.tone]}"
-				title="{tool.label} — neuen Artikel anlegen"
+				title="{t(tool.label)} — {t('neuen Artikel anlegen')}"
 				onclick={openArticleCreate}
 			>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</button>
 		{:else}
 			<span
 				class="tile disabled"
 				style="--ton: {TONES[tool.tone]}"
-				title="{tool.label} — noch nicht umgesetzt"
+				title="{t(tool.label)} — {t('noch nicht umgesetzt')}"
 				aria-disabled="true"
 			>
 				<span class="symbol">{@render symbol(tool.icon, tool.tone)}</span>
-				<span class="caption">{tool.label}</span>
+				<span class="caption">{t(tool.label)}</span>
 			</span>
 		{/if}
 	{/each}
 </nav>
+
+{#if personalSettings.open}
+	<PersonalSettingsDialog />
+{/if}
 
 <style>
 	/* Header: logo, menu band, on the right the design switch and the user. */
@@ -1054,7 +1137,7 @@
 
 	/* Page column: the same surface as the header, only vertical. */
 	.sidebar {
-		grid-area: page;
+		grid-area: sidebar;
 		position: sticky;
 		top: 2.05rem;
 		z-index: 40;

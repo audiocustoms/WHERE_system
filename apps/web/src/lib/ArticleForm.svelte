@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount, type Snippet } from 'svelte';
 	import {
 		api,
@@ -10,6 +12,7 @@
 		type ArticleGroup
 	} from './api';
 	import { confirmCancel } from './confirm.svelte';
+	import { decimalText, decimalValue } from './format';
 	import StockLevel from './StockLevel.svelte';
 	import ArticleRental from '$modules/where-does-my-stuff-go/web/ArticleRental.svelte';
 	import ArticleSale from '$modules/where-does-my-stuff-go/web/ArticleSale.svelte';
@@ -43,43 +46,105 @@
 		oncancel
 	}: Props = $props();
 
-	// Local copy: changes must not take effect outside until saved.
-	// svelte-ignore state_referenced_locally
-	let a = $state<Article>(normalize(JSON.parse(JSON.stringify(initial)) as Article));
+	/**
+	 * Fields the database keeps as `numeric`. The mask shows them with a comma and
+	 * without trailing zeros, `toApiDecimals` turns them back before saving.
+	 */
+	const DECIMAL_FIELDS = [
+		'retail_price',
+		'insurance_value_net',
+		'insurance_value_gross',
+		'width_net',
+		'height_net',
+		'depth_net',
+		'volume_net',
+		'weight_net',
+		'width_gross',
+		'height_gross',
+		'depth_gross',
+		'volume_gross',
+		'weight_gross',
+		'voltage_from',
+		'voltage_to',
+		'current_draw',
+		'power',
+		'workshop_max_usage_days'
+	] as const;
+
+	const PYRO_DECIMALS = [
+		'lateral_safety_distance',
+		'vertical_safety_distance',
+		'ascending_height',
+		'sound_pressure_level',
+		'sound_pressure_range',
+		'delay_time',
+		'effect_duration',
+		'neq',
+		'un_points'
+	] as const;
+
+	const PRICE_DECIMALS = [
+		'rental_price_per_day',
+		'rental_base_price',
+		'rental_cost_price',
+		'rental_price_per_day_roll_days',
+		'rental_base_price_roll_days',
+		'rental_cost_price_roll_days',
+		'rental_price_per_day_off_days',
+		'rental_base_price_off_days',
+		'rental_cost_price_off_days',
+		'rental_price_weekend',
+		'rental_cost_price_weekend',
+		'deposit',
+		'used_sale_price',
+		'capital_binding',
+		'sale_price_net',
+		'sale_price_gross',
+		'sale_retail_price',
+		'sale_cost_price_net',
+		'sale_markup_percent',
+		'package_size',
+		'reorder_level'
+	] as const;
 
 	/** Older answers do not know the tabs „Lieferanten"/„Pyro" yet. */
 	function normalize(article: Article): Article {
 		article.suppliers ??= [];
 		article.pyro ??= emptyPyro();
-		// Make the decimal strings of the API („2574.0000") readable, the value stays the same.
-		for (const s of article.suppliers) s.purchase_price = shortNumber(s.purchase_price);
-		const p = article.pyro as unknown as Record<string, unknown>;
-		for (const key of [
-			'lateral_safety_distance',
-			'vertical_safety_distance',
-			'ascending_height',
-			'sound_pressure_level',
-			'sound_pressure_range',
-			'delay_time',
-			'effect_duration',
-			'neq',
-			'un_points'
-		]) {
-			if (typeof p[key] === 'string') p[key] = shortNumber(p[key]);
+		for (const key of DECIMAL_FIELDS) article[key] = decimalText(article[key]);
+		for (const s of article.suppliers) s.purchase_price = decimalText(s.purchase_price);
+		if (article.pyro) {
+			const pyro = article.pyro as unknown as Record<string, string | null>;
+			for (const key of PYRO_DECIMALS) pyro[key] = decimalText(pyro[key]);
+		}
+		if (article.pricing) {
+			const pricing = article.pricing as unknown as Record<string, string | null>;
+			for (const key of PRICE_DECIMALS) pricing[key] = decimalText(pricing[key]);
 		}
 		return article;
 	}
 
-	/** „2574.0000" → „2574", „1.2500" → „1.25"; unknown texts stay. */
-	function shortNumber(value: string | null): string | null {
-		if (value === null) return null;
-		const n = Number(value);
-		if (!Number.isFinite(n)) return value;
-		return String(n);
+	/** Back to what the API expects: the mask holds `11,4`, the column wants `11.4`. */
+	function toApiDecimals(article: Article): Article {
+		for (const key of DECIMAL_FIELDS) article[key] = decimalValue(article[key]);
+		for (const s of article.suppliers) s.purchase_price = decimalValue(s.purchase_price);
+		if (article.pyro) {
+			const pyro = article.pyro as unknown as Record<string, string | null>;
+			for (const key of PYRO_DECIMALS) pyro[key] = decimalValue(pyro[key]);
+		}
+		if (article.pricing) {
+			const pricing = article.pricing as unknown as Record<string, string | null>;
+			for (const key of PRICE_DECIMALS) pricing[key] = decimalValue(pricing[key]);
+		}
+		return article;
 	}
 
+	// Local copy: changes must not take effect outside until saved.
+	// svelte-ignore state_referenced_locally
+	let a = $state<Article>(normalize(JSON.parse(JSON.stringify(initial)) as Article));
+
 	let textTab = $state<'kurz' | 'lang' | 'tech' | 'liefer' | 'pack' | 'webshop'>('kurz');
-	let lowerTab = $state<'masse' | 'warengruppe' | 'dguv' | 'rest'>('masse');
+	let lowerTab = $state<'masse' | 'warengruppe' | 'dguv'>('masse');
 	let tab = $state<'artikel' | 'miete' | 'verkauf' | 'lagerbestand' | 'lieferanten' | 'pyro'>('artikel');
 
 	/**
@@ -109,7 +174,9 @@
 
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
-		onsave(a);
+		// A copy: the mask keeps its German text (`11,4`) while the copy goes to the API.
+		const copy = JSON.parse(JSON.stringify(a)) as Article;
+		onsave(toApiDecimals(copy));
 	}
 
 	// --------------------------------------------------------- Tab „Lieferanten"
@@ -149,7 +216,7 @@
 		const id = Number(selectedSupplier);
 		if (!Number.isInteger(id) || id <= 0) return;
 		if (a.suppliers.some((s) => s.supplier_id === id)) {
-			supplierError = 'Dieser Lieferant steht bereits in der Liste.';
+			supplierError = t('Dieser Lieferant steht bereits in der Liste.');
 			return;
 		}
 		const gewaehlt = supplierChoice?.find((x) => x.id === id);
@@ -174,34 +241,34 @@
 	}
 
 	const textFields = {
-		short: 'Kurz',
-		long: 'Lang',
-		tech: 'Tech. Details',
-		liefer: 'Lieferumfang',
-		pack: 'Packinfo',
-		webshop: 'WebShop'
+		short: t('Kurz'),
+		long: t('Lang'),
+		tech: t('Tech. Details'),
+		liefer: t('Lieferumfang'),
+		pack: t('Packinfo'),
+		webshop: t('WebShop')
 	} as const;
 </script>
 
 <form onsubmit={submit} class="mask" class:in-window={imFenster}>
 	<header class="title-bar">
 		<div>
-			<h1>Artikel</h1>
+			<h1>{t('Artikel')}</h1>
 			<span class="number">{a.article_no} /</span>
 		</div>
 		<div class="meta">
 			{#if istNeu}
-				<span class="new">neuer Artikel</span>
+				<span class="new">{t('neuer Artikel')}</span>
 			{:else}
-				<span>Erstellt: {a.erstellt_am ? new Date(a.erstellt_am).toLocaleString('de-DE') : '—'}</span>
-				<span>Letzte Änderung: {a.changed_at ? new Date(a.changed_at).toLocaleString('de-DE') : '—'}</span>
+				<span>{t('Erstellt:')} {a.erstellt_am ? new Date(a.erstellt_am).toLocaleString('de-DE') : '—'}</span>
+				<span>{t('Letzte Änderung:')} {a.changed_at ? new Date(a.changed_at).toLocaleString('de-DE') : '—'}</span>
 			{/if}
 		</div>
 	</header>
 
-	<nav class="tabs" aria-label="Artikelbereiche">
+	<nav class="tabs" aria-label={t('Artikelbereiche')}>
 		<button type="button" class="tab" class:active={tab === 'artikel'} onclick={() => (tab = 'artikel')}>
-			Artikel
+			{t('Artikel')}
 		</button>
 		{#if pricingEnabled}
 			<button
@@ -209,20 +276,20 @@
 				class="tab"
 				class:active={tab === 'miete'}
 				disabled={!a.rental}
-				title={a.rental ? 'Miete' : 'Artikel ist nicht als Miete markiert'}
+				title={a.rental ? t('Miete') : t('Artikel ist nicht als Miete markiert')}
 				onclick={() => (tab = 'miete')}
 			>
-				Miete
+				{t('Miete')}
 			</button>
 			<button
 				type="button"
 				class="tab"
 				class:active={tab === 'verkauf'}
 				disabled={!a.sale}
-				title={a.sale ? 'Verkauf' : 'Artikel ist nicht als Verkauf markiert'}
+				title={a.sale ? t('Verkauf') : t('Artikel ist nicht als Verkauf markiert')}
 				onclick={() => (tab = 'verkauf')}
 			>
-				Verkauf
+				{t('Verkauf')}
 			</button>
 		{/if}
 		<button
@@ -231,7 +298,7 @@
 			class:active={tab === 'lagerbestand'}
 			onclick={() => (tab = 'lagerbestand')}
 		>
-			Lagerbestand
+			{t('Lagerbestand')}
 		</button>
 		<button
 			type="button"
@@ -239,10 +306,10 @@
 			class:active={tab === 'lieferanten'}
 			onclick={() => (tab = 'lieferanten')}
 		>
-			Lieferanten
+			{t('Lieferanten')}
 		</button>
 		<button type="button" class="tab" class:active={tab === 'pyro'} onclick={() => (tab = 'pyro')}>
-			Pyro
+			{t('Pyro')}
 		</button>
 	</nav>
 
@@ -250,10 +317,13 @@
 	     themselves stay clickable, so the article can be read. -->
 	{#if !schreibbar}
 		<p class="read-only">
-			Nur Lesen — zum Bearbeiten dieses Artikels fehlt das Recht
-			<strong>Artikel editieren</strong>.
+			{t('Nur Lesen — zum Bearbeiten dieses Artikels fehlt das Recht')}
+			<strong>{t('Artikel editieren')}</strong>.
 		</p>
 	{/if}
+	<!-- The wrapper scrolls, not the fieldset: Chromium makes a `fieldset` no real
+	     scroll container, so its content is cut off without a bar. -->
+	<div class="content-scroll">
 	<fieldset class="content" disabled={!schreibbar}>
 	{#if tab === 'lagerbestand'}
 		<div class="tab-content">
@@ -261,6 +331,11 @@
 				articleId={a.id}
 				articleNo={a.article_no}
 				articleUsage={{ inventory: a.inventory, rental: pricingEnabled && a.rental, sale: pricingEnabled && a.sale }}
+				articleSwitches={{
+					stock_tracking: a.stock_tracking,
+					no_own_stock: a.no_own_stock,
+					individual_items: a.individual_items
+				}}
 			/>
 		</div>
 	{:else if tab === 'miete'}
@@ -269,21 +344,16 @@
 		<ArticleSale bind:pricing={a.pricing} />
 		{:else if tab === 'lieferanten'}
 			<div class="tab-content suppliers">
-				<p class="notice">
-					Lieferanten sind Adressen mit dem Marker „Lieferant". Der Einkaufspreis gilt nur für
-					diesen Artikel.
-				</p>
-
 				<table class="table">
 					<thead>
 						<tr>
-							<th>Nr.</th>
-							<th>Lieferant</th>
-							<th class="num">EK-Preis</th>
-							<th class="num">Lieferzeit (Tage)</th>
-							<th>Favorit</th>
-							<th>Verkaufsartikel</th>
-							<th>Art.-Lief.-Nr.</th>
+							<th>{t('Nr.')}</th>
+							<th>{t('Lieferant')}</th>
+							<th class="num">{t('EK-Preis')}</th>
+							<th class="num">{t('Lieferzeit (Tage)')}</th>
+							<th>{t('Favorit')}</th>
+							<th>{t('Verkaufsartikel')}</th>
+							<th>{t('Art.-Lief.-Nr.')}</th>
 							<th></th>
 						</tr>
 					</thead>
@@ -298,7 +368,7 @@
 										inputmode="decimal"
 										placeholder="0,00"
 										bind:value={s.purchase_price}
-										aria-label="EK-Preis"
+										aria-label={t('EK-Preis')}
 									/>
 								</td>
 								<td class="num">
@@ -307,43 +377,43 @@
 										type="number"
 										min="0"
 										bind:value={s.delivery_days}
-										aria-label="Lieferzeit in Tagen"
+										aria-label={t('Lieferzeit in Tagen')}
 									/>
 								</td>
 								<td class="center">
-									<input type="checkbox" bind:checked={s.favorite} aria-label="Favorit" />
+									<input type="checkbox" bind:checked={s.favorite} aria-label={t('Favorit')} />
 								</td>
 								<td class="center">
 									<input
 										type="checkbox"
 										bind:checked={s.sales_article}
-										aria-label="Verkaufsartikel"
+										aria-label={t('Verkaufsartikel')}
 									/>
 								</td>
 								<td>
-									<input bind:value={s.supplier_article_no} aria-label="Artikelnummer des Lieferanten" />
+									<input bind:value={s.supplier_article_no} aria-label={t('Artikelnummer des Lieferanten')} />
 								</td>
 								<td>
-									<button type="button" class="remove" title="Lieferant entfernen" onclick={() => removeSupplier(i)}>
+									<button type="button" class="remove" title={t('Lieferant entfernen')} onclick={() => removeSupplier(i)}>
 										×
 									</button>
 								</td>
 							</tr>
 						{:else}
-							<tr><td colspan="8">Noch kein Lieferant zugeordnet.</td></tr>
+							<tr><td colspan="8">{t('Noch kein Lieferant zugeordnet.')}</td></tr>
 						{/each}
 					</tbody>
 				</table>
 
 				<div class="row add">
-					<select bind:value={selectedSupplier} onfocus={loadSuppliers} aria-label="Lieferant wählen">
-						<option value="">— Lieferant wählen —</option>
+					<select bind:value={selectedSupplier} onfocus={loadSuppliers} aria-label={t('Lieferant wählen')}>
+						<option value="">{t('— Lieferant wählen —')}</option>
 						{#each supplierChoice ?? [] as l (l.id)}
 							<option value={String(l.id)}>{l.no ? `${l.no} — ` : ''}{l.name}</option>
 						{/each}
 					</select>
 					<button type="button" onclick={addSupplier} disabled={!selectedSupplier}>
-						Hinzufügen
+						{t('Hinzufügen')}
 					</button>
 				</div>
 				{#if supplierError}
@@ -352,54 +422,50 @@
 			</div>
 		{:else if tab === 'pyro'}
 			<div class="tab-content pyro">
-				<p class="notice">
-					Pyrotechnische Kennwerte — sie werden von der Artikelsuche (Register „Pyro") und später
-					vom Dispositions- und Sicherheitsnachweis gelesen.
-				</p>
 				<div class="columns">
 					<section class="left">
 						<fieldset>
-							<legend>Stoff und Einstufung</legend>
-							<label class="field row"><span>UN-Nr.</span><input bind:value={a.pyro.un_number} /></label>
-							<label class="field row"><span>UN-Bezeichnung</span><input bind:value={a.pyro.un_description} /></label>
-							<label class="field row"><span>Gefahrklasse</span><input bind:value={a.pyro.hazard_class} placeholder="z. B. 1.4G" /></label>
-							<label class="field row"><span>Kaliber (mm)</span><input type="number" min="0" bind:value={a.pyro.caliber} /></label>
-							<label class="field row"><span>Kategorie</span><input bind:value={a.pyro.category} /></label>
-							<label class="field row"><span>Klassifizierung</span><input bind:value={a.pyro.classification} /></label>
-							<label class="field row"><span>BAM-ID</span><input bind:value={a.pyro.bam_id} /></label>
-							<label class="field row"><span>Zulassungsnummer</span><input bind:value={a.pyro.approval_number} /></label>
+							<legend>{t('Stoff und Einstufung')}</legend>
+							<label class="field row"><span>{t('UN-Nr.')}</span><input bind:value={a.pyro.un_number} /></label>
+							<label class="field row"><span>{t('UN-Bezeichnung')}</span><input bind:value={a.pyro.un_description} /></label>
+							<label class="field row"><span>{t('Gefahrklasse')}</span><input bind:value={a.pyro.hazard_class} placeholder={t('z. B. 1.4G')} /></label>
+							<label class="field row"><span>{t('Kaliber (mm)')}</span><input type="number" min="0" bind:value={a.pyro.caliber} /></label>
+							<label class="field row"><span>{t('Kategorie')}</span><input bind:value={a.pyro.category} /></label>
+							<label class="field row"><span>{t('Klassifizierung')}</span><input bind:value={a.pyro.classification} /></label>
+							<label class="field row"><span>{t('BAM-ID')}</span><input bind:value={a.pyro.bam_id} /></label>
+							<label class="field row"><span>{t('Zulassungsnummer')}</span><input bind:value={a.pyro.approval_number} /></label>
 						</fieldset>
 
 						<fieldset>
-							<legend>Transport</legend>
-							<label class="field row"><span>Verpackungsgruppe</span><input bind:value={a.pyro.packing_group} /></label>
-							<label class="field row"><span>Transportkategorie</span><input bind:value={a.pyro.transport_category} /></label>
-							<label class="field row"><span>Tunnelbeschränkung</span><input bind:value={a.pyro.tunnel_restriction_code} /></label>
+							<legend>{t('Transport')}</legend>
+							<label class="field row"><span>{t('Verpackungsgruppe')}</span><input bind:value={a.pyro.packing_group} /></label>
+							<label class="field row"><span>{t('Transportkategorie')}</span><input bind:value={a.pyro.transport_category} /></label>
+							<label class="field row"><span>{t('Tunnelbeschränkung')}</span><input bind:value={a.pyro.tunnel_restriction_code} /></label>
 							<label class="field row">
-								<span>NEQ (netto)</span>
+								<span>{t('NEQ (netto)')}</span>
 								<span class="double-field">
 									<input inputmode="decimal" bind:value={a.pyro.neq} />
-									<input class="unit" bind:value={a.pyro.neq_unit} placeholder="kg" aria-label="Einheit der NEQ" />
+									<input class="unit" bind:value={a.pyro.neq_unit} placeholder={t('kg')} aria-label={t('Einheit der NEQ')} />
 								</span>
 							</label>
-							<label class="field row"><span>UN-Punkte</span><input inputmode="decimal" bind:value={a.pyro.un_points} /></label>
+							<label class="field row"><span>{t('UN-Punkte')}</span><input inputmode="decimal" bind:value={a.pyro.un_points} /></label>
 						</fieldset>
 					</section>
 
 					<section class="right">
 						<fieldset>
-							<legend>Sicherheitsabstände (m)</legend>
-							<label class="field row"><span>Seitlich</span><input inputmode="decimal" bind:value={a.pyro.lateral_safety_distance} /></label>
-							<label class="field row"><span>Vertikal</span><input inputmode="decimal" bind:value={a.pyro.vertical_safety_distance} /></label>
-							<label class="field row"><span>Steighöhe</span><input inputmode="decimal" bind:value={a.pyro.ascending_height} /></label>
+							<legend>{t('Sicherheitsabstände (m)')}</legend>
+							<label class="field row"><span>{t('Seitlich')}</span><input inputmode="decimal" bind:value={a.pyro.lateral_safety_distance} /></label>
+							<label class="field row"><span>{t('Vertikal')}</span><input inputmode="decimal" bind:value={a.pyro.vertical_safety_distance} /></label>
+							<label class="field row"><span>{t('Steighöhe')}</span><input inputmode="decimal" bind:value={a.pyro.ascending_height} /></label>
 						</fieldset>
 
 						<fieldset>
-							<legend>Wirkung</legend>
-							<label class="field row"><span>Schalldruckpegel (dB)</span><input inputmode="decimal" bind:value={a.pyro.sound_pressure_level} /></label>
-							<label class="field row"><span>Schalldruckbereich (m)</span><input inputmode="decimal" bind:value={a.pyro.sound_pressure_range} /></label>
-							<label class="field row"><span>Verzögerungszeit (s)</span><input inputmode="decimal" bind:value={a.pyro.delay_time} /></label>
-							<label class="field row"><span>Effektdauer (s)</span><input inputmode="decimal" bind:value={a.pyro.effect_duration} /></label>
+							<legend>{t('Wirkung')}</legend>
+							<label class="field row"><span>{t('Schalldruckpegel (dB)')}</span><input inputmode="decimal" bind:value={a.pyro.sound_pressure_level} /></label>
+							<label class="field row"><span>{t('Schalldruckbereich (m)')}</span><input inputmode="decimal" bind:value={a.pyro.sound_pressure_range} /></label>
+							<label class="field row"><span>{t('Verzögerungszeit (s)')}</span><input inputmode="decimal" bind:value={a.pyro.delay_time} /></label>
+							<label class="field row"><span>{t('Effektdauer (s)')}</span><input inputmode="decimal" bind:value={a.pyro.effect_duration} /></label>
 						</fieldset>
 					</section>
 				</div>
@@ -410,15 +476,15 @@
 		<section class="left">
 			<div class="header-row">
 				<label class="field short">
-					<span>Artikel Nr.</span>
+					<span>{t('Artikel Nr.')}</span>
 					<input type="number" bind:value={a.article_no} min="0" />
 				</label>
 				<label class="field short">
-					<span>Inventar Nr.</span>
+					<span>{t('Inventar Nr.')}</span>
 					<input bind:value={a.inventory_no} />
 				</label>
 				<label class="field short">
-					<span>Sprache</span>
+					<span>{t('Sprache')}</span>
 					<select>
 						{#each languages as s (s.id)}
 							<option value={s.id}>{s.language}</option>
@@ -427,13 +493,13 @@
 				</label>
 			</div>
 
-			<label class="field"><span>Name <em>*</em></span><input bind:value={a.name} required /></label>
-			<label class="field"><span>Kurzname</span><input bind:value={a.short_name} /></label>
-			<label class="field"><span>Matchcode</span><input bind:value={a.match_code} /></label>
-			<label class="field"><span>Einheit</span><input bind:value={a.unit} /></label>
+			<label class="field"><span>{t('Name')} <em>*</em></span><input bind:value={a.name} required /></label>
+			<label class="field"><span>{t('Kurzname')}</span><input bind:value={a.short_name} /></label>
+			<label class="field"><span>{t('Matchcode')}</span><input bind:value={a.match_code} /></label>
+			<label class="field"><span>{t('Einheit')}</span><input bind:value={a.unit} /></label>
 
 			<div class="block">
-				<nav class="tabs small" aria-label="Textblöcke">
+				<nav class="tabs small" aria-label={t('Textblöcke')}>
 					{#each Object.entries(textFields) as [key, label] (key)}
 						<button
 							type="button"
@@ -459,52 +525,51 @@
 			</div>
 
 			<div class="block">
-				<nav class="tabs small" aria-label="Artikeldetails">
-					<button type="button" class="tab" class:active={lowerTab === 'masse'} onclick={() => (lowerTab = 'masse')}>Maße &amp; Werte</button>
-					<button type="button" class="tab" class:active={lowerTab === 'warengruppe'} onclick={() => (lowerTab = 'warengruppe')}>Warengruppe</button>
-					<button type="button" class="tab" class:active={lowerTab === 'dguv'} onclick={() => (lowerTab = 'dguv')}>DGUV</button>
-					<button type="button" class="tab" class:active={lowerTab === 'rest'} onclick={() => (lowerTab = 'rest')}>Bemerkungen</button>
+				<nav class="tabs small" aria-label={t('Artikeldetails')}>
+					<button type="button" class="tab" class:active={lowerTab === 'masse'} onclick={() => (lowerTab = 'masse')}>{t('Maße & Werte')}</button>
+					<button type="button" class="tab" class:active={lowerTab === 'warengruppe'} onclick={() => (lowerTab = 'warengruppe')}>{t('Warengruppe')}</button>
+					<button type="button" class="tab" class:active={lowerTab === 'dguv'} onclick={() => (lowerTab = 'dguv')}>{t('DGUV')}</button>
 				</nav>
 
 				{#if lowerTab === 'masse'}
 					<div class="dimensions">
 						<div class="group">
-							<h3>netto</h3>
+							<h3>{t('netto')}</h3>
 							<div class="triple">
-								<label class="field"><span>B (cm)</span><input bind:value={a.width_net} inputmode="decimal" /></label>
-								<label class="field"><span>H (cm)</span><input bind:value={a.height_net} inputmode="decimal" /></label>
-								<label class="field"><span>T (cm)</span><input bind:value={a.depth_net} inputmode="decimal" /></label>
+								<label class="field"><span>{t('B (cm)')}</span><input bind:value={a.width_net} inputmode="decimal" /></label>
+								<label class="field"><span>{t('H (cm)')}</span><input bind:value={a.height_net} inputmode="decimal" /></label>
+								<label class="field"><span>{t('T (cm)')}</span><input bind:value={a.depth_net} inputmode="decimal" /></label>
 							</div>
-							<label class="field"><span>Volumen (m³)</span><input bind:value={a.volume_net} inputmode="decimal" /></label>
-							<label class="field"><span>Gewicht (kg)</span><input bind:value={a.weight_net} inputmode="decimal" /></label>
+							<label class="field"><span>{t('Volumen (m³)')}</span><input bind:value={a.volume_net} inputmode="decimal" /></label>
+							<label class="field"><span>{t('Gewicht (kg)')}</span><input bind:value={a.weight_net} inputmode="decimal" /></label>
 						</div>
 						<div class="group">
-							<h3>brutto</h3>
+							<h3>{t('brutto')}</h3>
 							<div class="triple">
-								<label class="field"><span>B (cm)</span><input bind:value={a.width_gross} inputmode="decimal" /></label>
-								<label class="field"><span>H (cm)</span><input bind:value={a.height_gross} inputmode="decimal" /></label>
-								<label class="field"><span>T (cm)</span><input bind:value={a.depth_gross} inputmode="decimal" /></label>
+								<label class="field"><span>{t('B (cm)')}</span><input bind:value={a.width_gross} inputmode="decimal" /></label>
+								<label class="field"><span>{t('H (cm)')}</span><input bind:value={a.height_gross} inputmode="decimal" /></label>
+								<label class="field"><span>{t('T (cm)')}</span><input bind:value={a.depth_gross} inputmode="decimal" /></label>
 							</div>
-							<label class="field"><span>Volumen (m³)</span><input bind:value={a.volume_gross} inputmode="decimal" /></label>
-							<label class="field"><span>Gewicht (kg)</span><input bind:value={a.weight_gross} inputmode="decimal" /></label>
+							<label class="field"><span>{t('Volumen (m³)')}</span><input bind:value={a.volume_gross} inputmode="decimal" /></label>
+							<label class="field"><span>{t('Gewicht (kg)')}</span><input bind:value={a.weight_gross} inputmode="decimal" /></label>
 						</div>
 						<div class="group wide">
-							<h3>Betrieb</h3>
+							<h3>{t('Betrieb')}</h3>
 							<div class="pair">
-								<label class="field"><span>Betriebsspannung von (V)</span><input bind:value={a.voltage_from} inputmode="decimal" /></label>
-								<label class="field"><span>bis (V)</span><input bind:value={a.voltage_to} inputmode="decimal" /></label>
+								<label class="field"><span>{t('Betriebsspannung von (V)')}</span><input bind:value={a.voltage_from} inputmode="decimal" /></label>
+								<label class="field"><span>{t('bis (V)')}</span><input bind:value={a.voltage_to} inputmode="decimal" /></label>
 							</div>
 							<div class="pair">
-								<label class="field"><span>Stromaufnahme (A)</span><input bind:value={a.current_draw} inputmode="decimal" /></label>
-								<label class="field"><span>elektr. Leistung (kW)</span><input bind:value={a.power} inputmode="decimal" /></label>
+								<label class="field"><span>{t('Stromaufnahme (A)')}</span><input bind:value={a.current_draw} inputmode="decimal" /></label>
+								<label class="field"><span>{t('elektr. Leistung (kW)')}</span><input bind:value={a.power} inputmode="decimal" /></label>
 							</div>
 							<div class="pair">
-								<label class="field"><span>Aufbauzeit (min)</span><input type="number" bind:value={a.setup_minutes} min="0" /></label>
-								<label class="field"><span>Abbauzeit (min)</span><input type="number" bind:value={a.teardown_minutes} min="0" /></label>
+								<label class="field"><span>{t('Aufbauzeit (min)')}</span><input type="number" bind:value={a.setup_minutes} min="0" /></label>
+								<label class="field"><span>{t('Abbauzeit (min)')}</span><input type="number" bind:value={a.teardown_minutes} min="0" /></label>
 							</div>
 							<div class="pair">
-								<label class="field"><span>Check-Out-Zeit (sek)</span><input type="number" bind:value={a.check_out_seconds} min="0" /></label>
-								<label class="field"><span>Check-In-Zeit (sek)</span><input type="number" bind:value={a.check_in_seconds} min="0" /></label>
+								<label class="field"><span>{t('Check-Out-Zeit (sek)')}</span><input type="number" bind:value={a.check_out_seconds} min="0" /></label>
+								<label class="field"><span>{t('Check-In-Zeit (sek)')}</span><input type="number" bind:value={a.check_in_seconds} min="0" /></label>
 							</div>
 						</div>
 					</div>
@@ -520,22 +585,22 @@
 								{w.name ?? `Gruppe ${w.id}`}
 							</label>
 						{:else}
-							<p class="notice">Keine Warengruppen angelegt.</p>
+							<p class="notice">{t('Keine Warengruppen angelegt.')}</p>
 						{/each}
 					</div>
 				{:else if lowerTab === 'dguv'}
 					<div class="dguv">
 						<div class="pair">
-							<label class="field"><span>Schutzklasse</span><input type="number" bind:value={a.inspection_class} min="0" max="3" /></label>
-							<label class="field"><span>Prüfintervall (Monate)</span><input type="number" bind:value={a.inspection_interval_months} min="0" /></label>
-							<label class="field"><span>DGUV-Prüfzeit (min)</span><input type="number" bind:value={a.inspection_minutes} min="0" /></label>
+							<label class="field"><span>{t('Schutzklasse')}</span><input type="number" bind:value={a.inspection_class} min="0" max="3" /></label>
+							<label class="field"><span>{t('Prüfintervall (Monate)')}</span><input type="number" bind:value={a.inspection_interval_months} min="0" /></label>
+							<label class="field"><span>{t('DGUV-Prüfzeit (min)')}</span><input type="number" bind:value={a.inspection_minutes} min="0" /></label>
 						</div>
-						<h3>Werkstattintervalle</h3>
-						<label class="check"><input type="checkbox" bind:checked={a.workshop_by_usage_days} /> nach Einsatztagen</label>
-						<label class="field narrow"><span>Max.</span><input bind:value={a.workshop_max_usage_days} inputmode="decimal" /></label>
-						<label class="check"><input type="checkbox" bind:checked={a.workshop_fixed_intervals} /> nach festen Intervallen</label>
+						<h3>{t('Werkstattintervalle')}</h3>
+						<label class="check"><input type="checkbox" bind:checked={a.workshop_by_usage_days} /> {t('nach Einsatztagen')}</label>
+						<label class="field narrow"><span>{t('Max.')}</span><input bind:value={a.workshop_max_usage_days} inputmode="decimal" /></label>
+						<label class="check"><input type="checkbox" bind:checked={a.workshop_fixed_intervals} /> {t('nach festen Intervallen')}</label>
 						<label class="field narrow">
-							<span>Einheit</span>
+							<span>{t('Einheit')}</span>
 							<select
 								value={a.workshop_by_months ? 'monate' : 'tage'}
 								onchange={(e) => {
@@ -544,17 +609,15 @@
 									a.workshop_by_months = v === 'monate';
 								}}
 							>
-								<option value="tage">nach Tagen</option>
-								<option value="monate">nach Monaten</option>
+								<option value="tage">{t('nach Tagen')}</option>
+								<option value="monate">{t('nach Monaten')}</option>
 							</select>
 						</label>
 						<div class="pair">
-							<label class="field narrow"><span>Tage</span><input type="number" bind:value={a.workshop_days} min="0" /></label>
-							<label class="field narrow"><span>Monate</span><input type="number" bind:value={a.workshop_months} min="0" /></label>
+							<label class="field narrow"><span>{t('Tage')}</span><input type="number" bind:value={a.workshop_days} min="0" /></label>
+							<label class="field narrow"><span>{t('Monate')}</span><input type="number" bind:value={a.workshop_months} min="0" /></label>
 						</div>
 					</div>
-				{:else}
-					<p class="notice">Suchindex, Bemerkungen und CAD sind im Original eigene Unterformulare und noch nicht umgesetzt.</p>
 				{/if}
 			</div>
 		</section>
@@ -565,60 +628,61 @@
 			<ArticlePicture articleId={a.id} {schreibbar} />
 
 			<fieldset>
-				<legend>Kategorie</legend>
-				<label class="check"><input type="checkbox" bind:checked={a.active} /> Artikel aktiv</label>
+				<legend>{t('Kategorie')}</legend>
+				<label class="check"><input type="checkbox" bind:checked={a.active} /> {t('Artikel aktiv')}</label>
 				<div class="pair">
-					<label class="check"><input type="checkbox" bind:checked={a.inventory} /> Inventar</label>
+					<label class="check"><input type="checkbox" bind:checked={a.inventory} /> {t('Inventar')}</label>
 					{#if pricingEnabled}
-						<label class="check"><input type="checkbox" bind:checked={a.rental} /> Miete</label>
+						<label class="check"><input type="checkbox" bind:checked={a.rental} /> {t('Miete')}</label>
 					{/if}
 				</div>
 				<div class="pair">
 					{#if pricingEnabled}
-						<label class="check"><input type="checkbox" bind:checked={a.sale} /> Verkauf</label>
+						<label class="check"><input type="checkbox" bind:checked={a.sale} /> {t('Verkauf')}</label>
 					{/if}
-					<label class="check"><input type="checkbox" bind:checked={a.text_sync} /> Textsync</label>
+					<label class="check"><input type="checkbox" bind:checked={a.text_sync} /> {t('Textsync')}</label>
 				</div>
 			</fieldset>
 
 			<fieldset>
-				<legend>Bestandsführung</legend>
-				<label class="check"><input type="checkbox" bind:checked={a.stock_tracking} /> Aktiv</label>
+				<legend>{t('Bestandsführung')}</legend>
+				<label class="check"><input type="checkbox" bind:checked={a.stock_tracking} /> {t('Aktiv')}</label>
 				<div class="pair">
-					<label class="check"><input type="checkbox" bind:checked={a.no_own_stock} /> ohne Eigenbestand</label>
-					<label class="check"><input type="checkbox" bind:checked={a.individual_items} /> mit Einzelerfassung</label>
+					<label class="check"><input type="checkbox" bind:checked={a.no_own_stock} /> {t('ohne Eigenbestand')}</label>
+					<label class="check"><input type="checkbox" bind:checked={a.individual_items} /> {t('mit Einzelerfassung')}</label>
 				</div>
 				<div class="pair">
-					<label class="check"><input type="checkbox" bind:checked={a.allocation_control} /> Dispositionskontrolle</label>
-					<label class="check"><input type="checkbox" bind:checked={a.virtual_article} /> virtueller Artikel</label>
+					<label class="check"><input type="checkbox" bind:checked={a.allocation_control} /> {t('Dispositionskontrolle')}</label>
+					<label class="check"><input type="checkbox" bind:checked={a.virtual_article} /> {t('virtueller Artikel')}</label>
 				</div>
 			</fieldset>
 
 			<fieldset>
-				<legend>Herstellerangaben</legend>
-				<label class="field row"><span>EAN-Code</span><input bind:value={a.ean_code} /></label>
-				<label class="field row"><span>Herst.-Art.-Nr.</span><input bind:value={a.manufacturer_no} /></label>
-				<label class="field row"><span>Hersteller</span><input bind:value={a.manufacturer} list="hersteller-liste" /></label>
+				<legend>{t('Herstellerangaben')}</legend>
+				<label class="field row"><span>{t('EAN-Code')}</span><input bind:value={a.ean_code} /></label>
+				<label class="field row"><span>{t('Herst.-Art.-Nr.')}</span><input bind:value={a.manufacturer_no} /></label>
+				<label class="field row"><span>{t('Hersteller')}</span><input bind:value={a.manufacturer} list="hersteller-liste" /></label>
 				<datalist id="hersteller-liste">
 					{#each manufacturer as name (name)}<option value={name}></option>{/each}
 				</datalist>
-				<label class="field row"><span>Herstellerland</span><input bind:value={a.manufacturer_country} /></label>
-				<label class="field row"><span>UVP / EVP brutto</span><input bind:value={a.retail_price} inputmode="decimal" placeholder="0,00" /></label>
-				<label class="field row"><span>Zolltarif-Nr. Export</span><input bind:value={a.customs_tariff_export} /></label>
-				<label class="field row"><span>Zolltarif-Nr. Import</span><input bind:value={a.customs_tariff_import} /></label>
+				<label class="field row"><span>{t('Herstellerland')}</span><input bind:value={a.manufacturer_country} /></label>
+				<label class="field row"><span>{t('UVP / EVP brutto')}</span><input bind:value={a.retail_price} inputmode="decimal" placeholder="0,00" /></label>
+				<label class="field row"><span>{t('Zolltarif-Nr. Export')}</span><input bind:value={a.customs_tariff_export} /></label>
+				<label class="field row"><span>{t('Zolltarif-Nr. Import')}</span><input bind:value={a.customs_tariff_import} /></label>
 			</fieldset>
 
 			<fieldset>
-				<legend>weitere Informationen</legend>
-				<label class="field row"><span>Versicherungswert netto</span><input bind:value={a.insurance_value_net} inputmode="decimal" placeholder="0,00" /></label>
-				<label class="field row"><span>Versicherungswert brutto</span><input bind:value={a.insurance_value_gross} inputmode="decimal" placeholder="0,00" /></label>
-				<label class="field row"><span>TeamAgenda-Gruppe</span><input bind:value={a.team_group} /></label>
-				<label class="field row"><span>Provisionsklasse</span><input bind:value={a.commission_class} placeholder="-- Keine Angabe --" /></label>
+				<legend>{t('weitere Informationen')}</legend>
+				<label class="field row"><span>{t('Versicherungswert netto')}</span><input bind:value={a.insurance_value_net} inputmode="decimal" placeholder="0,00" /></label>
+				<label class="field row"><span>{t('Versicherungswert brutto')}</span><input bind:value={a.insurance_value_gross} inputmode="decimal" placeholder="0,00" /></label>
+				<label class="field row"><span>{t('TeamAgenda-Gruppe')}</span><input bind:value={a.team_group} /></label>
+				<label class="field row"><span>{t('Provisionsklasse')}</span><input bind:value={a.commission_class} placeholder={t('-- Keine Angabe --')} /></label>
 			</fieldset>
 		</section>
 	</div>
 	{/if}
 	</fieldset>
+	</div>
 
 	<footer class="actions">
 		<div class="actions-left">
@@ -630,12 +694,12 @@
 			<button
 				type="button"
 				class="secondary"
-				onclick={confirmCancel('Das Bearbeiten des Artikels', oncancel)}
-				disabled={busy}>{schreibbar ? 'Abbrechen' : 'Schließen'}</button
+				onclick={confirmCancel(t('Das Bearbeiten des Artikels'), oncancel)}
+				disabled={busy}>{schreibbar ? t('Abbrechen') : t('Schließen')}</button
 			>
 			{#if schreibbar}
 				<button type="submit" class="primary" disabled={busy}
-					>{busy ? 'Sichern …' : 'Sichern'}</button
+					>{busy ? t('Sichern …') : t('Sichern')}</button
 				>
 			{/if}
 		</div>
@@ -654,8 +718,10 @@
 	.content[disabled] {
 		opacity: 0.66;
 	}
-	/* In the window the content of the tabs scrolls, not the whole window. */
-	.mask.in-window .content {
+	/* In the window the content of the tabs scrolls, not the whole window.
+	   The scroller is the wrapper, not the fieldset: Chromium gives a `fieldset`
+	   no scrollbar and keeps its `scrollTop` at 0, so the content would be cut. */
+	.mask.in-window .content-scroll {
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow: auto;

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import type { Snippet } from 'svelte';
 	import type { ModuleId } from './api';
 	import { modules } from './modules.svelte';
@@ -24,10 +26,10 @@
 		<h1>{product}</h1>
 	</header>
 	<div class="notice">
-		<strong>Dieses Modul ist nicht installiert.</strong>
+		<strong>{t('Dieses Modul ist nicht installiert.')}</strong>
 		<p>
-			Die Seite gehört zu <em>{product}</em>. Installieren Sie das Modul in der
-			<a href="/admin/modules">Modulverwaltung</a>, um es zu verwenden.
+			{t('Die Seite gehört zum Modul {name}. Installieren Sie es in der', { name: product })}
+			<a href="/admin/modules">{t('Modulverwaltung')}</a>.
 		</p>
 	</div>
 {/if}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { auth } from '$core/auth.svelte';
 	import { RIGHT } from '$core/rights';
 	import AccessDenied from '$core/AccessDenied.svelte';
@@ -17,35 +19,35 @@
 	);
 </script>
 
-<svelte:head><title>Abteilungen und Positionen — WHERE</title></svelte:head>
+<svelte:head><title>{t('Abteilungen und Positionen — WHERE')}</title></svelte:head>
 
 {#if !mayRead}
 	<AccessDenied
-		pageName="Abteilungen und Positionen"
+		pageName={t('Abteilungen und Positionen')}
 		right={RIGHT.mayReadDispo}
-		rightLabel="Personaldispo lesen"
+		rightLabel={t('Personaldispo lesen')}
 	/>
 {:else}
 	<div class="wide">
 		<div class="head-row">
-			<h1>Abteilungen und Positionen</h1>
+			<h1>{t('Abteilungen und Positionen')}</h1>
 			{#if auth.isAdmin}
 				<button type="button" class="exchange" onclick={() => (exchange = true)}>
-					Import / Export
+					{t('Import / Export')}
 				</button>
 			{/if}
 		</div>
 
 		<div class="columns">
 			{#key round}
-				<PeopleListPanel kind="departments" title="Abteilungen" singular="Abteilung" />
+				<PeopleListPanel kind="departments" title={t('Abteilungen')} singular={t('Abteilung')} />
 				<PeopleListPanel
 					kind="subdepartments"
-					title="Unterabteilungen"
-					singular="Unterabteilung"
+					title={t('Unterabteilungen')}
+					singular={t('Unterabteilung')}
 				/>
-				<PeopleListPanel kind="locations" title="Standorte" singular="Standort" />
-				<PeopleListPanel kind="positions" title="Positionen" singular="Position" />
+				<PeopleListPanel kind="locations" title={t('Standorte')} singular={t('Standort')} />
+				<PeopleListPanel kind="positions" title={t('Positionen')} singular={t('Position')} />
 			{/key}
 		</div>
 	</div>
@@ -53,7 +55,7 @@
 	{#if exchange}
 		<MasterExchangeDialog
 			area="lists"
-			title="Abteilungen und Positionen"
+			title={t('Abteilungen und Positionen')}
 			filename="abteilungen-positionen"
 			onimported={() => (round += 1)}
 			onclose={() => (exchange = false)}

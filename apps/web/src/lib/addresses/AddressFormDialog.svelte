@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { escapeWindows } from '../escape.svelte';
 	import { onMount } from 'svelte';
 	import { api, errorText, type AddressInput } from '../api';
@@ -41,7 +43,11 @@
 	let dialog = $state<{ role: 'customer' | 'supplier'; revert: boolean } | null>(null);
 
 	const roleTabLabel = $derived(
-		form.is_customer ? 'Kunde' : form.is_interested ? 'Interessent' : 'Interessent/Kunde'
+		form.is_customer
+			? t('Kunde')
+			: form.is_interested
+				? t('Interessent')
+				: t('Interessent/Kunde')
 	);
 
 	/** Without a number the mask stays locked — only the roles are usable.
@@ -54,20 +60,24 @@
 
 	const lockHint = $derived(
 		!schreibbar
-			? 'Für diese Adresse fehlt das Recht zum Anlegen bzw. Bearbeiten — die Maske ist nur zum Lesen offen.'
+			? t('Für diese Adresse fehlt das Recht zum Anlegen bzw. Bearbeiten — die Maske ist nur zum Lesen offen.')
 			: locked
 				? !form.customer_no && (form.is_customer || form.is_interested)
-					? 'Bitte zuerst die Kundennummer vergeben — danach sind alle Felder freigegeben.'
-					: 'Bitte zuerst die Lieferantennummer vergeben — danach sind alle Felder freigegeben.'
+					? t('Bitte zuerst die Kundennummer vergeben — danach sind alle Felder freigegeben.')
+					: t('Bitte zuerst die Lieferantennummer vergeben — danach sind alle Felder freigegeben.')
 				: null
 	);
 
 	const stamp = $derived(
 		id
-			? `Bestand${form.customer_no || form.supplier_no ? `\nNummer ${form.customer_no ?? form.supplier_no}` : ''}`
+			? t('Bestand') +
+					(form.customer_no || form.supplier_no
+						? `\n${t('Nummer {no}', { no: String(form.customer_no ?? form.supplier_no) })}`
+						: '')
 			: form.customer_no || form.supplier_no
-				? `Neu angelegt\nNummer ${form.customer_no ?? form.supplier_no}`
-				: 'Neu angelegt'
+				? t('Neu angelegt') +
+					`\n${t('Nummer {no}', { no: String(form.customer_no ?? form.supplier_no) })}`
+				: t('Neu angelegt')
 	);
 
 	/**
@@ -85,9 +95,9 @@
 
 	const tabNote: Record<Tab, string> = {
 		base: '',
-		customer: 'Zuerst „Interessent“ oder „Kunde“ markieren',
-		supplier: 'Zuerst „Lieferant“ markieren',
-		location: 'Zuerst „Location“ markieren',
+		customer: t('Zuerst „Interessent“ oder „Kunde“ markieren'),
+		supplier: t('Zuerst „Lieferant“ markieren'),
+		location: t('Zuerst „Location“ markieren'),
 		sales: '',
 		secrets: ''
 	};
@@ -173,7 +183,7 @@
 	/** Deleting exists only for an existing record. */
 	async function remove() {
 		if (!id) return;
-		if (!confirm(`Adresse ${form.name1 ?? id} wirklich löschen?`)) return;
+		if (!confirm(t('Adresse {name} wirklich löschen?', { name: form.name1 ?? id }))) return;
 		saving = true;
 		error = null;
 		try {
@@ -188,7 +198,7 @@
 
 	/** `Abbrechen` and closing the mask ask first. */
 	async function cancel() {
-		if (await askCancel(id ? 'Das Bearbeiten der Adresse' : 'Die Adressanlage')) oncancel();
+		if (await askCancel(t(id ? 'Das Bearbeiten der Adresse' : 'Die Adressanlage'))) oncancel();
 	}
 
 	/**
@@ -215,20 +225,20 @@
 </script>
 
 <div class="sw-backdrop" role="presentation">
-	<div class="sw-window adr-window" role="dialog" aria-modal="true" aria-label="Adresse" style="width: min(66rem, 100%)">
+	<div class="sw-window adr-window" role="dialog" aria-modal="true" aria-label={t('Adresse')} style="width: min(66rem, 100%)">
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
-			<span class="sw-title">Adresse:</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={cancel}>×</button>
+			<span class="sw-title">{t('Adresse:')}</span>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={cancel}>×</button>
 		</div>
 
 		<div class="adr-band">
-			<h2>Adresse</h2>
+			<h2>{t('Adresse')}</h2>
 			<span class="adr-stamp">{stamp}</span>
 		</div>
 
-		<nav class="adr-tabs" aria-label="Register">
-			<button class:active={tab === 'base'} type="button" onclick={() => (tab = 'base')}>Basisdaten</button>
+		<nav class="adr-tabs" aria-label={t('Register')}>
+			<button class:active={tab === 'base'} type="button" onclick={() => (tab = 'base')}>{t('Basisdaten')}</button>
 			<button
 				class:active={tab === 'customer'}
 				type="button"
@@ -241,20 +251,20 @@
 				type="button"
 				disabled={!freeTabs.supplier}
 				title={freeTabs.supplier ? undefined : tabNote.supplier}
-				onclick={() => (tab = 'supplier')}>Lieferant</button
+				onclick={() => (tab = 'supplier')}>{t('Lieferant')}</button
 			>
 			<button
 				class:active={tab === 'location'}
 				type="button"
 				disabled={!freeTabs.location}
 				title={freeTabs.location ? undefined : tabNote.location}
-				onclick={() => (tab = 'location')}>Location</button
+				onclick={() => (tab = 'location')}>{t('Location')}</button
 			>
 			<button class:active={tab === 'sales'} type="button" onclick={() => (tab = 'sales')}>
-				Vertriebstätigkeiten
+				{t('Vertriebstätigkeiten')}
 			</button>
 			<button class:active={tab === 'secrets'} type="button" onclick={() => (tab = 'secrets')}>
-				Geheimnisse
+				{t('Geheimnisse')}
 			</button>
 		</nav>
 
@@ -267,16 +277,16 @@
 				<div class="adr-row narrow">
 					<label class="adr-check">
 						<input type="checkbox" bind:checked={form.active} />
-						Aktiv
+						{t('Aktiv')}
 					</label>
 					<span class="adr-checkrow" style="padding-left: 0">
 						<label class="adr-check">
 							<input type="radio" name="art" checked={!form.is_person} onchange={() => (form.is_person = false)} />
-							Firma
+							{t('Firma')}
 						</label>
 						<label class="adr-check">
 							<input type="radio" name="art" checked={form.is_person} onchange={() => (form.is_person = true)} />
-							Einzelperson
+							{t('Einzelperson')}
 						</label>
 					</span>
 				</div>
@@ -285,109 +295,109 @@
 					<div>
 						{#if form.is_person}
 							<div class="adr-row">
-								<span class="adr-label">Anrede</span>
-								<select bind:value={form.salutation} disabled={locked} aria-label="Anrede">
+								<span class="adr-label">{t('Anrede')}</span>
+								<select bind:value={form.salutation} disabled={locked} aria-label={t('Anrede')}>
 									{#each ['', ...salutations] as a (a)}
-										<option value={a === '' ? null : a}>{a === '' ? 'Keine Angabe' : a}</option>
+										<option value={a === '' ? null : a}>{a === '' ? t('Keine Angabe') : a}</option>
 									{/each}
 								</select>
-								<select bind:value={form.title} disabled={locked} aria-label="Titel">
+								<select bind:value={form.title} disabled={locked} aria-label={t('Titel')}>
 									{#each TITLE as t (t)}
 										<option value={t === '' ? null : t}>{t === '' ? '—' : t}</option>
 									{/each}
 								</select>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Vorname</span>
+								<span class="adr-label">{t('Vorname')}</span>
 								<input bind:value={form.name2} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Nachname</span>
+								<span class="adr-label">{t('Nachname')}</span>
 								<input bind:value={form.name1} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Spitzname</span>
+								<span class="adr-label">{t('Spitzname')}</span>
 								<input bind:value={form.name3} disabled={locked} />
-								<input type="date" bind:value={form.birthday} disabled={locked} title="Geburtstag" />
+								<input type="date" bind:value={form.birthday} disabled={locked} title={t('Geburtstag')} />
 							</div>
 						{:else}
 							<div class="adr-row">
-								<span class="adr-label">Firma</span>
+								<span class="adr-label">{t('Firma')}</span>
 								<input bind:value={form.name1} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Zusatz 1</span>
+								<span class="adr-label">{t('Zusatz 1')}</span>
 								<input bind:value={form.name2} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Zusatz 2</span>
+								<span class="adr-label">{t('Zusatz 2')}</span>
 								<input bind:value={form.name3} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Adressgruppe</span>
-								<input bind:value={form.group} disabled={locked} placeholder="z. B. Theater" />
+								<span class="adr-label">{t('Adressgruppe')}</span>
+								<input bind:value={form.group} disabled={locked} placeholder={t('z. B. Theater')} />
 								<span></span>
 							</div>
 						{/if}
 
 						<fieldset class="adr-group">
-							<legend>Anschrift</legend>
+							<legend>{t('Anschrift')}</legend>
 							<div class="adr-row">
-								<span class="adr-label">Adresszusatz</span>
+								<span class="adr-label">{t('Adresszusatz')}</span>
 								<input bind:value={form.address_addition} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Straße</span>
+								<span class="adr-label">{t('Straße')}</span>
 								<input bind:value={form.street} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">PLZ / Ort</span>
+								<span class="adr-label">{t('PLZ / Ort')}</span>
 								<input bind:value={form.postal_code} disabled={locked} style="max-width: 6rem" />
 								<input bind:value={form.city} disabled={locked} />
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Bundesland</span>
+								<span class="adr-label">{t('Bundesland')}</span>
 								<input bind:value={form.state} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Land</span>
-								<input bind:value={form.country} disabled={locked} placeholder="DEU" />
+								<span class="adr-label">{t('Land')}</span>
+								<input bind:value={form.country} disabled={locked} placeholder={t('DEU')} />
 								<span></span>
 							</div>
 						</fieldset>
 
 						<fieldset class="adr-group">
-							<legend>Kommunikation</legend>
+							<legend>{t('Kommunikation')}</legend>
 							<div class="adr-row">
-								<span class="adr-label">Telefon</span>
+								<span class="adr-label">{t('Telefon')}</span>
 								<input bind:value={form.phone} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Fax</span>
+								<span class="adr-label">{t('Fax')}</span>
 								<input bind:value={form.fax} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Mobiltelefon</span>
+								<span class="adr-label">{t('Mobiltelefon')}</span>
 								<input bind:value={form.mobile} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">eMail</span>
+								<span class="adr-label">{t('eMail')}</span>
 								<input type="email" bind:value={form.email} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Webseite</span>
+								<span class="adr-label">{t('Webseite')}</span>
 								<input bind:value={form.website} disabled={locked} />
 								<span></span>
 							</div>
@@ -401,7 +411,7 @@
 								checked={form.is_interested}
 								onchange={(e) => setRole('interested', e.currentTarget.checked)}
 							/>
-							Interessent
+							{t('Interessent')}
 						</label>
 						<label class="adr-check">
 							<input
@@ -409,7 +419,7 @@
 								checked={form.is_customer}
 								onchange={(e) => setRole('customer', e.currentTarget.checked)}
 							/>
-							Kunde
+							{t('Kunde')}
 						</label>
 						<label class="adr-check">
 							<input
@@ -417,7 +427,7 @@
 								checked={form.is_supplier}
 								onchange={(e) => setRole('supplier', e.currentTarget.checked)}
 							/>
-							Lieferant
+							{t('Lieferant')}
 						</label>
 						<label class="adr-check">
 							<input
@@ -425,7 +435,7 @@
 								checked={form.is_location}
 								onchange={(e) => setRole('location', e.currentTarget.checked)}
 							/>
-							Location
+							{t('Location')}
 						</label>
 						<label class="adr-check">
 							<input
@@ -433,7 +443,7 @@
 								checked={form.is_employee}
 								onchange={(e) => setRole('employee', e.currentTarget.checked)}
 							/>
-							Mitarbeiter
+							{t('Mitarbeiter')}
 						</label>
 						<label class="adr-check">
 							<input
@@ -441,16 +451,15 @@
 								checked={form.is_vip}
 								onchange={(e) => setRole('vip', e.currentTarget.checked)}
 							/>
-							V.I.P.
+							{t('V.I.P.')}
 						</label>
 					</div>
 
 					<div>
 						<fieldset class="adr-group">
-							<legend>Ansprechpartner</legend>
+							<legend>{t('Ansprechpartner')}</legend>
 							<p class="sw-small">
-								Die Ansprechpartner liegen in einer eigenen Tabelle (`"AdressAP"`) — die Liste folgt mit
-								dem nächsten Schritt.
+								{t('Die Ansprechpartner liegen in einer eigenen Tabelle (`"AdressAP"`) — die Liste folgt mit dem nächsten Schritt.')}
 							</p>
 						</fieldset>
 					</div>
@@ -459,46 +468,46 @@
 				<div class="adr-columns">
 					<div>
 						<div class="adr-row">
-							<span class="adr-label">Kunden-Nr</span>
+							<span class="adr-label">{t('Kunden-Nr')}</span>
 							<input
 								value={form.customer_no ?? ''}
 								readonly
-								aria-label="Kunden-Nr"
+								aria-label={t('Kunden-Nr')}
 							/>
 							<button
 								class="adr-extra"
 								type="button"
-								title="Kundennummer vergeben"
+								title={t('Kundennummer vergeben')}
 								onclick={() => changeNumber('customer')}>+</button
 							>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">Debitor-Nr</span>
+							<span class="adr-label">{t('Debitor-Nr')}</span>
 							<input bind:value={form.debtor} disabled={locked} />
 							<span></span>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">UST-Ident-Nr.</span>
+							<span class="adr-label">{t('UST-Ident-Nr.')}</span>
 							<input bind:value={form.vat_id} disabled={locked} />
 							<span></span>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">EORI-Nr.</span>
+							<span class="adr-label">{t('EORI-Nr.')}</span>
 							<input bind:value={form.eori_no} disabled={locked} />
 							<span></span>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">Steuernummer</span>
+							<span class="adr-label">{t('Steuernummer')}</span>
 							<input bind:value={form.tax_number} disabled={locked} />
 							<span></span>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">Register-Eintrag</span>
+							<span class="adr-label">{t('Register-Eintrag')}</span>
 							<input bind:value={form.register_entry} disabled={locked} />
 							<span></span>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">Register-Sitz</span>
+							<span class="adr-label">{t('Register-Sitz')}</span>
 							<input bind:value={form.register_seat} disabled={locked} />
 							<span></span>
 						</div>
@@ -507,30 +516,30 @@
 					<div>
 						{#if modules.isInstalled('go')}
 							<div class="adr-row">
-								<span class="adr-label">Rabatt Miete *</span>
+								<span class="adr-label">{t('Rabatt Miete *')}</span>
 								<input type="number" step="0.01" bind:value={form.discount_rental} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Rabatt Verkauf *</span>
+								<span class="adr-label">{t('Rabatt Verkauf *')}</span>
 								<input type="number" step="0.01" bind:value={form.discount_sale} disabled={locked} />
 								<span></span>
 							</div>
 						{/if}
 						<div class="adr-row">
-							<span class="adr-label">Kreditlimit</span>
+							<span class="adr-label">{t('Kreditlimit')}</span>
 							<input type="number" step="0.01" bind:value={form.credit_limit} disabled={locked} />
 							<span></span>
 						</div>
 						{#if modules.isInstalled('go')}
 							<div class="adr-row">
-								<span class="adr-label">Auftrags-/Liefersperre</span>
+								<span class="adr-label">{t('Auftrags-/Liefersperre')}</span>
 								<input
 									type="checkbox"
 									checked={form.auftragssperre}
 									disabled={locked}
 									onchange={(e) => (form.auftragssperre = e.currentTarget.checked)}
-									aria-label="Auftragssperre"
+									aria-label={t('Auftragssperre')}
 								/>
 								<span></span>
 							</div>
@@ -538,29 +547,29 @@
 
 						{#if modules.isInstalled('money')}
 						<fieldset class="adr-group">
-							<legend>Bankverbindung</legend>
+							<legend>{t('Bankverbindung')}</legend>
 							<div class="adr-row">
-								<span class="adr-label">Bank</span>
+								<span class="adr-label">{t('Bank')}</span>
 								<input bind:value={form.bank} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Konto</span>
+								<span class="adr-label">{t('Konto')}</span>
 								<input bind:value={form.bank_account} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">BLZ</span>
+								<span class="adr-label">{t('BLZ')}</span>
 								<input bind:value={form.bank_code} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">IBAN</span>
+								<span class="adr-label">{t('IBAN')}</span>
 								<input bind:value={form.iban} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">BIC</span>
+								<span class="adr-label">{t('BIC')}</span>
 								<input bind:value={form.bic} disabled={locked} />
 								<span></span>
 							</div>
@@ -572,40 +581,40 @@
 				<div class="adr-columns">
 					<div>
 						<div class="adr-row">
-							<span class="adr-label">Lief-Nr</span>
-							<input value={form.supplier_no ?? ''} readonly aria-label="Lief-Nr" />
+							<span class="adr-label">{t('Lief-Nr')}</span>
+							<input value={form.supplier_no ?? ''} readonly aria-label={t('Lief-Nr')} />
 							<button
 								class="adr-extra"
 								type="button"
-								title="Lieferantennummer vergeben"
+								title={t('Lieferantennummer vergeben')}
 								onclick={() => changeNumber('supplier')}>+</button
 							>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">Kreditor-Nr</span>
+							<span class="adr-label">{t('Kreditor-Nr')}</span>
 							<input bind:value={form.creditor} disabled={locked} />
 							<span></span>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">UST-Ident-Nr.</span>
+							<span class="adr-label">{t('UST-Ident-Nr.')}</span>
 							<input bind:value={form.vat_id} disabled={locked} />
 							<span></span>
 						</div>
 						<div class="adr-row">
-							<span class="adr-label">Steuernummer</span>
+							<span class="adr-label">{t('Steuernummer')}</span>
 							<input bind:value={form.tax_number} disabled={locked} />
 							<span></span>
 						</div>
 					</div>
 					<div>
 						<div class="adr-row">
-							<span class="adr-label">Umsatz</span>
+							<span class="adr-label">{t('Umsatz')}</span>
 							<input type="number" step="0.01" bind:value={form.supplier_revenue} disabled={locked} />
 							<span></span>
 						</div>
 						{#if modules.isInstalled('go')}
 							<div class="adr-row">
-								<span class="adr-label">Rabatt Anmietung *</span>
+								<span class="adr-label">{t('Rabatt Anmietung *')}</span>
 								<input
 									type="number"
 									step="0.01"
@@ -616,7 +625,7 @@
 							</div>
 						{/if}
 						<div class="adr-row">
-							<span class="adr-label">Rabatt Einkauf *</span>
+							<span class="adr-label">{t('Rabatt Einkauf *')}</span>
 							<input
 								type="number"
 								step="0.01"
@@ -628,51 +637,48 @@
 
 						{#if modules.isInstalled('money')}
 						<fieldset class="adr-group">
-							<legend>Bankverbindung</legend>
+							<legend>{t('Bankverbindung')}</legend>
 							<div class="adr-row">
-								<span class="adr-label">Bank</span>
+								<span class="adr-label">{t('Bank')}</span>
 								<input bind:value={form.supplier_bank} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">Konto</span>
+								<span class="adr-label">{t('Konto')}</span>
 								<input bind:value={form.supplier_bank_account} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">BLZ</span>
+								<span class="adr-label">{t('BLZ')}</span>
 								<input bind:value={form.supplier_bank_code} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">IBAN</span>
+								<span class="adr-label">{t('IBAN')}</span>
 								<input bind:value={form.supplier_iban} disabled={locked} />
 								<span></span>
 							</div>
 							<div class="adr-row">
-								<span class="adr-label">BIC</span>
+								<span class="adr-label">{t('BIC')}</span>
 								<input bind:value={form.supplier_bic} disabled={locked} />
 								<span></span>
 							</div>
 						</fieldset>
 						{/if}
-						<p class="sw-small">* mandantenabhängige Angabe. Währung und Zahlungskondition folgen.</p>
+						<p class="sw-small">{t('* mandantenabhängige Angabe. Währung und Zahlungskondition folgen.')}</p>
 					</div>
 				</div>
 			{:else if tab === 'location'}
 				<p class="sw-note">
-					Die Registerkarte „Location" (Objekt, Räume, Flächen, Stromanschlüsse) folgt mit dem
-					Location-Stamm.
+					{t('Die Registerkarte „Location" (Objekt, Räume, Flächen, Stromanschlüsse) folgt mit dem Location-Stamm.')}
 				</p>
 			{:else if tab === 'sales'}
 				<p class="sw-note">
-					Die Registerkarte „Vertriebstätigkeiten" (Kontakthistorie, Angebote, Aufträge, Rechnungen)
-					folgt mit dem Vertriebsmodul.
+					{t('Die Registerkarte „Vertriebstätigkeiten" (Kontakthistorie, Angebote, Aufträge, Rechnungen) folgt mit dem Vertriebsmodul.')}
 				</p>
 			{:else}
 				<p class="sw-note">
-					Die Registerkarte „Geheimnisse" (interne Notizen und Zugriffsrechte) folgt mit der
-					Benutzerverwaltung.
+					{t('Die Registerkarte „Geheimnisse" (interne Notizen und Zugriffsrechte) folgt mit der Benutzerverwaltung.')}
 				</p>
 			{/if}
 
@@ -683,14 +689,14 @@
 
 		<div class="sw-footer">
 			{#if id && loeschbar}
-				<button class="sw-button adr-delete" type="button" onclick={remove} disabled={saving}>Löschen</button>
+				<button class="sw-button adr-delete" type="button" onclick={remove} disabled={saving}>{t('Löschen')}</button>
 			{/if}
 			<button class="sw-button" type="button" onclick={cancel}
-				>{schreibbar ? 'Abbrechen' : 'Schließen'}</button
+				>{schreibbar ? t('Abbrechen') : t('Schließen')}</button
 			>
 			{#if schreibbar}
 				<button class="sw-button sw-primary" type="button" onclick={save} disabled={saving || locked}>
-					{saving ? 'Sichern …' : 'Sichern'}
+					{saving ? t('Sichern …') : t('Sichern')}
 				</button>
 			{/if}
 		</div>

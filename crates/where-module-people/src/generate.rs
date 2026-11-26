@@ -1,4 +1,4 @@
-//! Building a duty plan from the stored data.
+//! Building a schedule plan from the stored data.
 //!
 //! The generator fills the cells of a period: for every day it takes the demand
 //! of that day (per shift and position) and gives the free cells to the employees
@@ -29,8 +29,8 @@ use utoipa::ToSchema;
 use where_domain::DomainError;
 
 use crate::demand::{ANY_POSITION, DemandEntry, is_foreman};
-use crate::duty::KIND_SHIFT;
 use crate::planning::PlanningRules;
+use crate::schedule::KIND_SHIFT;
 use crate::shifts::{Shift, ShiftBand, weekend_marker};
 
 /// Longest period one call generates.
@@ -68,7 +68,7 @@ pub struct GenerateInput {
 
 /// A demand row the generator could not fill.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-pub struct DutyGap {
+pub struct ScheduleGap {
     pub day: NaiveDate,
     pub shift_id: i64,
     pub position: String,
@@ -94,7 +94,7 @@ pub struct GenerateReport {
     /// Free days written (`FT`, and the `SoFT` after a worked Sunday).
     pub free_days: usize,
     /// Rows that stayed open.
-    pub gaps: Vec<DutyGap>,
+    pub gaps: Vec<ScheduleGap>,
     /// Days whose disposition could not be read into shifts (`?` on the board).
     pub unclear_days: Vec<NaiveDate>,
 }
@@ -162,7 +162,7 @@ pub fn target_minutes(person: &Person, day: NaiveDate) -> i32 {
     weekly / i32::from(work_days)
 }
 
-/// A cell of the duty plan.
+/// A cell of the schedule plan.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cell {
     pub employee_id: i64,
@@ -211,7 +211,7 @@ pub struct Generated {
     /// Free days that close the calendar: `FT`, and `SoFT` as the compensation
     /// after a worked Sunday.
     pub free: Vec<PlannedCell>,
-    pub gaps: Vec<DutyGap>,
+    pub gaps: Vec<ScheduleGap>,
     pub kept: usize,
     pub replaced: usize,
     /// Cells the balance topped up beyond the demand.
@@ -234,8 +234,8 @@ impl Balance {
     /// with the hours of the settings, a free day not at all.
     pub fn minutes_of(&self, cell: &Cell, shifts: &[Shift]) -> i32 {
         match cell.kind.as_str() {
-            crate::duty::KIND_SICK => self.sick_minutes,
-            crate::duty::KIND_VACATION => self.vacation_minutes,
+            crate::schedule::KIND_SICK => self.sick_minutes,
+            crate::schedule::KIND_VACATION => self.vacation_minutes,
             _ => {
                 let shift = shift_of(shifts, cell.shift_id);
                 if shift.map(|shift| shift.band.is_free()).unwrap_or(false) {
@@ -368,7 +368,7 @@ struct Record {
     band_from: Option<NaiveDate>,
     /// Absolute end of a worked Sunday whose compensation day is still owed.
     open_compensation: Option<i64>,
-    /// Absolute end of the duty a compensation day followed — the duty after that day
+    /// Absolute end of the schedule a compensation day followed — the schedule after that day
     /// owes the 24 hours of the law plus the ordinary rest.
     compensation_end: Option<i64>,
 }
@@ -428,7 +428,7 @@ impl Record {
         self.last_day = Some(day);
         self.last_end = Some(absolute(day, end));
         self.booked_minutes += minutes;
-        // This duty pays the compensation day, and a Sunday of its own opens a new one.
+        // This schedule pays the compensation day, and a Sunday of its own opens a new one.
         self.compensation_end = None;
         if day.weekday() == chrono::Weekday::Sun {
             self.open_compensation = Some(absolute(day, end));
@@ -460,7 +460,7 @@ impl Record {
     }
 
     /// A day without work after a worked Sunday is the compensation day of the law:
-    /// the 24 hours are measured from the duty before it. A duty only settles a
+    /// the 24 hours are measured from the schedule before it. A schedule only settles a
     /// compensation that lies a whole day back.
     fn settle_compensation(&mut self, day: NaiveDate, rest_day: bool) {
         let Some(last_day) = self.last_day else {
@@ -568,7 +568,7 @@ pub fn generate(context: &Context<'_>, days: &[NaiveDate]) -> Generated {
         }
         if context.holidays.contains(day) && !context.rules.holiday_work_allowed {
             for row in demand {
-                generated.gaps.push(DutyGap {
+                generated.gaps.push(ScheduleGap {
                     day: *day,
                     shift_id: row.shift_id,
                     position: row.position.clone(),
@@ -742,7 +742,7 @@ pub fn generate(context: &Context<'_>, days: &[NaiveDate]) -> Generated {
                 }
                 _ => GAP_NO_EMPLOYEE,
             };
-            generated.gaps.push(DutyGap {
+            generated.gaps.push(ScheduleGap {
                 day: *day,
                 shift_id: job.shift.id,
                 position: job.row.position.clone(),
@@ -1422,7 +1422,7 @@ fn pick<'a>(
             continue;
         }
         // The generator gives an apprentice only their own shifts, and nobody else
-        // works theirs. Hand-written cells may differ (see `duty_repo::set`).
+        // works theirs. Hand-written cells may differ (see `schedule_repo::set`).
         if person.apprentice != shift.apprentice_only {
             continue;
         }
@@ -1506,7 +1506,7 @@ fn fits(
         }
     }
     // The compensation day a worked Sunday asks for: with `extended_sunday_rest` the
-    // duty after that day owes 24 hours plus the ordinary rest.
+    // schedule after that day owes 24 hours plus the ordinary rest.
     if rules.extended_sunday_rest
         && let Some(base) = record.compensation_end
         && absolute(day, starts(shift)) - base < rest + 24 * 60
@@ -3187,7 +3187,7 @@ mod tests {
     fn a_monday_after_a_sunday_owes_no_compensation_yet() {
         // Sunday 15:00–23:00 and Monday worked right after: the Monday only keeps the
         // ordinary rest, the compensation day is still owed. The Tuesday free pays it,
-        // and the Wednesday duty is then measured from the Monday.
+        // and the Wednesday schedule is then measured from the Monday.
         let mut record = Record::default();
         record.book(date("2026-12-06"), 480, 23 * 60, None, 14);
         record.book(date("2026-12-07"), 480, 23 * 60, None, 14);

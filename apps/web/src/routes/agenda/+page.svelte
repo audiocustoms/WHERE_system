@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -41,28 +43,28 @@
 	type View = 'tag' | 'woche' | 'monat' | 'jahr';
 
 	const VIEWS: { value: View; label: string }[] = [
-		{ value: 'tag', label: 'Tag' },
-		{ value: 'woche', label: 'Woche' },
-		{ value: 'monat', label: 'Monat' },
-		{ value: 'jahr', label: 'Jahr' }
+		{ value: 'tag', label: t('Tag') },
+		{ value: 'woche', label: t('Woche') },
+		{ value: 'monat', label: t('Monat') },
+		{ value: 'jahr', label: t('Jahr') }
 	];
 
 	/** Views of the template that would stay empty without orders and personnel. */
 	const LATER_VIEWS: { label: string; note: string; module?: ModuleId }[] = [
-		{ label: 'Events', note: 'braucht die Aufträge', module: 'go' },
-		{ label: 'Events 2', note: 'braucht die Aufträge', module: 'go' },
-		{ label: 'Detail', note: 'braucht die Aufträge', module: 'go' },
-		{ label: 'Artikel', note: 'braucht die Aufträge', module: 'go' },
-		{ label: 'Personal', note: 'braucht das Personal', module: 'people' }
+		{ label: t('Events'), note: t('braucht die Aufträge'), module: 'go' },
+		{ label: t('Events 2'), note: t('braucht die Aufträge'), module: 'go' },
+		{ label: t('Detail'), note: t('braucht die Aufträge'), module: 'go' },
+		{ label: t('Artikel'), note: t('braucht die Aufträge'), module: 'go' },
+		{ label: t('Personal'), note: t('braucht das Personal'), module: 'people' }
 	];
 
 	/** Data sources of the template that WHERE does not have yet. */
 	const LATER_SOURCES: { label: string; note: string; module?: ModuleId }[] = [
-		{ label: 'Aufgaben', note: 'Aufgaben gibt es noch nicht' },
-		{ label: 'Angebote', note: 'Angebote gibt es noch nicht', module: 'go' },
-		{ label: 'Aufträge', note: 'Aufträge gibt es noch nicht', module: 'go' },
-		{ label: 'Personaleinsätze', note: 'Personal gibt es noch nicht', module: 'people' },
-		{ label: 'Personalsperrzeiten', note: 'Personal gibt es noch nicht' }
+		{ label: t('Aufgaben'), note: t('Aufgaben gibt es noch nicht') },
+		{ label: t('Angebote'), note: t('Angebote gibt es noch nicht'), module: 'go' },
+		{ label: t('Aufträge'), note: t('Aufträge gibt es noch nicht'), module: 'go' },
+		{ label: t('Personaleinsätze'), note: t('Personal gibt es noch nicht'), module: 'people' },
+		{ label: t('Personalsperrzeiten'), note: t('Personal gibt es noch nicht') }
 	];
 
 	/** Height of one hour in the time grid of day and week. */
@@ -244,7 +246,8 @@
 	function terminMeta(appointment: AgendaOccurrence): string {
 		const parts: string[] = [];
 		if (!appointment.all_day) parts.push(timeRange(appointment.start_time, appointment.end_time));
-		if (appointment.end_date !== appointment.start_date) parts.push(`bis ${shortDate(appointment.end_date)}`);
+		if (appointment.end_date !== appointment.start_date)
+			parts.push(t('bis {date}', { date: shortDate(appointment.end_date) }));
 		if (appointment.head_text) parts.push(appointment.head_text);
 		if (appointment.address_name) parts.push(appointment.address_name);
 		return parts.join(' · ');
@@ -377,10 +380,10 @@
 
 	async function deleteCalendar(calendar: AgendaCategory) {
 		const ok = await askConfirm({
-			title: 'Kalender löschen',
-			message: `Kalender „${calendar.name}“ wirklich löschen?`,
-			confirmLabel: 'Ja, löschen',
-			cancelLabel: 'Behalten'
+			title: t('Kalender löschen'),
+			message: t('Kalender „{name}“ wirklich löschen?', { name: calendar.name }),
+			confirmLabel: t('Ja, löschen'),
+			cancelLabel: t('Behalten')
 		});
 		if (!ok) return;
 		try {
@@ -401,7 +404,11 @@
 				start.getMonth() === end.getMonth()
 					? `${start.getDate()}.–${dayMonth(end)}`
 					: `${dayMonth(start)} – ${dayMonth(end)}`;
-			return `KW ${isoWeek(start)} · ${period} ${end.getFullYear()}`;
+			return t('KW {week} · {period} {year}', {
+				week: isoWeek(start),
+				period,
+				year: end.getFullYear()
+			});
 		}
 		if (view === 'jahr') return String(anchor.getFullYear());
 		return monthLabel(anchor);
@@ -412,25 +419,25 @@
 
 {#if !auth.hasRight(RIGHT.mayReadAppointments)}
 	<AccessDenied
-		pageName="Kalender"
+		pageName={t('Kalender')}
 		right={RIGHT.mayReadAppointments}
-		rightLabel="Termine lesen"
+		rightLabel={t('Termine lesen')}
 	/>
 {:else}
 <header class="page-head">
-	<h1>Kalender</h1>
+	<h1>{t('Kalender')}</h1>
 	<div class="tools">
 		<div class="paging">
-			<button type="button" onclick={() => springe(addYears(anchor, -1))} title="ein Jahr zurück"
+			<button type="button" onclick={() => springe(addYears(anchor, -1))} title={t('ein Jahr zurück')}
 				>«</button
 			>
-			<button type="button" onclick={() => step(-1)} title="ein Zeitraum zurück">‹</button>
-			<button type="button" class="today" onclick={() => springe(new Date())}>Heute</button>
-			<button type="button" onclick={() => step(1)} title="ein Zeitraum vor">›</button>
-			<button type="button" onclick={() => springe(addYears(anchor, 1))} title="ein Jahr vor">»</button>
+			<button type="button" onclick={() => step(-1)} title={t('ein Zeitraum zurück')}>‹</button>
+			<button type="button" class="today" onclick={() => springe(new Date())}>{t('Heute')}</button>
+			<button type="button" onclick={() => step(1)} title={t('ein Zeitraum vor')}>›</button>
+			<button type="button" onclick={() => springe(addYears(anchor, 1))} title={t('ein Jahr vor')}>»</button>
 		</div>
 		<h2>{heading()}</h2>
-		<div class="views" role="group" aria-label="Ansicht">
+		<div class="views" role="group" aria-label={t('Ansicht')}>
 			{#each VIEWS as entry (entry.value)}
 				<button
 					type="button"
@@ -440,7 +447,7 @@
 				>
 			{/each}
 			{#each LATER_VIEWS.filter((entry) => !entry.module || modules.isInstalled(entry.module)) as spaeter (spaeter.label)}
-				<button type="button" class="off" disabled title={`${spaeter.label}: ${spaeter.note}`}>
+				<button type="button" class="off" disabled title={t('{label}: {note}', { label: spaeter.label, note: spaeter.note })}>
 					{spaeter.label}
 				</button>
 			{/each}
@@ -448,16 +455,16 @@
 		<span class="spacer"></span>
 		{#if auth.hasRight(RIGHT.mayCreateAppointments)}
 			<button type="button" class="new-appointment" onclick={() => newAppointment(anchor)}>
-				+ Neuer Termin
+				{t('+ Neuer Termin')}
 			</button>
 		{/if}
 	</div>
 </header>
 
 <div class="page">
-	<aside class="left" aria-label="Auswahl">
+	<aside class="left" aria-label={t('Auswahl')}>
 		<div class="group">
-			<h3>Kalender</h3>
+			<h3>{t('Kalender')}</h3>
 			<button
 				type="button"
 				class="entry"
@@ -465,7 +472,7 @@
 				aria-pressed={hidden.length === 0}
 				onclick={alleAn}
 			>
-				<span>Alle Termine</span>
+				<span>{t('Alle Termine')}</span>
 				<span class="count">{data?.occurrences.length ?? 0}</span>
 			</button>
 			{#each data?.categories ?? [] as calendar (calendar.id)}
@@ -475,7 +482,7 @@
 							<input
 								class="calendar-name"
 								bind:value={calendarName}
-								aria-label="Name des Kalenders"
+								aria-label={t('Name des Kalenders')}
 								onkeydown={(e) => {
 									if (e.key === 'Enter') void renameCalendar();
 									if (e.key === 'Escape') editCalendar = null;
@@ -487,11 +494,11 @@
 									onclick={renameCalendar}
 									disabled={!calendarName.trim()}
 								>
-									Sichern
+									{t('Sichern')}
 								</button>
-								<button type="button" onclick={() => deleteCalendar(calendar)}>Löschen</button>
+								<button type="button" onclick={() => deleteCalendar(calendar)}>{t('Löschen')}</button>
 								<button type="button" onclick={() => (editCalendar = null)}>
-									Abbrechen
+									{t('Abbrechen')}
 								</button>
 							</div>
 						</div>
@@ -512,7 +519,7 @@
 						<button
 							type="button"
 							class="icon"
-							title="Kalender umbenennen oder löschen"
+							title={t('Kalender umbenennen oder löschen')}
 							onclick={() => openCalendarEditor(calendar)}
 						>
 							✎
@@ -520,19 +527,19 @@
 					{/if}
 				</div>
 			{:else}
-				<p class="empty">Keine Kalender angelegt.</p>
+				<p class="empty">{t('Keine Kalender angelegt.')}</p>
 			{/each}
 		</div>
 
 		<div class="group">
-			<h3>Weitere Quellen</h3>
+			<h3>{t('Weitere Quellen')}</h3>
 			<label class="check-row">
 				<input type="checkbox" bind:checked={withBirthdays} />
-				Geburtstage
+				{t('Geburtstage')}
 			</label>
 			<label class="check-row">
 				<input type="checkbox" bind:checked={withOpenDates} />
-				Lose Termine
+				{t('Lose Termine')}
 			</label>
 			{#each LATER_SOURCES.filter((entry) => !entry.module || modules.isInstalled(entry.module)) as spaeter (spaeter.label)}
 				<label class="check-row off" title={spaeter.note}>
@@ -541,16 +548,16 @@
 				</label>
 			{/each}
 			<div class="switch">
-				<button type="button" onclick={alleAn}>Alle auswählen</button>
-				<button type="button" onclick={alleAus}>Alle abwählen</button>
+				<button type="button" onclick={alleAn}>{t('Alle auswählen')}</button>
+				<button type="button" onclick={alleAus}>{t('Alle abwählen')}</button>
 			</div>
 		</div>
 
 		<div class="group">
-			<h3>Suche</h3>
+			<h3>{t('Suche')}</h3>
 			<input
 				bind:value={search}
-				placeholder="Titel, Ort, Adresse"
+				placeholder={t('Titel, Ort, Adresse')}
 				onkeydown={(e) => {
 					if (e.key === 'Enter') void load();
 				}}
@@ -561,43 +568,44 @@
 			<div class="group">
 				<input
 					bind:value={newCalendar}
-					placeholder="Name des Kalenders"
+					placeholder={t('Name des Kalenders')}
 					onkeydown={(e) => {
 						if (e.key === 'Enter') void saveCalendar();
 						if (e.key === 'Escape') createCalendar = false;
 					}}
 				/>
 				<button type="button" onclick={saveCalendar} disabled={!newCalendar.trim()}>
-					Anlegen
+					{t('Anlegen')}
 				</button>
 			</div>
 		{:else}
 			<button type="button" class="entry new" onclick={() => (createCalendar = true)}>
-				+ Kalender
+				{t('+ Kalender')}
 			</button>
 		{/if}
 
 		<p class="stamp">
-			{termine.length}
-			{termine.length === 1 ? 'Termin' : 'Termine'}
-			{#if birthdays.length}· {birthdays.length} Geburtstage{/if}
-			{#if loading}· lade …{/if}
+			{termine.length === 1
+				? t('{n} Termin', { n: termine.length })
+				: t('{n} Termine', { n: termine.length })}
+			{#if birthdays.length}{t('· {n} Geburtstage', { n: birthdays.length })}{/if}
+			{#if loading}{t('· lade …')}{/if}
 		</p>
 
 		<div class="mini">
-			<button type="button" class="mini-today" onclick={() => springe(new Date())}>Heute</button>
+			<button type="button" class="mini-today" onclick={() => springe(new Date())}>{t('Heute')}</button>
 			{#each miniMonths() as month (month.toISOString())}
 				<div class="mini-month">
 					<p class="mini-title">{monthLabel(month)}</p>
 					<div class="mini-head">
-						<span class="week">KW</span>
+						<span class="mini-kw">{t('KW')}</span>
 						{#each WEEKDAYS as day (day)}
 							<span class:weekend={day === 'Sa' || day === 'So'}>{day[0]}</span>
 						{/each}
 					</div>
 					{#each miniWeeks(month) as week, index (index)}
 						<div class="mini-week">
-							<span class="week">{isoWeek(week[0])}</span>
+							<span class="mini-kw">{isoWeek(week[0])}</span>
 							{#each week as day (day.toISOString())}
 								<button
 									type="button"
@@ -613,8 +621,8 @@
 				</div>
 			{/each}
 			<div class="mini-paging">
-				<button type="button" onclick={() => (mini = addMonths(mini, -1))} title="früher">▲</button>
-				<button type="button" onclick={() => (mini = addMonths(mini, 1))} title="später">▼</button>
+				<button type="button" onclick={() => (mini = addMonths(mini, -1))} title={t('früher')}>▲</button>
+				<button type="button" onclick={() => (mini = addMonths(mini, 1))} title={t('später')}>▼</button>
 			</div>
 		</div>
 	</aside>
@@ -629,7 +637,7 @@
 				</div>
 				{#each weeks as week, w (w)}
 					<div class="week">
-						{#each week as day, t (t)}
+						{#each week as day, dayIndex (dayIndex)}
 							{@const entries = perDay.get(isoDay(day)) ?? []}
 							{@const geburtstageTag = birthdaysPerDay.get(isoDay(day)) ?? []}
 							<div
@@ -642,21 +650,21 @@
 									type="button"
 									class="day-head"
 										title={auth.hasRight(RIGHT.mayCreateAppointments)
-											? 'Neuen Termin an diesem Tag anlegen'
-											: 'Tag'}
+											? t('Neuen Termin an diesem Tag anlegen')
+											: t('Tag')}
 										onclick={() => {
 											if (auth.hasRight(RIGHT.mayCreateAppointments)) newAppointment(day);
 										}}
 									>
 									<span class="number">{day.getDate()}</span>
-									{#if day.getDate() === 1 || (t === 0 && day.getMonth() !== anchor.getMonth())}
+									{#if day.getDate() === 1 || (dayIndex === 0 && day.getMonth() !== anchor.getMonth())}
 										<span class="month-name">{monthShort(day)}</span>
 									{/if}
 								</button>
 								<ul class="appointments">
 									{#each geburtstageTag as birthday (birthday.address_id)}
 										<li>
-											<span class="birthday" title={`Geburtstag von ${birthday.name}`}>
+											<span class="birthday" title={t('Geburtstag von {name}', { name: birthday.name })}>
 												{birthday.name}
 											</span>
 										</li>
@@ -673,10 +681,10 @@
 											>
 												<span class="text">{appointment.title}</span>
 												{#if appointment.recurring}
-													<span class="series" title="Wiederkehrender Termin">↻</span>
+													<span class="series" title={t('Wiederkehrender Termin')}>↻</span>
 												{/if}
 												{#if appointment.private_user != null}
-													<span class="private" title="nur für mich">●</span>
+													<span class="private" title={t('nur für mich')}>●</span>
 												{/if}
 												{#if terminMeta(appointment)}
 													<span class="meta">{terminMeta(appointment)}</span>
@@ -719,7 +727,7 @@
 									class:today={sameDay(day, today)}
 									class:weekend={isWeekend(day)}
 									class:booked={termineAm(day) > 0}
-									title={`${shortDate(isoDay(day))}${termineAm(day) ? ` · ${termineAm(day)} Termine` : ''}`}
+									title={`${shortDate(isoDay(day))}${termineAm(day) ? ` ${t('· {n} Termine', { n: termineAm(day) })}` : ''}`}
 									onclick={() => {
 										anchor = day;
 										toggle('tag');
@@ -741,8 +749,8 @@
 							class:today={sameDay(day, today)}
 							class:weekend={isWeekend(day)}
 							title={auth.hasRight(RIGHT.mayCreateAppointments)
-								? 'Neuen Termin an diesem Tag anlegen'
-								: 'Tag'}
+								? t('Neuen Termin an diesem Tag anlegen')
+								: t('Tag')}
 							onclick={() => {
 								if (auth.hasRight(RIGHT.mayCreateAppointments)) newAppointment(day);
 							}}
@@ -754,11 +762,11 @@
 				</div>
 
 				<div class="time-all-day" style={`grid-template-columns: 3.4rem repeat(${days.length}, minmax(0, 1fr));`}>
-					<span class="time-corner small">ganztägig</span>
+					<span class="time-corner small">{t('ganztägig')}</span>
 					{#each days as day (day.toISOString())}
 						<div class="all-day-column">
 							{#each birthdaysPerDay.get(isoDay(day)) ?? [] as birthday (birthday.address_id)}
-								<span class="chip birthday" title={`Geburtstag von ${birthday.name}`}>
+								<span class="chip birthday" title={t('Geburtstag von {name}', { name: birthday.name })}>
 									{birthday.name}
 								</span>
 							{/each}
@@ -819,27 +827,26 @@
 	</section>
 
 	{#if modules.isInstalled('go')}
-	<aside class="right" aria-label="Auftragsoptionen">
-		<h3>Auftragsoptionen</h3>
-		<label class="check-row off" title="Aufträge gibt es in WHERE noch nicht">
+	<aside class="right" aria-label={t('Auftragsoptionen')}>
+		<h3>{t('Auftragsoptionen')}</h3>
+		<label class="check-row off" title={t('Aufträge gibt es in WHERE noch nicht')}>
 			<input type="checkbox" disabled />
-			Miete
+			{t('Miete')}
 		</label>
-		<label class="check-row off" title="Aufträge gibt es in WHERE noch nicht">
+		<label class="check-row off" title={t('Aufträge gibt es in WHERE noch nicht')}>
 			<input type="checkbox" disabled />
-			Verkauf
+			{t('Verkauf')}
 		</label>
-		<label class="check-row off" title="Aufträge gibt es in WHERE noch nicht">
+		<label class="check-row off" title={t('Aufträge gibt es in WHERE noch nicht')}>
 			<input type="checkbox" disabled />
-			„Nicht Anzeigen“ überschreiben
+			{t('„Nicht Anzeigen“ überschreiben')}
 		</label>
-		<p class="right-field">Zeige Aufträge im aktuellen Zeitraum</p>
+		<p class="right-field">{t('Zeige Aufträge im aktuellen Zeitraum')}</p>
 		<select disabled>
-			<option>Keine Auswahl</option>
+			<option>{t('Keine Auswahl')}</option>
 		</select>
 		<p class="notice">
-			Aufträge und Angebote gibt es in WHERE noch nicht — die Optionen bleiben solange
-			ohne Wirkung. Termine und Geburtstage stehen im Kalender.
+			{t('Aufträge und Angebote gibt es in WHERE noch nicht — die Optionen bleiben solange ohne Wirkung. Termine und Geburtstage stehen im Kalender.')}
 		</p>
 	</aside>
 	{/if}
@@ -1194,10 +1201,10 @@
 	.mini-head span.weekend {
 		color: var(--bad);
 	}
-	.mini-head .week {
+	.mini-head .mini-kw {
 		text-align: left;
 	}
-	.mini-week .week {
+	.mini-week .mini-kw {
 		color: var(--muted-2);
 		font-size: 0.62rem;
 		font-variant-numeric: tabular-nums;

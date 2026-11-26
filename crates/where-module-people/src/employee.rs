@@ -63,7 +63,7 @@ pub struct Employee {
     pub is_apprentice: bool,
     /// The plan generator may place this employee; `false` = planned by hand only.
     pub auto_plan: bool,
-    /// Place on the duty board once a planner arranged the rows by hand; empty
+    /// Place on the schedule board once a planner arranged the rows by hand; empty
     /// follows the position order of the master data.
     #[serde(default)]
     pub board_order: Option<i32>,

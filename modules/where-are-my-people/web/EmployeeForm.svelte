@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$core/i18n.svelte';
+
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -255,7 +257,7 @@
 	async function save() {
 		if (e.first_name.trim() === '' || e.last_name.trim() === '') {
 			tab = 'person';
-			error = 'Vor- und Nachname sind Pflichtfelder.';
+			error = t('Vor- und Nachname sind Pflichtfelder.');
 			return;
 		}
 		saving = true;
@@ -286,8 +288,10 @@
 		if (employee?.id == null) return;
 		if (
 			!(await askConfirm({
-				message: `Mitarbeiter „${e.first_name} ${e.last_name}“ entfernen?`,
-				confirmLabel: 'Entfernen'
+				message: t('Mitarbeiter „{name}“ entfernen?', {
+					name: `${e.first_name} ${e.last_name}`
+				}),
+				confirmLabel: t('Entfernen')
 			}))
 		)
 			return;
@@ -305,8 +309,8 @@
 
 	const stamp = $derived(
 		employee?.changed_at
-			? `geändert\n${new Date(employee.changed_at).toLocaleString('de-DE')}`
-			: 'neu'
+			? `${t('geändert')}\n${new Date(employee.changed_at).toLocaleString('de-DE')}`
+			: t('neu')
 	);
 </script>
 
@@ -315,35 +319,35 @@
 		class="sw-window pep-window"
 		role="dialog"
 		aria-modal="true"
-		aria-label="Mitarbeiter"
+		aria-label={t('Mitarbeiter')}
 		style="width: min(62rem, 100%)"
 	>
 		<div class="sw-titlebar">
 			<span class="sw-icon" aria-hidden="true"></span>
-			<span class="sw-title">Mitarbeiter:</span>
-			<button class="sw-close" type="button" title="Schließen" onclick={onclose}>×</button>
+			<span class="sw-title">{t('Mitarbeiter:')}</span>
+			<button class="sw-close" type="button" title={t('Schließen')} onclick={onclose}>×</button>
 		</div>
 
 		<div class="pep-band">
 			<h2>
-								{#if isNew}Neuer Mitarbeiter{:else}{e.first_name} {e.last_name}{/if}
+								{#if isNew}{t('Neuer Mitarbeiter')}{:else}{e.first_name} {e.last_name}{/if}
 			</h2>
 			<span class="pep-stamp">{stamp}</span>
 		</div>
 
-		<nav class="pep-register" aria-label="Register">
+		<nav class="pep-register" aria-label={t('Register')}>
 			<button 	class:active={tab === 'person'} type="button" 	onclick={() => (tab = 'person')}>
-				Person
+				{t('Person')}
 			</button>
 			<button
 					class:active={tab === 'employment'}
 				type="button"
-					onclick={() => (tab = 'employment')}>Beschäftigung</button
+					onclick={() => (tab = 'employment')}>{t('Beschäftigung')}</button
 			>
 			<button
 					class:active={tab === 'qualifications'}
 				type="button"
-					onclick={() => (tab = 'qualifications')}>Qualifikationen</button
+					onclick={() => (tab = 'qualifications')}>{t('Qualifikationen')}</button
 			>
 		</nav>
 
@@ -358,54 +362,54 @@
 		>
 				{#if tab === 'person'}
 				<fieldset class="pep-group">
-					<legend>Name</legend>
+					<legend>{t('Name')}</legend>
 					<div class="pep-columns">
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">Pers.-Nr.</span>
+								<span class="pep-label">{t('Pers.-Nr.')}</span>
 								<input
 									bind:value={e.personnel_no}
 									maxlength="30"
-									placeholder="wird automatisch vergeben"
-									title="Leer lassen: der Nummernkreis vergibt die nächste Personalnummer (ab 1001)."
+									placeholder={t('wird automatisch vergeben')}
+									title={t('Leer lassen: der Nummernkreis vergibt die nächste Personalnummer (ab 1001).')}
 								/>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Anrede</span>
+								<span class="pep-label">{t('Anrede')}</span>
 								<select bind:value={e.salutation}>
 									<option value="">—</option>
 									{#each SALUTATIONS as salutation (salutation)}
-										<option value={salutation}>{salutation}</option>
+										<option value={salutation}>{t(salutation)}</option>
 									{/each}
 								</select>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Titel</span>
+								<span class="pep-label">{t('Titel')}</span>
 								<input bind:value={e.title} maxlength="50" />
 							</div>
 							<div class="pep-row required">
-								<span class="pep-label">Vorname</span>
+								<span class="pep-label">{t('Vorname')}</span>
 								<input bind:value={e.first_name} required maxlength="100" />
 							</div>
 							<div class="pep-row required">
-								<span class="pep-label">Nachname</span>
+								<span class="pep-label">{t('Nachname')}</span>
 								<input bind:value={e.last_name} required maxlength="100" />
 							</div>
 						</div>
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">Geburtsdatum</span>
+								<span class="pep-label">{t('Geburtsdatum')}</span>
 								<input
 									type="date"
 									bind:value={e.birth_date}
 										disabled={!maySeePersonal}
 										title={maySeePersonal
 										? undefined
-										: 'Dafür fehlt das Recht „Persönliche Daten sehen“.'}
+										: t('Dafür fehlt das Recht „Persönliche Daten sehen“.')}
 								/>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Geburtsort</span>
+								<span class="pep-label">{t('Geburtsort')}</span>
 								<input
 									bind:value={e.birth_place}
 									maxlength="100"
@@ -413,7 +417,7 @@
 								/>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Nationalität</span>
+								<span class="pep-label">{t('Nationalität')}</span>
 								<input
 									bind:value={e.nationality}
 									maxlength="60"
@@ -421,11 +425,11 @@
 								/>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Familienstand</span>
+								<span class="pep-label">{t('Familienstand')}</span>
 								<select bind:value={e.marital_status} 	disabled={!maySeePersonal}>
 									<option value="">—</option>
 									{#each MARITAL_STATUS as status (status)}
-										<option value={status}>{status}</option>
+										<option value={status}>{t(status)}</option>
 									{/each}
 								</select>
 							</div>
@@ -434,37 +438,37 @@
 				</fieldset>
 
 				<fieldset class="pep-group">
-					<legend>Anschrift und Kontakt</legend>
+					<legend>{t('Anschrift und Kontakt')}</legend>
 					<div class="pep-columns">
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">Straße</span>
+								<span class="pep-label">{t('Straße')}</span>
 								<input bind:value={e.street} maxlength="150" 	disabled={!maySeePersonal} />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">PLZ</span>
+								<span class="pep-label">{t('PLZ')}</span>
 								<input bind:value={e.postal_code} maxlength="20" 	disabled={!maySeePersonal} />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Ort</span>
+								<span class="pep-label">{t('Ort')}</span>
 								<input bind:value={e.city} maxlength="100" 	disabled={!maySeePersonal} />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Land</span>
+								<span class="pep-label">{t('Land')}</span>
 								<input bind:value={e.country} maxlength="60" 	disabled={!maySeePersonal} />
 							</div>
 						</div>
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">Telefon</span>
+								<span class="pep-label">{t('Telefon')}</span>
 								<input bind:value={e.phone} maxlength="50" />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Mobil</span>
+								<span class="pep-label">{t('Mobil')}</span>
 								<input bind:value={e.mobile} maxlength="50" />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">eMail</span>
+								<span class="pep-label">{t('eMail')}</span>
 								<input type="email" bind:value={e.email} maxlength="150" />
 							</div>
 						</div>
@@ -474,32 +478,32 @@
 
 				{#if tab === 'employment'}
 				<fieldset class="pep-group">
-					<legend>Anstellung</legend>
+					<legend>{t('Anstellung')}</legend>
 					<div class="pep-columns">
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">Eintritt</span>
+								<span class="pep-label">{t('Eintritt')}</span>
 								<input type="date" bind:value={e.entry_date} />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Austritt</span>
+								<span class="pep-label">{t('Austritt')}</span>
 								<input type="date" bind:value={e.exit_date} />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Beschäftigungsart</span>
+								<span class="pep-label">{t('Beschäftigungsart')}</span>
 								<select bind:value={e.employment_type}>
 									<option value="">—</option>
 										{#each EMPLOYMENT_TYPES as type (type)}
-												<option value={type}>{type}</option>
+												<option value={type}>{t(type)}</option>
 									{/each}
 								</select>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Wochenstunden</span>
+								<span class="pep-label">{t('Wochenstunden')}</span>
 								<input bind:value={e.weekly_hours} inputmode="decimal" placeholder="40" />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Wochenarbeitstage</span>
+								<span class="pep-label">{t('Wochenarbeitstage')}</span>
 								<input
 									type="number"
 									inputmode="numeric"
@@ -512,7 +516,7 @@
 								/>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Urlaubstage</span>
+								<span class="pep-label">{t('Urlaubstage')}</span>
 								<input
 									type="number"
 									inputmode="numeric"
@@ -527,7 +531,7 @@
 						</div>
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">Abteilung</span>
+								<span class="pep-label">{t('Abteilung')}</span>
 								<select bind:value={e.department}>
 									<option value="">—</option>
 										{#each departments as entry (entry.id)}
@@ -539,7 +543,7 @@
 								</select>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Unterabteilung</span>
+								<span class="pep-label">{t('Unterabteilung')}</span>
 								<select bind:value={e.subdepartment}>
 									<option value="">—</option>
 										{#each matchingSubDepartments as entry (entry.id)}
@@ -551,7 +555,7 @@
 								</select>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Position</span>
+								<span class="pep-label">{t('Position')}</span>
 								<select bind:value={e.position}>
 									<option value="">—</option>
 										{#each positions as entry (entry.id)}
@@ -563,7 +567,7 @@
 								</select>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Standort</span>
+								<span class="pep-label">{t('Standort')}</span>
 								<select bind:value={e.location}>
 									<option value="">—</option>
 										{#each locations as entry (entry.id)}
@@ -575,48 +579,48 @@
 								</select>
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Kostenstelle</span>
+								<span class="pep-label">{t('Kostenstelle')}</span>
 								<input bind:value={e.cost_center} maxlength="50" />
 							</div>
 							<div class="pep-row">
-								<span class="pep-label">Vorgesetzter</span>
+								<span class="pep-label">{t('Vorgesetzter')}</span>
 								<input bind:value={e.manager} maxlength="100" />
 							</div>
 						</div>
 					</div>
 					<div class="pep-row">
-						<span class="pep-label">Mitarbeiterart</span>
+						<span class="pep-label">{t('Mitarbeiterart')}</span>
 						<label class="pep-check">
 							<input type="checkbox" bind:checked={e.is_apprentice} />
-							Auszubildende/r
+							{t('Auszubildende/r')}
 						</label>
 					</div>
 					<div class="pep-row">
-						<span class="pep-label">Status</span>
+						<span class="pep-label">{t('Status')}</span>
 						<label class="pep-check">
 							<input type="checkbox" bind:checked={e.active} />
-							active
+							{t('aktiv')}
 						</label>
 					</div>
 					<div class="pep-row">
-						<span class="pep-label">Disposition</span>
+						<span class="pep-label">{t('Disposition')}</span>
 						<label class="pep-check">
 							<input
 								type="checkbox"
 								checked={!e.auto_plan}
 								onchange={(event) => (e.auto_plan = !event.currentTarget.checked)}
 							/>
-							nicht automatisch disponierbar
+							{t('nicht automatisch disponierbar')}
 						</label>
 					</div>
 				</fieldset>
 
 				<fieldset class="pep-group">
-					<legend>Sozialversicherung</legend>
+					<legend>{t('Sozialversicherung')}</legend>
 					<div class="pep-columns">
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">SV-Nummer</span>
+								<span class="pep-label">{t('SV-Nummer')}</span>
 								<input
 									bind:value={e.social_security_no}
 									maxlength="30"
@@ -626,7 +630,7 @@
 						</div>
 						<div>
 							<div class="pep-row">
-								<span class="pep-label">Steuer-ID</span>
+								<span class="pep-label">{t('Steuer-ID')}</span>
 								<input bind:value={e.tax_id} maxlength="30" 	disabled={!maySeePersonal} />
 							</div>
 						</div>
@@ -634,9 +638,9 @@
 				</fieldset>
 
 				<fieldset class="pep-group">
-					<legend>Notizen</legend>
+					<legend>{t('Notizen')}</legend>
 					<div class="pep-row">
-						<span class="pep-label">Bemerkung</span>
+						<span class="pep-label">{t('Bemerkung')}</span>
 						<textarea bind:value={e.notes} rows="4"></textarea>
 					</div>
 				</fieldset>
@@ -644,28 +648,28 @@
 
 				{#if tab === 'qualifications'}
 				<fieldset class="pep-group">
-					<legend>Qualifikationen</legend>
+					<legend>{t('Qualifikationen')}</legend>
 					<div class="pep-quals">
 						{#each e.qualifications as _, index (index)}
 							<div class="pep-qual">
 								<input
 									bind:value={e.qualifications[index]}
 									maxlength="100"
-									placeholder="z. B. Staplerschein"
+									placeholder={t('z. B. Staplerschein')}
 								/>
 								<button
 									type="button"
-									title="Qualifikation entfernen"
+									title={t('Qualifikation entfernen')}
 										onclick={() => removeQualification(index)}>×</button
 								>
 							</div>
 						{:else}
-							<p class="pep-qual-empty">Noch keine Qualifikation eingetragen.</p>
+							<p class="pep-qual-empty">{t('Noch keine Qualifikation eingetragen.')}</p>
 						{/each}
 					</div>
 					<div class="pep-qual-footer">
 						<button class="pep-add" type="button" 	onclick={addQualification}>
-							Qualifikation +
+							{t('Qualifikation +')}
 						</button>
 					</div>
 				</fieldset>
@@ -678,12 +682,12 @@
 					class="sw-button pep-footer-delete"
 					type="button"
 						onclick={remove}
-					disabled={saving}>Löschen</button
+					disabled={saving}>{t('Löschen')}</button
 				>
 			{/if}
-			<button class="sw-button" type="button" onclick={onclose}>Abbrechen</button>
+			<button class="sw-button" type="button" onclick={onclose}>{t('Abbrechen')}</button>
 			<button class="sw-button sw-primary" type="button" 	onclick={save} disabled={saving}>
-				{saving ? 'Sichern …' : 'Sichern'}
+				{saving ? t('Sichern …') : t('Sichern')}
 			</button>
 		</div>
 	</div>
